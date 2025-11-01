@@ -1,0 +1,167 @@
+================================================================================
+                    SESAME STREET - WORLD MAP
+                "The Friendliest Street in America!"*
+          (*Terms and conditions apply. Street not responsible for
+                        existential crises)
+================================================================================
+
+NORTH
+  ^
+  |
+
+                      [Teleport Booth]
+                      (teleport_booth)
+                            |
+                           (N)
+                            |
+                  [Northern End of Sesame Street]
+                     (sesame_street_north)
+                      NPCs: Green Wumpy
+                    Objects: street_bench
+                            |
+                           (N)
+                            |
+       [Hotel Room 123]-----(W)-----[Sesame Street - Mid-North]
+       (hotel_room_01)              (sesame_street_03)
+     Objects: hotel_bed,            NPCs: Yellow Wumpy
+     nightstand, television    Objects: fire_hydrant, window_boxes
+              |                           |
+             (E)                         (N)
+              |                           |
+       [Hotel Lobby]-----(E)---------------
+       (hotel_lobby)                       |
+     Objects: reception_desk,              |
+     guest_book, luggage_cart,            (S)
+     potted_plant                          |
+                                           |
+                        [Sesame Street - Central Plaza]
+                           (sesame_street_01)
+                        NPCs: Big Bird (+ Oscar in trashcan)
+                        Objects: trashcan
+                                 |
+                                (S)
+         |                       |                      |
+        (E)                      |                     (W)
+         |                       |                      |
+  [Hooper's General]             |                [Furry Arms Tavern]
+  (general_store)                |                    (bar)
+  NPCs: Mr. Hooper               |              NPCs: Bartender, Purple Wumpy
+  Objects: store_counter,        |              Objects: bar_counter,
+  shelves, cookie_jar,           |              bar_stools, dartboard,
+  penny_candy_display            |              jukebox
+                                 |
+                                (N)
+                                 |
+                   [Sesame Street - Mid-South]
+                        (sesame_street_02)
+                        NPCs: Blue Wumpy
+                  Objects: lamppost, hopscotch_squares
+                                 |
+                                (N)
+                                 |
+                  [Southern End of Sesame Street]
+                      (sesame_street_south)
+                        NPCs: Red Wumpy
+                       Objects: welcome_sign
+                                 |
+                                (S)
+                                 |
+                        [REALITY STREET]
+                       (reality_street_01)
+                      *** Darker Area ***
+                      *** More Dangerous ***
+
+  |
+  v
+SOUTH
+
+================================================================================
+                            ROOM SUMMARY
+================================================================================
+
+MAIN STREET (North to South):
+1. teleport_booth        - Portal to other realms (Florida, Texas, etc.)
+2. sesame_street_north   - Northern terminus with bench
+3. sesame_street_03      - Mid-north section, hotel access
+4. sesame_street_01      - CENTRAL PLAZA (hub) with Big Bird & Oscar
+5. sesame_street_02      - Mid-south section with hopscotch
+6. sesame_street_south   - Southern entrance/exit to Reality Street
+
+BUILDINGS (East/West branches):
+7. general_store         - Hooper's shop (east from central plaza)
+8. bar                   - Furry Arms Tavern (west from central plaza)
+9. hotel_lobby           - Snuggly Sleeper Hotel (west from mid-north)
+10. hotel_room_01        - Guest room (west from lobby)
+
+TOTAL ROOMS: 10
+
+================================================================================
+                              NPC LOCATIONS
+================================================================================
+
+WUMPIES (Roaming, Kickable):
+- Red Wumpy    → sesame_street_south   (aggressive, confident)
+- Blue Wumpy   → sesame_street_02      (melancholic, philosophical)
+- Yellow Wumpy → sesame_street_03      (hyperactive, enthusiastic)
+- Green Wumpy  → sesame_street_north   (calculating, judgmental)
+- Purple Wumpy → bar                   (regal, haughty)
+
+MERCHANTS & NPCS:
+- Big Bird     → sesame_street_01      (Level 5, friendly)
+- Mr. Hooper   → general_store         (Level 5, merchant)
+- Bartender    → bar                   (Level 5, Grover)
+
+HIDDEN:
+- Oscar        → trashcan (in sesame_street_01)
+
+================================================================================
+                          INTERACTIVE OBJECTS
+================================================================================
+
+STREET FURNITURE:
+- welcome_sign, lamppost, hopscotch_squares, fire_hydrant, window_boxes,
+  street_bench
+
+TELEPORT BOOTH:
+- telephone (usable), destination_cards
+
+GENERAL STORE:
+- store_counter, shelves (container), cookie_jar (container/openable),
+  penny_candy_display
+
+BAR:
+- bar_counter, bar_stools (sittable), dartboard (usable), jukebox (usable)
+
+HOTEL:
+- reception_desk, guest_book (readable), luggage_cart, potted_plant,
+  hotel_bed (sleepable), nightstand (container), television (usable)
+
+EXISTING:
+- trashcan (container, contains Oscar)
+
+================================================================================
+                            DESIGN NOTES
+================================================================================
+
+THEME: Satirical 90s nostalgia meets Terry Pratchett wit
+TONE: Friendly but slightly off, wholesome with subtle darkness
+STYLE: Tongue-in-cheek, observational humor, unexpected details
+
+WUMPY MECHANICS:
+- Low-level (Level 1) creatures
+- Kickable for player amusement
+- Each has distinct personality
+- Roaming property set for wandering behavior
+
+CONNECTIONS TO OTHER REALMS:
+- North: Teleport booth → Other realms (not yet implemented)
+- South: Reality Street → Darker area (not yet implemented)
+
+EXPANSION OPPORTUNITIES:
+- Additional hotel rooms
+- Back rooms for bar/store
+- Alleyways off main street
+- Basement/secret areas
+- More interactive NPCs
+
+================================================================================

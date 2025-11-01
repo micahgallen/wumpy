@@ -1,0 +1,14 @@
+{
+  "id": "bartender",
+  "name": "Grover the Bartender",
+  "description": "A furry blue bartender stands behind the bar, polishing a glass with the intense focus of someone trying to achieve transcendence through cleaning. His expression suggests he's heard every story, twice, and has developed opinions.",
+  "keywords": ["bartender", "grover", "barkeep", "tender"],
+  "level": 5,
+  "hp": 120,
+  "dialogue": [
+    "What can I get for you? And please, make it something simple. I am still recovering from the last 'surprise me' order.",
+    "Ah yes, another adventurer. You all have the same look - confidence mixed with impending regret.",
+    "This bar has seen emperors and wumpies, heroes and fools. Sometimes all in the same person.",
+    "I do not judge. Much. Okay, I judge a little. It is part of the job."
+  ]
+}

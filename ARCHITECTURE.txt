@@ -1,0 +1,349 @@
+================================================================================
+                    THE WUMPY AND GRIFT - SYSTEM ARCHITECTURE
+================================================================================
+
+                              [Player Client]
+                                    |
+                                (TCP Port 4000)
+                                    |
+                                    v
+                            +----------------+
+                            |   server.js    |
+                            |                |
+                            | - Player Class |
+                            | - State Mgmt   |
+                            | - TCP Server   |
+                            +----------------+
+                                    |
+                    +---------------+---------------+
+                    |               |               |
+                    v               v               v
+            +------------+   +------------+   +-------------+
+            | playerdb.js|   |  world.js  |   | commands.js |
+            |            |   |            |   |             |
+            | - Auth     |   | - Loader   |   | - Parser    |
+            | - Storage  |   | - Rooms    |   | - Handlers  |
+            | - Hashing  |   | - NPCs     |   | - Movement  |
+            +------------+   | - Objects  |   +-------------+
+                    |        +------------+
+                    |               |
+                    v               v
+            [players.json]   [world/ directory]
+                                    |
+                    +---------------+---------------+
+                    |               |               |
+                    v               v               v
+                 rooms/          npcs/         objects/
+                 *.js            *.js            *.js
+
+
+================================================================================
+                              CONNECTION FLOW
+================================================================================
+
+1. NEW CONNECTION
+   [Client] --> [Server: Create Player] --> [Display Welcome]
+
+2. LOGIN/CREATE FLOW
+   [Prompt Username] --> [Check PlayerDB]
+        |                      |
+        +-- Exists ----------->+-- [Prompt Password]
+        |                      |        |
+        |                      |   [Authenticate]
+        |                      |        |
+        +-- New -------------->+-- [Confirm Create]
+                               |        |
+                               |   [Set Password]
+                               |        |
+                               +--------+
+                                        |
+                                   [Enter Game]
+
+3. GAMEPLAY LOOP
+   [Player Input] --> [Parse Command] --> [Execute Handler]
+                                                  |
+                          +-----------------------+
+                          |
+                          +-- [Update World State]
+                          |
+                          +-- [Update PlayerDB]
+                          |
+                          +-- [Send Response]
+                          |
+                          v
+                    [Wait for Input]
+
+
+================================================================================
+                               DATA STRUCTURES
+================================================================================
+
+Player (In Memory):
+{
+  socket: <Socket>,
+  username: "string",
+  currentRoom: "room_id",
+  state: "login_username" | "login_password" | "create_username" |
+         "create_password" | "playing",
+  tempUsername: "string" | null
+}
+
+PlayerDB Storage (players.json):
+{
+  "username_lowercase": {
+    username: "Display_Name",
+    passwordHash: "sha256_hex_string",
+    currentRoom: "room_id",
+    createdAt: "ISO_timestamp"
+  }
+}
+
+World Storage (In Memory):
+{
+  rooms: {
+    "room_id": {
+      id: "room_id",
+      name: "Room Name",
+      description: "Long description...",
+      exits: [{direction: "north", room: "target_room_id"}],
+      npcs: ["npc_id1", "npc_id2"],
+      objects: ["obj_id1", "obj_id2"]
+    }
+  },
+  npcs: {
+    "npc_id": {
+      id: "npc_id",
+      name: "NPC Name",
+      description: "Appearance...",
+      keywords: ["word1", "word2"],
+      level: 5,
+      hp: 100,
+      dialogue: ["Text 1", "Text 2"]
+    }
+  },
+  objects: {
+    "obj_id": {
+      id: "obj_id",
+      name: "object name",
+      description: "Detailed description...",
+      keywords: ["word1", "word2"],
+      is_container: true|false,
+      can_be_opened: true|false,
+      is_open: true|false,
+      contains: ["id1", "id2"]
+    }
+  }
+}
+
+
+================================================================================
+                              COMMAND SYSTEM
+================================================================================
+
+Input: "north some extra args"
+         |
+         v
+    [Split on whitespace]
+         |
+         v
+    command = "north"
+    args = ["some", "extra", "args"]
+         |
+         v
+    [Lookup in commands object]
+         |
+         v
+    commands[command](player, args, world, playerDB)
+         |
+         v
+    [Execute handler with full context]
+
+
+Available Commands:
+  - look                : Display current room
+  - help                : Show command list
+  - quit                : Disconnect
+  - north/n             : Move north
+  - south/s             : Move south
+  - east/e              : Move east
+  - west/w              : Move west
+  - up/u                : Move up
+  - down/d              : Move down
+
+
+================================================================================
+                            STATE TRANSITIONS
+================================================================================
+
+[NEW CONNECTION]
+       |
+       v
+[login_username] ----+
+       |             |
+       |             | (username not found)
+       v             v
+[login_password] [create_username] ----+
+       |             |                 | (yes)
+       | (auth ok)   | (no)            v
+       |             |          [create_password]
+       +-------------+-------------+
+                     |
+                     v
+                 [playing] <---+
+                     |         |
+                     +---------+ (all commands loop here)
+                     |
+                     v
+               [DISCONNECT]
+
+
+================================================================================
+                           MODULE DEPENDENCIES
+================================================================================
+
+server.js
+    |
+    +-- requires: net (built-in)
+    +-- requires: ./playerdb.js
+    +-- requires: ./world.js
+    +-- requires: ./commands.js
+    |
+    +-- creates: Player instances
+    +-- manages: Connection state
+    +-- delegates: Command execution
+
+playerdb.js
+    |
+    +-- requires: fs (built-in)
+    +-- requires: crypto (built-in)
+    +-- requires: path (built-in)
+    |
+    +-- manages: players.json file
+    +-- provides: Authentication
+    +-- provides: Persistence
+
+world.js
+    |
+    +-- requires: fs (built-in)
+    +-- requires: path (built-in)
+    |
+    +-- loads: world/ directory structure
+    +-- provides: Room data access
+    +-- provides: NPC data access
+    +-- provides: Object data access
+    +-- provides: Room formatting
+
+commands.js
+    |
+    +-- requires: none
+    |
+    +-- exports: commands object
+    +-- exports: parseCommand function
+    +-- provides: Command handlers
+    +-- provides: Movement logic
+
+
+================================================================================
+                              FILE STRUCTURE
+================================================================================
+
+mudmud/
+├── server.js              [Main server, Player class, TCP handling]
+├── playerdb.js            [Player persistence, authentication]
+├── world.js               [World data loader and formatter]
+├── commands.js            [Command parser and handlers]
+├── players.json           [Player account storage - auto-generated]
+│
+├── world/                 [World data directory]
+│   └── sesame_street/     [Sesame Street realm]
+│       ├── rooms/
+│       │   └── street.js  [Starting room definition]
+│       ├── npcs/
+│       │   └── big_bird.js
+│       └── objects/
+│           └── trashcan.js
+│
+├── DESIGN.md              [Game design document]
+├── CLAUDE.md              [Development guide]
+├── README.md              [User documentation]
+├── IMPLEMENTATION.md      [Technical implementation details]
+├── ARCHITECTURE.txt       [This file]
+│
+├── demo.sh                [Feature demonstration script]
+├── test_mud.sh            [Basic test script]
+└── mudtester.sh           [Connection test script]
+
+
+================================================================================
+                           EXTENSION POINTS
+================================================================================
+
+Adding New Commands:
+  1. Add handler function to commands.js
+  2. Function: (player, args, world, playerDB) => void
+  3. Use player.send() for output
+  4. Update help command
+
+Adding New Rooms:
+  1. Create JSON in world/<realm>/rooms/<name>.js
+  2. Set unique id, exits, npcs, objects
+  3. Restart server (auto-loads)
+
+Adding Player Data:
+  1. Update PlayerDB.createPlayer()
+  2. Update Player class constructor
+  3. Add commands to view/modify
+  4. Update save/load logic
+
+Adding NPC Interaction:
+  1. Create command handler (e.g., "talk")
+  2. Parse NPC identifier from args
+  3. Look up NPC in current room
+  4. Display dialogue or trigger behavior
+
+Adding Inventory:
+  1. Add items[] to Player class
+  2. Create take/drop/inventory commands
+  3. Update player persistence
+  4. Update room state when items moved
+
+
+================================================================================
+                          SECURITY CONSIDERATIONS
+================================================================================
+
+Current Implementation:
+  - Passwords hashed with SHA-256 (one-way)
+  - Usernames case-insensitive (prevents confusion)
+  - Socket error handling (prevents crashes)
+  - Input validation (prevents empty commands)
+
+Production Recommendations:
+  - Use bcrypt or argon2 for passwords
+  - Add rate limiting for login attempts
+  - Implement session timeouts
+  - Add input sanitization
+  - Log security events
+  - Implement privilege levels
+  - Add CAPTCHA for account creation
+
+
+================================================================================
+                              PERFORMANCE NOTES
+================================================================================
+
+Current Characteristics:
+  - All world data in memory (fast reads, high memory)
+  - Synchronous file writes (safe, slower)
+  - No caching of player lookups
+  - Blocking I/O (simple, may not scale)
+
+Optimization Opportunities:
+  - Add player data caching
+  - Batch database writes
+  - Implement async I/O
+  - Add world data lazy loading
+  - Implement object pooling
+
+
+================================================================================
