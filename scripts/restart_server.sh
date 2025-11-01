@@ -10,6 +10,8 @@ else
   echo "Server not found."
 fi
 
+cd "$(dirname "$0")/.."
+
 # Start the server
 echo "Starting server..."
 node src/server.js &
