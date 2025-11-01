@@ -12,4 +12,4 @@ fi
 
 # Start the server
 echo "Starting server..."
-node server.js &
+node src/server.js &

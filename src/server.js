@@ -1,6 +1,6 @@
 const net = require('net');
-const PlayerDB = require('./playerdb');
-const World = require('./world');
+const PlayerDB = require('../playerdb');
+const World = require('../world');
 const { parseCommand } = require('./commands');
 const colors = require('./colors');
 const { getBanner } = require('./banner');
