@@ -1,6 +1,7 @@
 const net = require('net');
 const PlayerDB = require('../playerdb');
 const World = require('../world');
+const CombatEngine = require('./combat/combatEngine');
 const { parseCommand } = require('./commands');
 const colors = require('./colors');
 const { getBanner } = require('./banner');
@@ -21,6 +22,17 @@ class Player {
     this.state = 'login_username'; // States: login_username, login_password, create_username, create_password, playing
     this.tempUsername = null; // Temporary storage during login/creation
     this.tauntIndex = 0;
+
+    // Combat stats (D20 system)
+    this.maxHp = 20; // Starting HP at level 1
+    this.currentHp = 20;
+    this.strength = 10; // Base ability scores
+    this.dexterity = 10;
+    this.constitution = 10;
+    this.intelligence = 10;
+    this.wisdom = 10;
+    this.charisma = 10;
+    this.resistances = {}; // Damage type resistances (e.g., { fire: 25 } = 25% fire resistance)
   }
 
   /**
@@ -51,6 +63,22 @@ class Player {
       this.socket.write('\n> ');
     }
   }
+
+  /**
+   * Take damage and update HP
+   * @param {number} damage - Amount of damage to take
+   */
+  takeDamage(damage) {
+    this.currentHp = Math.max(0, this.currentHp - damage);
+  }
+
+  /**
+   * Check if the player is dead
+   * @returns {boolean} True if currentHp <= 0
+   */
+  isDead() {
+    return this.currentHp <= 0;
+  }
 }
 
 // Initialize server components
@@ -58,6 +86,8 @@ const playerDB = new PlayerDB();
 const world = new World();
 const players = new Set();
 const activeInteractions = new Map();
+
+const combatEngine = new CombatEngine(world, players);
 
 const respawnService = new RespawnService(world);
 respawnService.start();
@@ -89,7 +119,7 @@ function handleInput(player, input) {
       break;
 
     case 'playing':
-      parseCommand(trimmed, player, world, playerDB, players, activeInteractions);
+      parseCommand(trimmed, player, world, playerDB, players, activeInteractions, combatEngine);
       player.sendPrompt();
       break;
 
@@ -249,13 +279,9 @@ server.on('error', err => {
 
 // Start the server
 const PORT = 4000;
-try {
-  server.listen(PORT, () => {
-    console.log('='.repeat(50));
-    console.log(`The Wumpy and Grift MUD Server`);
-    console.log(`Listening on port ${PORT}`);
-    console.log('='.repeat(50));
-  });
-} catch (err) {
-  console.error('Error starting server:', err);
-}
+server.listen(PORT, () => {
+  console.log('='.repeat(50));
+  console.log(`The Wumpy and Grift MUD Server`);
+  console.log(`Listening on port ${PORT}`);
+  console.log('='.repeat(50));
+});

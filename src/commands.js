@@ -14,6 +14,40 @@ const taunts = [
 ];
 
 const commands = {
+  attack: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => {
+    if (args.length === 0) {
+      player.send('\n' + colors.error('Attack what? Try "attack [target]"\n'));
+      return;
+    }
+
+    const target = args.join(' ').toLowerCase();
+    const room = world.getRoom(player.currentRoom);
+
+    if (!room) {
+      player.send('\n' + colors.error('You seem to be nowhere. This is a problem.\n'));
+      return;
+    }
+
+    // Search NPCs in current room
+    if (room.npcs) {
+      for (const npcId of room.npcs) {
+        const npc = world.getNPC(npcId);
+        if (npc && npc.keywords) {
+          if (npc.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
+            // Found matching NPC
+            combatEngine.initiateCombat([player, npc]);
+            return;
+          }
+        }
+      }
+    }
+    player.send('\n' + colors.error(`You don\'t see "${args.join(' ')}" here to attack.\n`));
+  },
+
+  kill: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => {
+    commands.attack(player, args, world, playerDB, allPlayers, activeInteractions, combatEngine);
+  },
+
   taunt: (player, args, world, playerDB, allPlayers) => {
     const messages = getEmoteMessages('taunt', player);
     broadcastEmote(player, null, allPlayers, messages.self, null, messages.room);
@@ -1144,7 +1178,7 @@ function movePlayer(player, direction, world, playerDB, allPlayers) {
  * @param {Set} allPlayers - Set of all connected players (optional)
  * @param {Map} activeInteractions - Map of active interactions (optional)
  */
-function parseCommand(input, player, world, playerDB, allPlayers = null, activeInteractions = null) {
+function parseCommand(input, player, world, playerDB, allPlayers = null, activeInteractions = null, combatEngine = null) {
   const trimmed = input.trim();
   if (!trimmed) {
     return; // Ignore empty commands
@@ -1180,7 +1214,7 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
   const command = commands[commandName];
   if (command) {
     try {
-      command(player, args, world, playerDB, allPlayers, activeInteractions);
+      command(player, args, world, playerDB, allPlayers, activeInteractions, combatEngine);
     } catch (err) {
       console.error(`Error executing command '${commandName}':`, err);
       player.send('\n' + colors.error('An error occurred while processing that command.\n'));

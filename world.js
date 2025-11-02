@@ -102,7 +102,34 @@ class World {
    * @returns {Object} NPC data or null
    */
   getNPC(npcId) {
-    return this.npcs[npcId] || null;
+    const npc = this.npcs[npcId];
+    if (!npc) return null;
+
+    // Ensure NPCs have combat stats initialized
+    if (!npc.maxHp) {
+      npc.maxHp = npc.hp || 10;
+    }
+    if (npc.currentHp === undefined) {
+      npc.currentHp = npc.maxHp;
+    }
+    if (!npc.strength) npc.strength = 10;
+    if (!npc.dexterity) npc.dexterity = 10;
+    if (!npc.constitution) npc.constitution = 10;
+    if (!npc.resistances) npc.resistances = {};
+
+    // Add combat methods if not already present
+    if (!npc.takeDamage) {
+      npc.takeDamage = function(damage) {
+        this.currentHp = Math.max(0, this.currentHp - damage);
+      };
+    }
+    if (!npc.isDead) {
+      npc.isDead = function() {
+        return this.currentHp <= 0;
+      };
+    }
+
+    return npc;
   }
 
   /**

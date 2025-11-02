@@ -450,5 +450,16 @@ module.exports = {
   highlight,
   action,
   npcSay,
-  wumpcom
+  wumpcom,
+
+  // Combat colors
+  combat: (text) => colorize(text, ANSI.BRIGHT_YELLOW),
+  hit: (text) => colorize(text, ANSI.BRIGHT_RED),
+  miss: (text) => colorize(text, ANSI.BRIGHT_BLACK),
+  critical: (text) => colorize(text, ANSI.BRIGHT_MAGENTA),
+  damage: (text) => colorize(text, ANSI.RED),
+  healing: (text) => colorize(text, ANSI.GREEN),
+  xpGain: (text) => colorize(text, ANSI.BRIGHT_CYAN),
+  levelUp: (text) => colorize(text, ANSI.BRIGHT_YELLOW),
+  statGain: (text) => colorize(text, ANSI.GREEN)
 };

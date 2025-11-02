@@ -49,6 +49,22 @@ NORTH
   Objects: store_counter,        |              Objects: bar_counter,
   shelves, cookie_jar,           |              bar_stools, dartboard,
   penny_candy_display            |              jukebox
+                                 |                      |
+                                 |                     (S)
+                                 |                      |
+                                 |            [Pit Fighter's Lounge]
+                                 |               (arena_lounge)
+                                 |           Objects: equipment_rack,
+                                 |           rules_board, nervous_stool
+                                 |                      |
+                                 |                     (S)
+                                 |                      |
+                                 |            [Wumpie Colosseum]
+                                 |               (arena_main)
+                                 |           NPCs: Arena Champion (Gronk)
+                                 |           Objects: arena_weapons_rack,
+                                 |           betting_board, bloodstains,
+                                 |           arena_benches
                                  |
                                 (N)
                                  |
@@ -93,7 +109,11 @@ BUILDINGS (East/West branches):
 9. hotel_lobby           - Snuggly Sleeper Hotel (west from mid-north)
 10. hotel_room_01        - Guest room (west from lobby)
 
-TOTAL ROOMS: 10
+COMBAT ARENA (South from bar):
+11. arena_lounge         - Pit Fighter's Lounge (preparation area)
+12. arena_main           - Wumpie Colosseum (combat testing ground)
+
+TOTAL ROOMS: 12
 
 ================================================================================
                               NPC LOCATIONS
@@ -110,6 +130,9 @@ MERCHANTS & NPCS:
 - Big Bird     → sesame_street_01      (Level 5, friendly)
 - Mr. Hooper   → general_store         (Level 5, merchant)
 - Bartender    → bar                   (Level 5, Grover)
+
+COMBAT ARENA:
+- Gronk the Undefeated → arena_main   (Level 4, Arena Champion, AC 15, 45 HP)
 
 HIDDEN:
 - Oscar        → trashcan (in sesame_street_01)
@@ -135,6 +158,11 @@ BAR:
 HOTEL:
 - reception_desk, guest_book (readable), luggage_cart, potted_plant,
   hotel_bed (sleepable), nightstand (container), television (usable)
+
+COMBAT ARENA:
+- equipment_rack, rules_board (readable), nervous_stool (sittable),
+  arena_weapons_rack, betting_board (readable), bloodstains,
+  arena_benches (sittable)
 
 EXISTING:
 - trashcan (container, contains Oscar)
