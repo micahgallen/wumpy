@@ -5,7 +5,20 @@
 
 const colors = require('./colors');
 
+const taunts = [
+  'I don\'t want to talk to you no more, you empty-headed animal food trough water! ',
+  'I fart in your general direction! Your mother was a hamster and your father smelt of elderberries!',
+  'Go and boil your bottoms, sons of a silly person!',
+  'I wave my private parts at your aunties, you cheesy lot of second-hand electric donkey-bottom biters!',
+  'Go away or I shall taunt you again!'
+];
+
 const commands = {
+  taunt: (player, args, world, playerDB, allPlayers) => {
+    const messages = getEmoteMessages('taunt', player);
+    broadcastEmote(player, null, allPlayers, messages.self, null, messages.room);
+    player.tauntIndex = (player.tauntIndex + 1) % taunts.length;
+  },
   /**
    * Look command - Display current room information
    */
@@ -64,10 +77,11 @@ const commands = {
    */
   help: (player, args, world, playerDB) => {
     if (args.length > 0 && args[0].toLowerCase() === 'emote') {
+      const emoteNames = Object.keys(emoteDefinitions).sort().join(', ');
       const emoteHelpText = `
 ${colors.info('Available Emotes:')}
 ${colors.line(19, '-')}
-  applaud, bow, cackle, cheer, chuckle, cry, dance, fart, flex, giggle, groan, growl, hiccup, hug, kiss, pinch, tip, wave, woo, grin
+  ${emoteNames}
 `;
       player.send(emoteHelpText);
       return;
@@ -493,170 +507,221 @@ ${colors.highlight('System:')}
   
       const action = args.join(' ');
       const message = `${player.username} ${action}`;
-      broadcastEmote(player, message, allPlayers);
+      broadcastEmote(player, null, allPlayers, `You ${action}`, null, message);
     },  
     /**
      * Emote commands
      */
-    applaud: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} applauds ${target}.`;
-    } else {
-      message = `${player.username} applauds with the enthusiasm of someone who just saw a dog walk on its hind legs.`;
+        applaud: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('applaud', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   bow: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} bows to ${target}.`;
-    } else {
-      message = `${player.username} bows with the grace of a penguin on a skateboard.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('bow', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   cackle: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} cackles maniacally at ${target}.`;
-    } else {
-      message = `${player.username} cackles like a villain who just remembered they left the oven on.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('cackle', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   cheer: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} cheers for ${target}.`;
-    } else {
-      message = `${player.username} cheers with the force of a thousand suns, or at least a very excited hamster.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('cheer', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   chuckle: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} chuckles at ${target}.`;
-    } else {
-      message = `${player.username} chuckles softly, like a grandfather who just told a terrible joke.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('chuckle', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   cry: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} cries on ${target}'s shoulder.`;
-    } else {
-      message = `${player.username} cries a single, dramatic tear. It's probably not real.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('cry', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   dance: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} dances with ${target}.`;
-    } else {
-      message = `${player.username} dances the dance of their people. It's... something.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('dance', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
+  },
+  fart: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
+    }
+
+    const messages = getEmoteMessages('fart', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   flex: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} flexes for ${target}.`;
-    } else {
-      message = `${player.username} flexes their muscles, which are surprisingly well-defined for a text-based adventurer.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('flex', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   giggle: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} giggles at ${target}.`;
-    } else {
-      message = `${player.username} giggles like a schoolgirl who just passed a note in class.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('giggle', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   groan: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} groans at ${target}.`;
-    } else {
-      message = `${player.username} groans with the weight of the world on their shoulders, or maybe they just ate too much cheese.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('groan', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   growl: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} growls at ${target}.`;
-    } else {
-      message = `${player.username} growls menacingly, or maybe they're just hungry.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('growl', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
   hiccup: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} hiccups at ${target}.`;
-    } else {
-      message = `${player.username} hiccups with a tiny, adorable squeak.`;
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('hiccup', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
-    hug: (player, args, world, playerDB, allPlayers) => {
-    let message;
-    if (args.length > 0) {
-      const target = args.join(' ');
-      message = `${player.username} hugs ${target}.`;
-    } else {
-      message = `${player.username} gives out free hugs. You know you want one.`;
+  grin: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
     }
-    broadcastEmote(player, message, allPlayers);
+
+    const messages = getEmoteMessages('grin', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
   },
-    kiss: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} blows a kiss into the air. It lands on someone's cheek with a soft *smack*.`;
-      broadcastEmote(player, message, allPlayers);
-    },
-    pinch: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} pinches themselves to make sure they're not dreaming. Nope, still here.`;
-      broadcastEmote(player, message, allPlayers);
-    },
-    tip: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} tips their hat to you, revealing a surprisingly well-coiffed head of hair.`;
-      broadcastEmote(player, message, allPlayers);
-    },
-    wave: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} waves enthusiastically, like they're trying to flag down a blimp.`;
-      broadcastEmote(player, message, allPlayers);
-    },
-    woo: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} lets out a triumphant 'WOO!' It's a little much, but you appreciate the enthusiasm.`;
-      broadcastEmote(player, message, allPlayers);
-    },
-    grin: (player, args, world, playerDB, allPlayers) => {
-      const message = `${player.username} grins like a Cheshire cat who just got away with something.`;
-      broadcastEmote(player, message, allPlayers);
-    },
+  kiss: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
+    }
+
+    const messages = getEmoteMessages('kiss', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
+  },
+  pinch: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
+    }
+
+    const messages = getEmoteMessages('pinch', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
+  },
+  tip: (player, args, world, playerDB, allPlayers) => {
+    const targetName = args.join(' ');
+    const targetPlayer = targetName ? findPlayerInRoom(targetName, player, allPlayers) : null;
+
+    if (targetName && !targetPlayer) {
+      player.send(`\n${colors.error(`You don't see "${targetName}" here.`)}\n`);
+      return;
+    }
+
+    const messages = getEmoteMessages('tip', player, targetPlayer);
+    broadcastEmote(player, targetPlayer, allPlayers, messages.self, messages.target, messages.room);
+  },
   
     /**
      * : - Short form of emote
      */
-    ':': (player, args, world, playerDB) => {    commands.emote(player, args, world, playerDB);
+  ':': (player, args, world, playerDB, allPlayers) => {
+    commands.emote(player, args, world, playerDB, allPlayers);
   },
 
   /**
@@ -768,6 +833,15 @@ ${colors.highlight('System:')}
   },
 };
 
+function findPlayerInRoom(playerName, player, allPlayers) {
+  for (const p of allPlayers) {
+    if (p.username.toLowerCase() === playerName.toLowerCase() && p.currentRoom === player.currentRoom) {
+      return p;
+    }
+  }
+  return null;
+}
+
 const oppositeDirection = {
   north: 'the south',
   south: 'the north',
@@ -777,15 +851,238 @@ const oppositeDirection = {
   down: 'above'
 };
 
-function broadcastEmote(player, message, allPlayers) {
-  // Send to self
-  player.send('\n' + colors.emote(message + '\n'));
+const emoteDefinitions = {
+  applaud: {
+    noTarget: (player) => ({
+      self: 'You applaud with the enthusiasm of someone who just saw a dog walk on its hind legs.',
+      room: `${player.username} applauds with the enthusiasm of someone who just saw a dog walk on its hind legs.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You applaud ${target.username}.`,
+      target: `${player.username} applauds you.`,
+      room: `${player.username} applauds ${target.username}.`,
+    }),
+  },
+  bow: {
+    noTarget: (player) => ({
+      self: 'You bow with the grace of a penguin on a skateboard.',
+      room: `${player.username} bows with the grace of a penguin on a skateboard.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You bow to ${target.username}.`,
+      target: `${player.username} bows to you.`,
+      room: `${player.username} bows to ${target.username}.`,
+    }),
+  },
+  cackle: {
+    noTarget: (player) => ({
+      self: 'You cackle like a villain who just remembered they left the oven on.',
+      room: `${player.username} cackles like a villain who just remembered they left the oven on.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You cackle maniacally at ${target.username}.`,
+      target: `${player.username} cackles maniacally at you.`,
+      room: `${player.username} cackles maniacally at ${target.username}.`,
+    }),
+  },
+  cheer: {
+    noTarget: (player) => ({
+      self: 'You cheer with the force of a thousand suns, or at least a very excited hamster.',
+      room: `${player.username} cheers with the force of a thousand suns, or at least a very excited hamster.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You cheer for ${target.username}.`,
+      target: `${player.username} cheers for you.`,
+      room: `${player.username} cheers for ${target.username}.`,
+    }),
+  },
+  chuckle: {
+    noTarget: (player) => ({
+      self: 'You chuckle softly, like a grandfather who just told a terrible joke.',
+      room: `${player.username} chuckles softly, like a grandfather who just told a terrible joke.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You chuckle at ${target.username}.`,
+      target: `${player.username} chuckles at you.`,
+      room: `${player.username} chuckles at ${target.username}.`,
+    }),
+  },
+  cry: {
+    noTarget: (player) => ({
+      self: 'You cry a single, dramatic tear. It\'s probably not real.',
+      room: `${player.username} cries a single, dramatic tear. It\'s probably not real.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You cry on ${target.username}\'s shoulder.`,
+      target: `${player.username} cries on your shoulder.`,
+      room: `${player.username} cries on ${target.username}\'s shoulder.`,
+    }),
+  },
+  dance: {
+    noTarget: (player) => ({
+      self: 'You dance the dance of your people. It\'s... something.',
+      room: `${player.username} dances the dance of their people. It\'s... something.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You dance with ${target.username}.`,
+      target: `${player.username} dances with you.`,
+      room: `${player.username} dances with ${target.username}.`,
+    }),
+  },
+  fart: {
+    noTarget: (player) => ({
+      self: 'You let out a small, apologetic toot.',
+      room: `${player.username} lets out a small, apologetic toot.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You fart in ${target.username}\'s general direction.`,
+      target: `${player.username} farts in your general direction.`,
+      room: `${player.username} farts in ${target.username}\'s general direction.`,
+    }),
+  },
+  flex: {
+    noTarget: (player) => ({
+      self: 'You flex your muscles, which are surprisingly well-defined for a text-based adventurer.',
+      room: `${player.username} flexes their muscles, which are surprisingly well-defined for a text-based adventurer.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You flex for ${target.username}.`,
+      target: `${player.username} flexes for you.`,
+      room: `${player.username} flexes for ${target.username}.`,
+    }),
+  },
+  giggle: {
+    noTarget: (player) => ({
+      self: 'You giggle like a schoolgirl who just passed a note in class.',
+      room: `${player.username} giggles like a schoolgirl who just passed a note in class.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You giggle at ${target.username}.`,
+      target: `${player.username} giggles at you.`,
+      room: `${player.username} giggles at ${target.username}.`,
+    }),
+  },
+  groan: {
+    noTarget: (player) => ({
+      self: 'You groan with the weight of the world on your shoulders, or maybe you just ate too much cheese.',
+      room: `${player.username} groans with the weight of the world on their shoulders, or maybe you just ate too much cheese.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You groan at ${target.username}.`,
+      target: `${player.username} groans at you.`,
+      room: `${player.username} groans at ${target.username}.`,
+    }),
+  },
+  growl: {
+    noTarget: (player) => ({
+      self: 'You growl menacingly, or maybe you\'re just hungry.',
+      room: `${player.username} growls menacingly, or maybe they\'re just hungry.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You growl at ${target.username}.`,
+      target: `${player.username} growls at you.`,
+      room: `${player.username} growls at ${target.username}.`,
+    }),
+  },
+  hiccup: {
+    noTarget: (player) => ({
+      self: 'You hiccup with a tiny, adorable squeak.',
+      room: `${player.username} hiccups with a tiny, adorable squeak.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You hiccup at ${target.username}.`,
+      target: `${player.username} hiccups at you.`,
+      room: `${player.username} hiccups at ${target.username}.`,
+    }),
+  },
+  grin: {
+    noTarget: (player) => ({
+      self: 'You grin like a Cheshire cat who just got away with something.',
+      room: `${player.username} grins like a Cheshire cat who just got away with something.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You grin at ${target.username}.`,
+      target: `${player.username} grins at you.`,
+      room: `${player.username} grins at ${target.username}.`,
+    }),
+  },
+  kiss: {
+    noTarget: (player) => ({
+      self: 'You blow a kiss into the air. It lands on someone\'s cheek with a soft *smack*.',
+      room: `${player.username} blows a kiss into the air. It lands on someone\'s cheek with a soft *smack*.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You blow a kiss to ${target.username}.`,
+      target: `${player.username} blows a kiss to you.`,
+      room: `${player.username} blows a kiss to ${target.username}.`,
+    }),
+  },
+  pinch: {
+    noTarget: (player) => ({
+      self: 'You pinch yourself to make sure you\'re not dreaming. Nope, still here.',
+      room: `${player.username} pinches themselves to make sure they\'re not dreaming. Nope, still here.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You pinch ${target.username} playfully.`,
+      target: `${player.username} pinches you playfully.`,
+      room: `${player.username} pinches ${target.username} playfully.`,
+    }),
+  },
+  tip: {
+    noTarget: (player) => ({
+      self: 'You tip your hat politely.',
+      room: `${player.username} tips their hat politely.`,
+    }),
+    withTarget: (player, target) => ({
+      self: `You tip your hat to ${target.username}.`,
+      target: `${player.username} tips their hat to you.`,
+      room: `${player.username} tips their hat to ${target.username}.`,
+    }),
+  },
+  taunt: {
+    noTarget: (player) => {
+      const currentTaunt = taunts[player.tauntIndex];
+      return {
+        self: `You taunt, "${currentTaunt}"`,
+        room: `${player.username} taunts, "${currentTaunt}"`,
+      };
+    },
+  },
+};
 
-  // Broadcast to others in the room
-  for (const p of allPlayers) {
-    if (p.currentRoom === player.currentRoom && p.username !== player.username) {
-      p.send('\n' + colors.emote(message + '\n'));
-      p.sendPrompt();
+function getEmoteMessages(emoteName, player, target = null) {
+  const def = emoteDefinitions[emoteName];
+  if (!def) {
+    return null;
+  }
+
+  if (target) {
+    return def.withTarget(player, target);
+  } else {
+    return def.noTarget(player);
+  }
+}
+
+function broadcastEmote(player, target, allPlayers, selfMessage, targetMessage, roomMessage) {
+  if (target) {
+    player.send(`\n${colors.emote(selfMessage)}\n`);
+    target.send(`\n${colors.emote(targetMessage)}\n`);
+    for (const p of allPlayers) {
+      if (p.currentRoom === player.currentRoom && p.username !== player.username && p.username !== target.username) {
+        p.send(`\n${colors.emote(roomMessage)}\n`);
+        p.sendPrompt();
+      }
+    }
+  } else {
+    for (const p of allPlayers) {
+      if (p.currentRoom === player.currentRoom) {
+        if (p.username === player.username) {
+          p.send(`\n${colors.emote(selfMessage)}\n`);
+        } else {
+          p.send(`\n${colors.emote(roomMessage)}\n`);
+        }
+        p.sendPrompt();
+      }
     }
   }
 }

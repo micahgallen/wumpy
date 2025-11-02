@@ -20,6 +20,7 @@ class Player {
     this.lastActivity = Date.now();
     this.state = 'login_username'; // States: login_username, login_password, create_username, create_password, playing
     this.tempUsername = null; // Temporary storage during login/creation
+    this.tauntIndex = 0;
   }
 
   /**

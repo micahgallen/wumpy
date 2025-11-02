@@ -14,4 +14,4 @@ cd "$(dirname "$0")/.."
 
 # Start the server
 echo "Starting server..."
-node src/server.js &
+node src/server.js > server.log 2> server.err &
