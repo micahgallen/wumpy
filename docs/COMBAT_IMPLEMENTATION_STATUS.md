@@ -206,45 +206,235 @@ Success Rate: 100.0%
 
 ---
 
-## Phase 5: Next Steps (XP and Leveling)
+## Phase 5: XP and Leveling Integration
 
-**Status:** Ready to Begin
-**Estimated Time:** 5-7 hours
+**Status:** 🔧 Design Complete - Ready for Implementation
+**Estimated Time:** 2-4 hours (mostly testing)
 **Prerequisites:** ✅ All complete
+**Architecture Document:** `docs/PHASE5_INTEGRATION_ARCHITECTURE.md`
+
+### Current State Assessment
+
+**Integration Status:** ⚠️ 90% Already Implemented
+
+The XP system and combat system are already fully implemented and integrated:
+- ✅ `CombatEncounter.js` already calls `awardXP()` on NPC death (line 103)
+- ✅ `xpSystem.js` has complete XP formulas and level-up logic
+- ✅ `statProgression.js` has stat gain calculations
+- ✅ `commands.js` score command already displays XP progress
+- ✅ `playerDB.js` has XP and level persistence methods
+
+**Primary Issue:** Proficiency bonus not updated on level-up (CRITICAL FIX NEEDED)
 
 ### Phase 5 Tasks
 
-#### 5.1 XP Award System
-- Award XP to players on NPC defeat
-- Calculate XP based on level difference
-- Split XP among multiple participants
-- Broadcast XP gain messages
+#### 5.1 XP Award System ✅ (Already Implemented)
+**File:** `src/combat/CombatEncounter.js` (lines 96-108)
 
-#### 5.2 Level-Up Handler
-- Check XP threshold after each award
-- Trigger level-up when threshold reached
-- Apply stat gains using `applyStatGains()`
-- Increase max HP
-- Update proficiency bonus
-- Full heal on level-up
+**Current Implementation:**
+```javascript
+if (winner && loser && winner.socket && !loser.socket) {
+    const xp = calculateCombatXP(loser, winner.level);
+    awardXP(winner, xp, 'combat', this.playerDB);
+}
+```
 
-#### 5.3 Level-Up Notifications
-- Broadcast level-up message to player
-- Show stat increases (HP, STR, DEX, etc.)
-- Notify room of player's level-up
-- Update player database
+**Status:**
+- ✅ XP calculated based on level difference (+20% per level above, -20% per level below)
+- ✅ XP awarded to player via `awardXP()` function
+- ✅ XP gain message displays to player
+- ✅ Validates winner is player, loser is NPC
 
-#### 5.4 Integration
-- Hook into combat end in `CombatEncounter.js`
-- Call XP award when NPC defeated
-- Update `score` command to show XP progress
-- Persist level/XP to PlayerDB
+**Testing Required:**
+- Verify XP message actually displays in live combat
+- Test XP scaling with different level differences
+- Confirm persistence to players.json
 
-### Phase 5 Files to Modify/Create
-1. `src/progression/xpSystem.js` - Already exists, integrate with combat
-2. `src/combat/CombatEncounter.js` - Add XP award on NPC death
-3. `src/commands.js` - Update score command with XP display
-4. `src/playerdb.js` - Ensure XP/level persistence
+#### 5.2 Level-Up Handler ✅ (Already Implemented)
+**File:** `src/progression/xpSystem.js` (lines 30-72)
+
+**Current Implementation:**
+```javascript
+function checkLevelUp(player, playerDB) {
+  const nextLevelXP = getXPForLevel(player.level + 1);
+
+  if (player.xp >= nextLevelXP) {
+    levelUp(player, playerDB);
+    checkLevelUp(player, playerDB); // Recursive for multi-level
+  }
+}
+
+function levelUp(player, playerDB) {
+  player.level++;
+  const statGains = calculateStatGains(player);
+  applyStatGains(player, statGains);
+  player.hp = player.maxHp; // Full heal
+
+  // Display level-up message
+  // Persist to database
+}
+```
+
+**Status:**
+- ✅ Automatic threshold detection
+- ✅ Multi-level support (recursive check)
+- ✅ Stat gains applied (+5 HP, +1 STR/4th, +1 CON/5th, +1 DEX/6th)
+- ✅ Full heal on level-up
+- ✅ Formatted level-up message with color
+- ⚠️ **CRITICAL BUG:** Proficiency bonus not updated
+
+**Fix Required:**
+Add to `levelUp()` function:
+```javascript
+const { getProficiencyBonus } = require('./statProgression');
+
+function levelUp(player, playerDB) {
+  player.level++;
+
+  // CRITICAL FIX: Update proficiency bonus
+  player.proficiency = getProficiencyBonus(player.level);
+
+  const statGains = calculateStatGains(player);
+  applyStatGains(player, statGains);
+  player.hp = player.maxHp;
+
+  // ... rest of function
+}
+```
+
+**Testing Required:**
+- Test level-up triggers at exact threshold
+- Test multi-level gains (e.g., L1 gaining 5000 XP → L3)
+- Verify proficiency bonus updates correctly
+- Confirm stat gains apply correctly
+- Verify full heal occurs
+
+#### 5.3 Level-Up Notifications ✅ (Already Implemented)
+**File:** `src/progression/xpSystem.js` (lines 57-68)
+
+**Current Implementation:**
+```javascript
+const levelUpMessage = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEVEL UP! You are now level 5!
+
+Max HP: 25 → 30 (+5)
+Strength: +1
+
+You have been fully healed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+player.socket.write(levelUpMessage + '\n');
+```
+
+**Status:**
+- ✅ Formatted message with ASCII borders
+- ✅ Shows level change
+- ✅ Shows HP increase
+- ✅ Shows stat gains
+- ⚠️ Room broadcast NOT implemented (deferred to Phase 6)
+
+**Future Enhancement (Phase 6):**
+- Broadcast to room: "PlayerName glows briefly as they gain a level!"
+- Requires passing `world` and `allPlayers` to `levelUp()`
+
+#### 5.4 Integration ✅ (Already Complete)
+**Files:** Multiple
+
+**Score Command Display:**
+```
+Character Information
+=======================
+Name: PlayerName
+Level: 5
+XP: 12000 / 20000 (8000 to next)
+
+HP: 30 / 30
+
+Strength: 12
+...
+```
+
+**Status:**
+- ✅ Score command shows XP progress (line 897 in commands.js)
+- ✅ XP persists via `playerDB.updatePlayerXP()`
+- ✅ Level persists via `playerDB.updatePlayerLevel()`
+- ✅ Combat calls XP system on NPC death
+
+**Testing Required:**
+- Verify score displays updated XP after gain
+- Verify players.json updated after XP gain
+- Verify players.json updated after level-up
+- Test persistence across server restart
+
+### Phase 5 Implementation Checklist
+
+#### Critical Fixes (Must Complete)
+- [ ] **Fix proficiency bonus update in `xpSystem.js`**
+  - Add `player.proficiency = getProficiencyBonus(player.level)` to levelUp()
+  - Import getProficiencyBonus from statProgression
+  - Test proficiency increases at L5, L9, L13, etc.
+
+#### Testing Tasks (Must Complete)
+- [ ] **Test basic XP award**
+  - Start L1 player, defeat L1 goblin
+  - Verify "You gain X XP! (combat)" message
+  - Verify XP shows in score command
+  - Verify players.json updated
+
+- [ ] **Test level-up trigger**
+  - Set player to 950 XP (50 below L2)
+  - Defeat goblin to gain 50 XP
+  - Verify level-up message displays
+  - Verify stats increased correctly
+  - Verify proficiency updated
+
+- [ ] **Test multi-level gains**
+  - Set L1 player to 0 XP
+  - Award 5000 XP (simulates boss kill)
+  - Verify two level-ups occur (L1→L2→L3)
+  - Verify final level is L3, XP is 5000/6858
+
+- [ ] **Test XP scaling**
+  - L1 player vs L3 NPC: ~70 XP (140%)
+  - L3 player vs L1 NPC: ~30 XP (60%)
+  - L1 player vs L10 NPC: capped at 200%
+  - L10 player vs L1 NPC: floored at 10%
+
+- [ ] **Test persistence**
+  - Gain XP, check players.json
+  - Level up, check players.json
+  - Restart server, verify XP/level preserved
+
+#### Edge Case Testing (Should Complete)
+- [ ] Player at exact threshold (999 XP → 1000 XP)
+- [ ] Player at level 50 (max level)
+- [ ] NPC with no xpReward property (falls back to level * 50)
+- [ ] Full heal on level-up works correctly
+
+#### Optional Enhancements (Phase 6)
+- [ ] Room broadcast on level-up
+- [ ] XP progress bar in score command
+- [ ] XP history/log command
+- [ ] Leaderboard command
+
+### Files Reference
+
+**Core Implementation (Already Complete):**
+- ✅ `src/progression/xpSystem.js` - XP formulas, level-up logic
+- ✅ `src/progression/statProgression.js` - Stat gains, proficiency
+- ✅ `src/combat/CombatEncounter.js` - XP award integration
+- ✅ `src/commands.js` - Score command with XP display
+- ✅ `src/playerdb.js` - XP/level persistence
+
+**Testing Files:**
+- 🆕 `tests/test_xp_integration.js` - Unit tests (optional)
+- 🆕 `scripts/test_xp.js` - Manual XP testing script (exists)
+
+**Documentation:**
+- 🆕 `docs/PHASE5_INTEGRATION_ARCHITECTURE.md` - Full architecture spec
+- ✅ `docs/COMBAT_IMPLEMENTATION_STATUS.md` - This file
 
 ---
 

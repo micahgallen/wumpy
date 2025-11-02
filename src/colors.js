@@ -461,5 +461,8 @@ module.exports = {
   healing: (text) => colorize(text, ANSI.GREEN),
   xpGain: (text) => colorize(text, ANSI.BRIGHT_CYAN),
   levelUp: (text) => colorize(text, ANSI.BRIGHT_YELLOW),
-  statGain: (text) => colorize(text, ANSI.GREEN)
+  statGain: (text) => colorize(text, ANSI.GREEN),
+
+  // Text styles
+  dim: (text) => colorize(text, ANSI.DIM)
 };

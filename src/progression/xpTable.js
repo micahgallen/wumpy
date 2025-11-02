@@ -52,7 +52,9 @@ const XP_TABLE = {
 };
 
 function getXPForLevel(level) {
-  return XP_TABLE[level] || XP_TABLE[50] * 2;
+  // Use !== undefined to handle level 1 (which has 0 XP)
+  // Using || would treat 0 as falsy and return the fallback
+  return XP_TABLE[level] !== undefined ? XP_TABLE[level] : XP_TABLE[50] * 2;
 }
 
 module.exports = { XP_TABLE, getXPForLevel };
