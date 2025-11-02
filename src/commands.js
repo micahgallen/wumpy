@@ -4,6 +4,7 @@
  */
 
 const colors = require('./colors');
+const logger = require('./logger');
 
 const taunts = [
   'I don\'t want to talk to you no more, you empty-headed animal food trough water! ',
@@ -42,6 +43,16 @@ const commands = {
         if (npc && npc.keywords) {
           if (npc.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
             // Found matching NPC
+
+            // Retaliation logic
+            if (!npc.aggressive) {
+              const timidity = npc.timidity !== undefined ? npc.timidity : 0.5;
+              if (Math.random() > timidity) {
+                npc.aggressive = true;
+                player.send(`\n${colors.action(`The ${npc.name} becomes aggressive!`)}\n`);
+              }
+            }
+
             combatEngine.initiateCombat([player, npc]);
             return;
           }
@@ -822,7 +833,7 @@ ${colors.highlight('System:')}
   },
 
   /**
-   * Who command - List online players
+   * Who command - List online players with their status
    */
   who: (player, args, world, playerDB, allPlayers) => {
     if (!allPlayers || allPlayers.size === 0) {
@@ -831,34 +842,12 @@ ${colors.highlight('System:')}
     }
 
     let output = [];
-    output.push(colors.info(`Players Online (${allPlayers.size}):`));
-    output.push(colors.line(19, '-'));
-
-    for (const p of allPlayers) {
-      if (p.username && p.state === 'playing') {
-        const room = world.getRoom(p.currentRoom);
-        const roomName = room ? room.name : 'Unknown';
-        output.push(`  ${colors.playerName(p.username)} - ${colors.hint(roomName)}`);
-      }
-    }
-
-    output.push('');
-    player.send('\n' + output.join('\n') + '\n');
-  },
-
-  'list-players': (player, args, world, playerDB, allPlayers) => {
-    if (!allPlayers || allPlayers.size === 0) {
-      player.send('\n' + colors.info('No players are currently online.\n'));
-      return;
-    }
-
-    let output = [];
     output.push(colors.info('Online Players:'));
-    output.push(colors.line(78, '-'));
+    output.push(colors.line(85, '-'));
     output.push(
-      colors.highlight('Username'.padEnd(20) + 'Realm'.padEnd(20) + 'Level'.padEnd(10) + 'Idle'.padEnd(10))
+      colors.highlight('Username'.padEnd(20) + 'Realm'.padEnd(25) + 'Level'.padEnd(8) + 'Status'.padEnd(12) + 'Idle'.padEnd(10))
     );
-    output.push(colors.line(78, '-'));
+    output.push(colors.line(85, '-'));
 
     for (const p of allPlayers) {
       if (p.username && p.state === 'playing') {
@@ -867,16 +856,26 @@ ${colors.highlight('System:')}
         const idleTime = Math.floor((Date.now() - p.lastActivity) / 1000);
         const idleString = idleTime > 60 ? `${Math.floor(idleTime / 60)}m` : `${idleTime}s`;
 
+        // Build status string with ghost indicator
+        const statusText = p.isGhost ? 'Ghost' : 'Active';
+
+        // Pad the visible text before colorizing to maintain alignment
+        const paddedStatus = statusText.padEnd(12);
+        const coloredStatus = p.isGhost ?
+          colors.hint(paddedStatus) :
+          colors.colorize(paddedStatus, colors.MUD_COLORS.SUCCESS);
+
         output.push(
           colors.playerName(p.username.padEnd(20)) +
-          colors.colorize(realm.padEnd(20), colors.MUD_COLORS.ROOM_NAME) +
-          colors.colorize(p.level.toString().padEnd(10), colors.MUD_COLORS.INFO) +
+          colors.colorize(realm.padEnd(25), colors.MUD_COLORS.ROOM_NAME) +
+          colors.colorize((p.level || 1).toString().padEnd(8), colors.MUD_COLORS.INFO) +
+          coloredStatus +
           colors.hint(idleString.padEnd(10))
         );
       }
     }
 
-    output.push(colors.line(78, '-'));
+    output.push(colors.line(85, '-'));
     output.push(colors.hint(`Total: ${allPlayers.size} player(s)`));
 
     player.send('\n' + output.join('\n') + '\n');
@@ -886,53 +885,63 @@ ${colors.highlight('System:')}
    * Score command - Show character stats
    */
   score: (player, args, world, playerDB) => {
-    let output = [];
-    output.push(colors.info('Character Information'));
-    output.push(colors.line(23, '='));
-    output.push(`${colors.highlight('Name:')} ${colors.playerName(player.username)}`);
-    output.push(`${colors.highlight('Location:')} ${world.getRoom(player.currentRoom)?.name || 'Unknown'}`);
+    console.log('Player object in score command:', player);
+    try {
+      const { getXPToNextLevel, getXPForLevel } = require('./progression/xpSystem');
 
-    // Show ghost status prominently if applicable
-    if (player.isGhost) {
-      output.push(`${colors.highlight('Status:')} ${colors.error('GHOST')}`);
-      output.push(colors.hint('  You are currently a ghost and cannot attack.'));
+      let output = [];
+      output.push(colors.info('Character Information'));
+      output.push(colors.line(23, '='));
+      output.push(`${colors.highlight('Name:')} ${colors.playerName(player.username)}`);
+      output.push(`${colors.highlight('Level:')} ${player.level}`);
+      output.push(`${colors.highlight('XP:')} ${player.xp} / ${getXPForLevel(player.level + 1)} (${getXPToNextLevel(player)} to next)`);
+      output.push('');
+      output.push(`${colors.highlight('HP:')} ${player.hp} / ${player.maxHp}`);
+      output.push('');
+      output.push(`${colors.highlight('Strength:')} ${player.strength}`);
+      output.push(`${colors.highlight('Dexterity:')} ${player.dexterity}`);
+      output.push(`${colors.highlight('Constitution:')} ${player.constitution}`);
+      output.push(`${colors.highlight('Intelligence:')} ${player.intelligence}`);
+      output.push(`${colors.highlight('Wisdom:')} ${player.wisdom}`);
+      output.push(`${colors.highlight('Charisma:')} ${player.charisma}`);
+
+
+      // Show ghost status prominently if applicable
+      if (player.isGhost) {
+        output.push(`\n${colors.highlight('Status:')} ${colors.error('GHOST')}`);
+        output.push(colors.hint('  You are currently a ghost and cannot attack.'));
+      }
+
+      if (player.inventory && player.inventory.length > 0) {
+        output.push(`\n${colors.highlight('Carrying:')} ${player.inventory.length} item(s)`);
+      } else {
+        output.push(`\n${colors.highlight('Carrying:')} nothing`);
+      }
+
+      player.send('\n' + output.join('\n') + '\n');
+    } catch (error) {
+      player.send('\n' + colors.error(`Error in score command: ${error.message}\n`));
+      console.error('Error in score command:', error);
     }
-
-    if (player.inventory && player.inventory.length > 0) {
-      output.push(`${colors.highlight('Carrying:')} ${player.inventory.length} item(s)`);
-    } else {
-      output.push(`${colors.highlight('Carrying:')} nothing`);
-    }
-
-    output.push('');
-    if (player.isGhost) {
-      output.push(colors.hint('You are a ghostly spirit in The Wumpy and Grift.'));
-      output.push(colors.hint('Your translucent form drifts through the world...'));
-    } else {
-      output.push(colors.hint('You are a fledgling adventurer in The Wumpy and Grift.'));
-      output.push(colors.hint('More stats will appear here as you progress...'));
-    }
-
-    player.send('\n' + output.join('\n') + '\n');
   },
 
   /**
    * Movement commands - Handle all movement directions
    */
-  north: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'north', world, playerDB, allPlayers),
-  south: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'south', world, playerDB, allPlayers),
-  east: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'east', world, playerDB, allPlayers),
-  west: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'west', world, playerDB, allPlayers),
-  up: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'up', world, playerDB, allPlayers),
-  down: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'down', world, playerDB, allPlayers),
+  north: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'north', world, playerDB, allPlayers, combatEngine),
+  south: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'south', world, playerDB, allPlayers, combatEngine),
+  east: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'east', world, playerDB, allPlayers, combatEngine),
+  west: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'west', world, playerDB, allPlayers, combatEngine),
+  up: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'up', world, playerDB, allPlayers, combatEngine),
+  down: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'down', world, playerDB, allPlayers, combatEngine),
 
   // Short aliases for movement
-  n: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'north', world, playerDB, allPlayers),
-  s: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'south', world, playerDB, allPlayers),
-  e: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'east', world, playerDB, allPlayers),
-  w: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'west', world, playerDB, allPlayers),
-  u: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'up', world, playerDB, allPlayers),
-  d: (player, args, world, playerDB, allPlayers) => movePlayer(player, 'down', world, playerDB, allPlayers),
+  n: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'north', world, playerDB, allPlayers, combatEngine),
+  s: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'south', world, playerDB, allPlayers, combatEngine),
+  e: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'east', world, playerDB, allPlayers, combatEngine),
+  w: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'west', world, playerDB, allPlayers, combatEngine),
+  u: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'up', world, playerDB, allPlayers, combatEngine),
+  d: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => movePlayer(player, 'down', world, playerDB, allPlayers, combatEngine),
 
   // Short alias for look
   l: (player, args, world, playerDB, allPlayers) => {
@@ -1203,7 +1212,23 @@ function broadcastEmote(player, target, allPlayers, selfMessage, targetMessage, 
  * @param {Object} playerDB - PlayerDB object
  * @param {Set} allPlayers - Set of all connected players
  */
-function movePlayer(player, direction, world, playerDB, allPlayers) {
+function checkAggressiveNPCs(player, world, combatEngine) {
+  const room = world.getRoom(player.currentRoom);
+  if (room && room.npcs) {
+    for (const npcId of room.npcs) {
+      const npc = world.getNPC(npcId);
+      if (npc && npc.aggressive) {
+        const isPlayerInCombat = combatEngine.activeCombats.some(c => c.participants.some(p => p.username === player.username));
+        if (!isPlayerInCombat) {
+          combatEngine.initiateCombat([npc, player]);
+          break; // For now, only one NPC attacks
+        }
+      }
+    }
+  }
+}
+
+function movePlayer(player, direction, world, playerDB, allPlayers, combatEngine) {
   const originalRoomId = player.currentRoom;
   const destinationRoomId = world.findExit(originalRoomId, direction);
 
@@ -1241,6 +1266,9 @@ function movePlayer(player, direction, world, playerDB, allPlayers) {
   // Show the new room to the player who moved
   player.send('\n' + colors.info(`You move ${direction}.\n`));
   commands.look(player, [], world, playerDB, allPlayers);
+
+  // Check for aggressive NPCs
+  checkAggressiveNPCs(player, world, combatEngine);
 }
 
 /**
@@ -1290,7 +1318,7 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
     try {
       command(player, args, world, playerDB, allPlayers, activeInteractions, combatEngine);
     } catch (err) {
-      console.error(`Error executing command '${commandName}':`, err);
+      logger.error(`Error executing command '${commandName}':`, err);
       player.send('\n' + colors.error('An error occurred while processing that command.\n'));
     }
   } else {

@@ -24,6 +24,14 @@ Use the provided test script:
 
 Note: This requires `gtimeout` to be installed (GNU coreutils on macOS).
 
+To test the server launch and ensure it starts successfully, use the dedicated launch test script:
+
+```bash
+./scripts/launch_server_test.sh
+```
+This script will shut down any existing server, launch a new one, and confirm successful startup by checking the server logs.
+
+
 ## Architecture
 
 ### Server Architecture (server.js)

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const colors = require('./src/colors');
+const colors = require('./colors');
 
 /**
  * World - Manages world data (rooms, NPCs, objects)

@@ -1,11 +1,12 @@
 const net = require('net');
-const PlayerDB = require('../playerdb');
-const World = require('../world');
+const PlayerDB = require('./playerdb');
+const World = require('./world');
 const CombatEngine = require('./combat/combatEngine');
 const { parseCommand } = require('./commands');
 const colors = require('./colors');
 const { getBanner } = require('./banner');
 const RespawnService = require('./respawnService');
+const logger = require('./logger');
 
 /**
  * Player class - Represents a connected player
@@ -17,23 +18,24 @@ class Player {
     this.description = null;
     this.currentRoom = null;
     this.inventory = []; // Array of object IDs
-    this.level = 1;
     this.lastActivity = Date.now();
     this.state = 'login_username'; // States: login_username, login_password, create_username, create_password, playing
     this.tempUsername = null; // Temporary storage during login/creation
     this.tauntIndex = 0;
 
-    // Combat stats (D20 system)
-    this.maxHp = 20; // Starting HP at level 1
+    // Combat stats (D20 system) - these will be loaded from playerDB
+    this.level = 1;
+    this.xp = 0;
     this.currentHp = 20;
-    this.strength = 10; // Base ability scores
+    this.maxHp = 20;
+    this.strength = 10;
     this.dexterity = 10;
     this.constitution = 10;
     this.intelligence = 10;
     this.wisdom = 10;
     this.charisma = 10;
-    this.resistances = {}; // Damage type resistances (e.g., { fire: 25 } = 25% fire resistance)
-    this.isGhost = false; // Ghost status after death
+    this.resistances = {};
+    this.isGhost = false;
   }
 
   /**
@@ -70,7 +72,7 @@ class Player {
    * @param {number} damage - Amount of damage to take
    */
   takeDamage(damage) {
-    this.currentHp = Math.max(0, this.currentHp - damage);
+    this.hp = Math.max(0, this.hp - damage);
   }
 
   /**
@@ -78,7 +80,7 @@ class Player {
    * @returns {boolean} True if currentHp <= 0
    */
   isDead() {
-    return this.currentHp <= 0;
+    return this.hp <= 0;
   }
 }
 
@@ -88,7 +90,7 @@ const world = new World();
 const players = new Set();
 const activeInteractions = new Map();
 
-const combatEngine = new CombatEngine(world, players);
+const combatEngine = new CombatEngine(world, players, playerDB);
 
 const respawnService = new RespawnService(world);
 respawnService.start();
@@ -167,17 +169,31 @@ function handleLoginPassword(player, password) {
     player.description = playerData.description || 'A normal-looking person.';
     player.currentRoom = playerData.currentRoom;
     player.inventory = playerData.inventory || [];
-    player.level = playerData.level || 1;
+    player.level = playerData.level ?? 1;
+    player.xp = playerData.xp ?? 0;
+    player.hp = playerData.hp ?? playerData.maxHp ?? 20;
+    player.maxHp = playerData.maxHp ?? 20;
+
+    // Ensure player.stats is an object before accessing its properties
+    player.strength = playerData.stats?.strength ?? 10;
+    player.dexterity = playerData.stats?.dexterity ?? 10;
+    player.constitution = playerData.stats?.constitution ?? 10;
+    player.intelligence = playerData.stats?.intelligence ?? 10;
+    player.wisdom = playerData.stats?.wisdom ?? 10;
+    player.charisma = playerData.stats?.charisma ?? 10;
+
+    player.resistances = playerData.resistances ?? {};
+
     player.state = 'playing';
 
-    console.log(`Player ${player.username} logged in.`);
+    logger.log(`Player ${player.username} logged in.`);
 
     player.send('\n' + colors.success(`Welcome back, ${player.username}!\n\n`));
     parseCommand('look', player, world, playerDB, players);
     player.sendPrompt();
   } else {
     // Failed login
-    console.log(`Failed login attempt for ${player.tempUsername}`);
+    logger.log(`Failed login attempt for ${player.tempUsername}`);
     player.send('\n' + colors.error('Incorrect password.\n'));
     player.tempUsername = null;
     player.state = 'login_username';
@@ -220,9 +236,24 @@ function handleCreatePassword(player, password) {
     player.description = playerData.description;
     player.currentRoom = playerData.currentRoom;
     player.inventory = playerData.inventory || [];
+    player.level = playerData.level ?? 1;
+    player.xp = playerData.xp ?? 0;
+    player.hp = playerData.hp ?? playerData.maxHp ?? 20;
+    player.maxHp = playerData.maxHp ?? 20;
+
+    // Ensure player.stats is an object before accessing its properties
+    player.strength = playerData.stats?.strength ?? 10;
+    player.dexterity = playerData.stats?.dexterity ?? 10;
+    player.constitution = playerData.stats?.constitution ?? 10;
+    player.intelligence = playerData.stats?.intelligence ?? 10;
+    player.wisdom = playerData.stats?.wisdom ?? 10;
+    player.charisma = playerData.stats?.charisma ?? 10;
+
+    player.resistances = playerData.resistances ?? {};
+
     player.state = 'playing';
 
-    console.log(`New player created: ${player.username}`);
+    logger.log(`New player created: ${player.username}`);
 
     player.send('\n' + colors.success(`Account created! Welcome to The Wumpy and Grift, ${player.username}!\n`));
     player.send(colors.hint('Type \'help\' for a list of commands.\n\n'));
@@ -244,7 +275,7 @@ const server = net.createServer(socket => {
   const player = new Player(socket);
   players.add(player);
 
-  console.log('A new connection has been established.');
+  logger.log('A new connection has been established.');
 
   // Welcome banner
   player.send('\n' + getBanner() + '\n');
@@ -259,30 +290,33 @@ const server = net.createServer(socket => {
   // Handle disconnection
   socket.on('end', () => {
     if (player.username) {
-      console.log(`Player ${player.username} disconnected.`);
+      logger.log(`Player ${player.username} disconnected.`);
     } else {
-      console.log('A connection disconnected before logging in.');
+      logger.log('A connection disconnected before logging in.');
     }
     players.delete(player);
   });
 
   // Handle errors
   socket.on('error', err => {
-    console.error('Socket error:', err);
+    logger.error('Socket error:', err);
     players.delete(player);
   });
 });
 
 // Handle server errors
 server.on('error', err => {
-  console.error('Server error:', err);
+  logger.error('Server error:', err);
 });
 
 // Start the server
 const PORT = 4000;
 server.listen(PORT, () => {
-  console.log('='.repeat(50));
-  console.log(`The Wumpy and Grift MUD Server`);
-  console.log(`Listening on port ${PORT}`);
-  console.log('='.repeat(50));
+  logger.log('='.repeat(50));
+  logger.log(`The Wumpy and Grift MUD Server`);
+  logger.log(`Listening on port ${PORT}`);
+  logger.log('='.repeat(50));
 });
+
+// Export Player class for testing
+module.exports = { Player };

@@ -1,9 +1,10 @@
 const CombatEncounter = require('./CombatEncounter');
 
 class CombatEngine {
-    constructor(world, allPlayers) {
+    constructor(world, allPlayers, playerDB) {
         this.world = world;
         this.allPlayers = allPlayers;
+        this.playerDB = playerDB;
         this.activeCombats = [];
         setInterval(() => {
             try {
@@ -15,7 +16,7 @@ class CombatEngine {
     }
 
     initiateCombat(participants) {
-        const encounter = new CombatEncounter(participants, this.world, this.allPlayers);
+        const encounter = new CombatEncounter(participants, this.world, this.allPlayers, this.playerDB);
         this.activeCombats.push(encounter);
         encounter.initiateCombat();
     }

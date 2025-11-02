@@ -605,17 +605,26 @@ Key deliverables:
 
 ---
 
-### Phase 4: NPC AI (4-6 hours)
+### Phase 4: NPC AI (4-6 hours) - **BUG: Combat output missing**
 
-**Goal:** NPC decision-making and automated turns
+**Goal:** NPC decision-making and automated turns, including aggressive behavior and retaliation.
 
-**Detailed implementation plan available in COMBAT_XP_ARCHITECTURE.md Phase 4**
+**Implementation Details:**
+- **`src/combat/combatAI.js`:** Created to house NPC AI logic. The `determineNPCAction` function decides whether an NPC should attack or flee, taking into account the NPC's `fleeThreshold` and `timidity`.
+- **`src/combat/CombatEncounter.js`:** The `executeCombatRound` method now uses `determineNPCAction` for NPC turns. If an NPC decides to flee, the combat ends.
+- **`src/commands.js`:**
+    - **Aggressive Behavior:** The `movePlayer` function now calls a new `checkAggressiveNPCs` function. This function checks for NPCs with the `aggressive: true` flag in the player's new room and initiates combat if found.
+    - **Retaliation:** The `attack` command now includes retaliation logic. When a player attacks a non-aggressive NPC, the NPC has a chance to become aggressive based on its `timidity` stat.
 
-Key deliverables:
-- NPC action selection
-- Flee logic
-- Aggressive NPC behavior
-- Automated NPC turns
+**Key deliverables:**
+- [x] NPC action selection (attack, flee)
+- [x] Flee logic (basic implementation)
+- [x] Aggressive NPC behavior (attack on sight)
+- [x] Automated NPC turns
+- [x] Retaliation logic for non-aggressive NPCs
+
+**Current Status:** Combat rounds are executing, but no output messages (attack, damage, death) are being displayed to the players. This indicates a potential issue in how combat messages are broadcast or generated, possibly introduced during recent changes. This bug must be investigated and resolved before proceeding.
+
 
 **Estimated Time:** 4-6 hours
 
@@ -783,6 +792,7 @@ Recommended implementation sequence:
 3. **Phase 3 (Combat Engine)** - Start with minimal viable combat
 4. **Test Integration** - Full combat encounter test
 5. **Phase 4 (NPC AI)** - Add automated NPC behavior
+   **PRIORITY: Investigate and fix missing combat output bug.**
 6. **Phase 5 (XP System)** - Add progression
 7. **Test Progression** - Level-up test
 8. **Phase 6 (Commands)** - Integrate with command system

@@ -72,6 +72,22 @@ class PlayerDB {
       description: 'A normal-looking person.',
       currentRoom: 'sesame_street_01', // Starting room
       inventory: [], // Empty inventory for new players
+      level: 1,
+      xp: 0,
+      hp: 20,
+      maxHp: 20,
+      stats: {
+        strength: 10,
+        dexterity: 10,
+        constitution: 10,
+        intelligence: 10,
+        wisdom: 10,
+        charisma: 10
+      },
+      resistances: {
+        physical: 0, fire: 0, ice: 0, lightning: 0,
+        poison: 0, necrotic: 0, radiant: 0, psychic: 0
+      },
       createdAt: new Date().toISOString()
     };
 
@@ -99,6 +115,27 @@ class PlayerDB {
     if (passwordHash !== playerData.passwordHash) {
       return null; // Incorrect password
     }
+
+    // Add default combat stats if they don't exist for backwards compatibility
+    if (!playerData.stats) {
+        playerData.level = 1;
+        playerData.xp = 0;
+        playerData.hp = 20;
+        playerData.maxHp = 20;
+        playerData.stats = {
+            strength: 10,
+            dexterity: 10,
+            constitution: 10,
+            intelligence: 10,
+            wisdom: 10,
+            charisma: 10
+        };
+        playerData.resistances = {
+            physical: 0, fire: 0, ice: 0, lightning: 0,
+            poison: 0, necrotic: 0, radiant: 0, psychic: 0
+        };
+    }
+
 
     return playerData;
   }
@@ -147,6 +184,24 @@ class PlayerDB {
     const lowerUsername = username.toLowerCase();
     if (this.players[lowerUsername]) {
       this.players[lowerUsername].description = description;
+      this.save();
+    }
+  }
+
+  updatePlayerXP(username, xp) {
+    const player = this.players[username.toLowerCase()];
+    if (player) {
+      player.xp = xp;
+      this.save();
+    }
+  }
+
+  updatePlayerLevel(username, level, maxHp, hp) {
+    const player = this.players[username.toLowerCase()];
+    if (player) {
+      player.level = level;
+      player.maxHp = maxHp;
+      player.hp = hp;
       this.save();
     }
   }

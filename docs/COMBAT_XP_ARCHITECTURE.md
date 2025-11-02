@@ -1,1802 +1,2262 @@
-# Combat and XP/Levelling System Architecture
-**The Wumpy and Grift MUD**
-
-**Version:** 1.0
-**Last Updated:** November 2, 2025
-**Author:** MUD Architect (Claude Code)
-
----
+# Combat & XP System Architecture
 
 ## Table of Contents
-1. [Executive Summary](#executive-summary)
-2. [Design Philosophy](#design-philosophy)
-3. [Core Mechanics Overview](#core-mechanics-overview)
-4. [Data Structures](#data-structures)
-5. [Combat System Architecture](#combat-system-architecture)
-6. [XP and Levelling System](#xp-and-levelling-system)
-7. [Damage Types and Resistances](#damage-types-and-resistances)
-8. [Combat Formulas](#combat-formulas)
-9. [State Management](#state-management)
-10. [Integration Points](#integration-points)
-11. [File Organization](#file-organization)
-12. [Implementation Phases](#implementation-phases)
-13. [Future Extensions](#future-extensions)
+
+1. [Overview](#overview)
+2. [Core Data Structures](#core-data-structures)
+3. [XP & Leveling System](#xp--leveling-system)
+4. [Combat System](#combat-system)
+5. [Death & Resurrection](#death--resurrection)
+6. [NPC AI & Behavior](#npc-ai--behavior)
+7. [Resting System](#resting-system)
+8. [PvP System](#pvp-system)
+9. [Edge Cases & Error Handling](#edge-cases--error-handling)
+10. [Implementation Guide](#implementation-guide)
+11. [Reference Configuration](#reference-configuration)
 
 ---
 
-## Executive Summary
+## Overview
 
-This document outlines a complete architectural plan for implementing a D20-based combat system and XP/levelling progression system for The Wumpy and Grift MUD. The design prioritizes:
+This document defines the complete architecture for the MUD's combat and character progression systems. These systems are deeply integrated: combat generates XP, XP drives leveling, and levels enhance combat capabilities.
 
-- **Simplicity:** Easy to understand, play, and extend
-- **Balance:** Fair and engaging combat that scales with level
-- **Extensibility:** Clean interfaces for future guild/spell systems
-- **Consistency:** D20 mechanics familiar to modern tabletop gamers
-- **Fun:** Fast-paced, tactical combat with meaningful choices
+### Design Philosophy
 
-The system is designed as a foundation that will support future features including guild-specific abilities, spell casting, equipment enchantments, and tactical combat mechanics.
+- **D20-based mechanics**: Simplified tabletop RPG approach with d20 rolls for attacks
+- **Formula-driven progression**: Deterministic XP curves with configurable pacing
+- **Modular combat registry**: Centralized combat state prevents desyncs
+- **Instance-based NPCs**: Separate definitions from instances for efficient spawning
+- **Guild extensibility**: Hooks allow guilds to customize progression and abilities
 
----
+### System Integration Points
 
-## Design Philosophy
-
-### Core Principles
-
-1. **D20 Foundation:** All random mechanics use a 1d20 roll modified by stats and level
-2. **Turn-Based Combat:** Predictable rounds with initiative order
-3. **Elemental Variety:** Multiple damage types create tactical depth
-4. **Progressive Scaling:** Stats and difficulty scale meaningfully with level
-5. **No Spell Mechanics Yet:** Combat focuses on physical attacks; spells come later through guild system
-
-### Inspiration Sources
-
-- **D&D 5th Edition:** Bounded accuracy, advantage/disadvantage, saving throws
-- **Classic MUDs:** Turn-based rounds, HP pools, level-based progression
-- **Modern Design:** Clear feedback, meaningful choices, avoiding grinding
-
----
-
-## Core Mechanics Overview
-
-### Combat Flow (High-Level)
 ```
-1. Player initiates combat with "attack [target]" or "kill [target]"
-2. System checks if combat is valid (target exists, is attackable, not already in combat)
-3. Initiative is rolled (1d20 + Dexterity modifier)
-4. Combat proceeds in rounds with highest initiative acting first
-5. Each combatant takes an action on their turn (attack, flee, use item)
-6. Combat ends when one side dies or flees successfully
-7. Winner gains XP; loser respawns (if NPC) or dies (player death mechanics)
-```
-
-### XP Flow (High-Level)
-```
-1. Player gains XP from:
-   - Defeating NPCs (based on NPC level vs player level)
-   - Completing quests (defined reward per quest)
-2. XP accumulates toward next level threshold
-3. On level-up:
-   - Stats increase based on formula
-   - Max HP increases
-   - New abilities unlock (future: guild skills)
-   - Player is notified
-4. XP requirements scale exponentially with level
+Player Action → Combat Initiated → Combat Registry
+                                 ↓
+                         Round-based Resolution
+                                 ↓
+                    Victory/Death/Flee/Leash
+                                 ↓
+              XP Award → Level Check → Guild Hooks
+                                 ↓
+                         Death Handler (if died)
+                                 ↓
+                    Corpse/Ghost/Resurrection Flow
 ```
 
 ---
 
-## Data Structures
-
-### Player Combat Stats (Extended Player Object)
-
-Add these properties to the existing `Player` class in `/Users/au288926/Documents/mudmud/src/server.js`:
-
-```javascript
-class Player {
-  constructor(socket) {
-    // ... existing properties ...
-
-    // Core Stats (base 10, increase on level-up)
-    this.strength = 10;      // Melee attack bonus, melee damage
-    this.dexterity = 10;     // Initiative, AC, ranged attack bonus
-    this.constitution = 10;  // HP calculation, fortitude saves
-    this.intelligence = 10;  // Future: spell power (guild system)
-    this.wisdom = 10;        // Future: spell resistance, perception
-    this.charisma = 10;      // Future: persuasion, merchant prices
-
-    // Combat Stats
-    this.level = 1;
-    this.xp = 0;
-    this.hp = 20;            // Current HP
-    this.maxHp = 20;         // Maximum HP (10 + (level * 5) + CON modifier)
-    this.armorClass = 10;    // Base AC (10 + DEX modifier + equipment)
-
-    // Resistances (0-100 percentage reduction)
-    this.resistances = {
-      physical: 0,
-      fire: 0,
-      ice: 0,
-      lightning: 0,
-      poison: 0,
-      necrotic: 0,
-      radiant: 0,
-      psychic: 0
-    };
-
-    // Combat State
-    this.inCombat = false;
-    this.combatTarget = null;  // NPC ID or player username
-    this.combatInitiative = 0;
-    this.combatRoundActions = 0; // Actions taken this round
-  }
-}
-```
-
-### NPC Combat Data (Extended NPC Schema)
-
-Update NPC definitions in `/Users/au288926/Documents/mudmud/world/sesame_street/npcs/*.js`:
-
-```javascript
-{
-  "id": "example_npc",
-  "name": "Example NPC",
-  "description": "...",
-  "keywords": ["..."],
-
-  // Existing fields
-  "level": 3,
-  "hp": 30,  // This becomes maxHp
-
-  // New combat fields
-  "combatStats": {
-    "strength": 12,
-    "dexterity": 10,
-    "constitution": 14,
-    "intelligence": 8,
-    "wisdom": 10,
-    "charisma": 6
-  },
-  "armorClass": 13,
-  "attackBonus": 3,  // Level-based or custom
-  "damageType": "physical",  // Default damage type
-  "damageDice": "1d6",       // Base damage dice
-  "xpReward": 100,           // Base XP for defeating this NPC
-
-  "resistances": {
-    "physical": 0,
-    "fire": 10,
-    "ice": -20  // Negative = vulnerability
-  },
-
-  "attackMessages": [
-    "{npc} claws at {target}!",
-    "{npc} bites {target} viciously!",
-    "{npc} strikes {target} with fury!"
-  ],
-
-  "deathMessages": [
-    "{npc} collapses in a heap!",
-    "{npc} lets out a final gasp and falls."
-  ],
-
-  // AI behavior flags
-  "aggressive": false,       // Attacks players on sight
-  "fleeThreshold": 0.2,      // Flees when HP below 20%
-  "callsForHelp": false      // Future: summons nearby NPCs
-}
-```
-
-### Combat State Object
-
-Managed by the combat system, stored in a Map keyed by player username or NPC ID:
-
-```javascript
-class CombatEncounter {
-  constructor(attacker, defender, attackerType, defenderType) {
-    this.id = generateCombatId();
-    this.attacker = attacker;      // Player or NPC object
-    this.defender = defender;      // Player or NPC object
-    this.attackerType = attackerType;  // 'player' or 'npc'
-    this.defenderType = defenderType;  // 'player' or 'npc'
-
-    this.round = 0;
-    this.turn = null;  // Who acts this turn
-    this.turnOrder = []; // Sorted by initiative
-    this.combatLog = []; // History of actions this combat
-
-    this.active = true;
-    this.startTime = Date.now();
-  }
-
-  rollInitiative() {
-    const attackerInit = rollD20() + getModifier(this.attacker.dexterity);
-    const defenderInit = rollD20() + getModifier(this.defender.dexterity);
-
-    this.turnOrder = [
-      { combatant: this.attacker, type: this.attackerType, initiative: attackerInit },
-      { combatant: this.defender, type: this.defenderType, initiative: defenderInit }
-    ].sort((a, b) => b.initiative - a.initiative);
-
-    this.turn = this.turnOrder[0];
-  }
-
-  nextTurn() {
-    const currentIndex = this.turnOrder.indexOf(this.turn);
-    const nextIndex = (currentIndex + 1) % this.turnOrder.length;
-
-    if (nextIndex === 0) {
-      this.round++;
-    }
-
-    this.turn = this.turnOrder[nextIndex];
-  }
-}
-```
-
-### XP Progression Table
-
-Stored in `/Users/au288926/Documents/mudmud/src/xpTable.js`:
-
-```javascript
-// XP required to reach each level
-// Formula: 1000 * (level ^ 1.5)
-const XP_TABLE = {
-  1: 0,
-  2: 1000,      // 1000 * (2 ^ 1.5) ≈ 2828, simplified to 1000
-  3: 3000,      // Cumulative
-  4: 6000,
-  5: 10000,
-  6: 15000,
-  7: 21000,
-  8: 28000,
-  9: 36000,
-  10: 45000,
-  11: 55000,
-  12: 66000,
-  13: 78000,
-  14: 91000,
-  15: 105000,
-  20: 190000,
-  25: 312000,
-  30: 464000,
-  // ... up to level 50 or max level
-};
-
-// Stat increases per level
-const STAT_GAINS_PER_LEVEL = {
-  hp: 5,           // +5 max HP per level
-  primaryStat: 1,  // +1 to primary stat every 4 levels (future: class-based)
-  allStats: 1      // +1 to all stats every 5 levels
-};
-```
-
----
-
-## Combat System Architecture
-
-### Module Structure
-
-Create `/Users/au288926/Documents/mudmud/src/combat/` directory with:
-
-```
-src/combat/
-├── combatEngine.js      - Main combat orchestrator
-├── combatResolver.js    - Attack/damage resolution
-├── damageTypes.js       - Damage type definitions and resistances
-├── initiative.js        - Initiative and turn order
-├── combatAI.js          - NPC combat behavior
-└── combatMessages.js    - Combat text generation
-```
-
-### Combat Engine (`combatEngine.js`)
-
-**Responsibilities:**
-- Initiate combat between combatants
-- Manage active combat encounters
-- Execute combat rounds
-- Handle turn progression
-- Terminate combat (victory, defeat, flee)
-
-**Key Functions:**
-```javascript
-/**
- * Initiate combat between attacker and defender
- * @param {Object} attacker - Player or NPC
- * @param {Object} defender - Player or NPC
- * @param {string} attackerType - 'player' or 'npc'
- * @param {string} defenderType - 'player' or 'npc'
- * @param {Object} world - World instance
- * @returns {CombatEncounter}
- */
-function initiateCombat(attacker, defender, attackerType, defenderType, world)
-
-/**
- * Execute a single combat round
- * @param {CombatEncounter} combat
- */
-function executeCombatRound(combat)
-
-/**
- * Process an attack action
- * @param {Object} attacker
- * @param {Object} defender
- * @param {CombatEncounter} combat
- */
-function processAttack(attacker, defender, combat)
-
-/**
- * End combat and clean up state
- * @param {CombatEncounter} combat
- * @param {string} outcome - 'victory', 'defeat', 'flee'
- */
-function endCombat(combat, outcome)
-
-/**
- * Check if a combatant can act (alive, not stunned, etc.)
- * @param {Object} combatant
- * @returns {boolean}
- */
-function canAct(combatant)
-```
-
-### Combat Resolver (`combatResolver.js`)
-
-**Responsibilities:**
-- Calculate attack rolls
-- Determine hits vs misses
-- Calculate damage
-- Apply damage with resistances
-- Handle critical hits/misses
-
-**Key Functions:**
-```javascript
-/**
- * Roll an attack against a target
- * @param {Object} attacker
- * @param {Object} defender
- * @param {string} damageType - Damage type for this attack
- * @returns {Object} { hit: boolean, roll: number, damage: number, critical: boolean }
- */
-function rollAttack(attacker, defender, damageType = 'physical')
-
-/**
- * Calculate attack bonus for a combatant
- * @param {Object} combatant
- * @param {string} damageType
- * @returns {number}
- */
-function getAttackBonus(combatant, damageType)
-
-/**
- * Roll damage for an attack
- * @param {Object} attacker
- * @param {string} damageDice - e.g., '1d6', '2d8+3'
- * @param {boolean} critical - Is this a critical hit?
- * @returns {number}
- */
-function rollDamage(attacker, damageDice, critical = false)
-
-/**
- * Apply damage to a target, accounting for resistances
- * @param {Object} target
- * @param {number} rawDamage
- * @param {string} damageType
- * @returns {number} Actual damage dealt
- */
-function applyDamage(target, rawDamage, damageType)
-
-/**
- * Calculate armor class for a combatant
- * @param {Object} combatant
- * @returns {number}
- */
-function getArmorClass(combatant)
-```
-
-### Damage Types (`damageTypes.js`)
-
-**Damage Type Registry:**
-```javascript
-const DAMAGE_TYPES = {
-  physical: {
-    name: 'Physical',
-    description: 'Slashing, piercing, and bludgeoning damage from weapons',
-    color: 'brightRed',
-    icon: '⚔️'
-  },
-  fire: {
-    name: 'Fire',
-    description: 'Burning damage from flames and heat',
-    color: 'brightYellow',
-    icon: '🔥'
-  },
-  ice: {
-    name: 'Ice',
-    description: 'Freezing damage from cold and frost',
-    color: 'brightCyan',
-    icon: '❄️'
-  },
-  lightning: {
-    name: 'Lightning',
-    description: 'Electrical damage from storms and energy',
-    color: 'brightBlue',
-    icon: '⚡'
-  },
-  poison: {
-    name: 'Poison',
-    description: 'Toxic damage from venoms and toxins',
-    color: 'green',
-    icon: '☠️'
-  },
-  necrotic: {
-    name: 'Necrotic',
-    description: 'Death magic that withers and decays',
-    color: 'magenta',
-    icon: '💀'
-  },
-  radiant: {
-    name: 'Radiant',
-    description: 'Holy light that sears the wicked',
-    color: 'brightWhite',
-    icon: '✨'
-  },
-  psychic: {
-    name: 'Psychic',
-    description: 'Mental damage that assaults the mind',
-    color: 'brightMagenta',
-    icon: '🧠'
-  }
-};
-
-/**
- * Calculate effective damage after resistance
- * @param {number} rawDamage
- * @param {string} damageType
- * @param {Object} resistances - { physical: 10, fire: -20, ... }
- * @returns {number}
- */
-function calculateResistance(rawDamage, damageType, resistances) {
-  const resistance = resistances[damageType] || 0;
-
-  // Resistance is a percentage reduction (0-100)
-  // Negative resistance = vulnerability (takes more damage)
-  const multiplier = 1 - (resistance / 100);
-
-  return Math.max(0, Math.floor(rawDamage * multiplier));
-}
-```
-
-### Initiative System (`initiative.js`)
-
-**Responsibilities:**
-- Roll initiative for combatants
-- Determine turn order
-- Handle initiative ties
-
-```javascript
-/**
- * Roll initiative for a combatant
- * @param {Object} combatant
- * @returns {number}
- */
-function rollInitiative(combatant) {
-  const dexMod = getModifier(combatant.dexterity);
-  return rollD20() + dexMod;
-}
-
-/**
- * Determine turn order for all combatants
- * @param {Array} combatants - Array of {combatant, type}
- * @returns {Array} Sorted by initiative (high to low)
- */
-function determineTurnOrder(combatants) {
-  return combatants
-    .map(c => ({
-      ...c,
-      initiative: rollInitiative(c.combatant)
-    }))
-    .sort((a, b) => {
-      if (b.initiative !== a.initiative) {
-        return b.initiative - a.initiative;
-      }
-      // Tie-breaker: higher dexterity goes first
-      return b.combatant.dexterity - a.combatant.dexterity;
-    });
-}
-```
-
-### Combat AI (`combatAI.js`)
-
-**Responsibilities:**
-- NPC decision-making during combat
-- Flee logic
-- Target selection (future: multi-combatant)
-
-```javascript
-/**
- * Determine NPC action for this turn
- * @param {Object} npc
- * @param {CombatEncounter} combat
- * @returns {string} Action to take: 'attack', 'flee', 'use_item'
- */
-function determineNPCAction(npc, combat) {
-  // Check flee threshold
-  const hpPercent = npc.hp / npc.maxHp;
-  if (hpPercent <= (npc.fleeThreshold || 0.1)) {
-    return 'flee';
-  }
-
-  // Future: Check for items to use
-  // Future: Check for special abilities
-
-  // Default: attack
-  return 'attack';
-}
-
-/**
- * Execute NPC turn
- * @param {Object} npc
- * @param {CombatEncounter} combat
- */
-function executeNPCTurn(npc, combat) {
-  const action = determineNPCAction(npc, combat);
-
-  switch (action) {
-    case 'attack':
-      processAttack(npc, combat.getOpponent(npc), combat);
-      break;
-    case 'flee':
-      attemptFlee(npc, combat);
-      break;
-    // Future: 'use_item', 'special_ability'
-  }
-}
-```
-
-### Combat Messages (`combatMessages.js`)
-
-**Responsibilities:**
-- Generate dynamic combat text
-- Colorize output
-- Provide variety in combat descriptions
-
-```javascript
-/**
- * Get a random attack message
- * @param {Object} attacker
- * @param {Object} defender
- * @param {boolean} hit
- * @param {boolean} critical
- * @returns {string}
- */
-function getAttackMessage(attacker, defender, hit, critical) {
-  const attackerName = attacker.username || attacker.name;
-  const defenderName = defender.username || defender.name;
-
-  if (critical) {
-    return colors.critical(`${attackerName} lands a CRITICAL HIT on ${defenderName}!`);
-  }
-
-  if (hit) {
-    const messages = [
-      `${attackerName} strikes ${defenderName}!`,
-      `${attackerName} hits ${defenderName} solidly!`,
-      `${attackerName} lands a blow on ${defenderName}!`
-    ];
-    return colors.hit(messages[Math.floor(Math.random() * messages.length)]);
-  } else {
-    const messages = [
-      `${attackerName} swings at ${defenderName} but misses!`,
-      `${defenderName} dodges ${attackerName}'s attack!`,
-      `${attackerName}'s attack goes wide!`
-    ];
-    return colors.miss(messages[Math.floor(Math.random() * messages.length)]);
-  }
-}
-
-/**
- * Get damage message with type-specific coloring
- * @param {number} damage
- * @param {string} damageType
- * @returns {string}
- */
-function getDamageMessage(damage, damageType) {
-  const typeInfo = DAMAGE_TYPES[damageType];
-  const colorFn = colors[typeInfo.color] || colors.damage;
-  return colorFn(`${damage} ${typeInfo.name} damage!`);
-}
-```
-
----
-
-## XP and Levelling System
-
-### Module Structure
-
-Create `/Users/au288926/Documents/mudmud/src/progression/` directory:
-
-```
-src/progression/
-├── xpSystem.js        - XP gain and level-up logic
-├── xpTable.js         - Level thresholds and progression data
-└── statProgression.js - Stat increase formulas
-```
-
-### XP System (`xpSystem.js`)
-
-**Responsibilities:**
-- Award XP from combat and quests
-- Track XP totals
-- Trigger level-ups
-- Calculate XP rewards
-
-**Key Functions:**
-```javascript
-/**
- * Award XP to a player
- * @param {Object} player
- * @param {number} xpAmount
- * @param {string} source - 'combat', 'quest', 'discovery'
- * @param {Object} playerDB
- */
-function awardXP(player, xpAmount, source, playerDB) {
-  player.xp += xpAmount;
-
-  player.send(colors.xpGain(`You gain ${xpAmount} XP! (${source})`));
-
-  // Check for level-up
-  checkLevelUp(player, playerDB);
-
-  // Persist
-  playerDB.updatePlayerXP(player.username, player.xp);
-}
-
-/**
- * Check if player should level up and process if so
- * @param {Object} player
- * @param {Object} playerDB
- */
-function checkLevelUp(player, playerDB) {
-  const nextLevelXP = getXPForLevel(player.level + 1);
-
-  if (player.xp >= nextLevelXP) {
-    levelUp(player, playerDB);
-
-    // Check again in case of multi-level gains
-    checkLevelUp(player, playerDB);
-  }
-}
-
-/**
- * Process a level-up
- * @param {Object} player
- * @param {Object} playerDB
- */
-function levelUp(player, playerDB) {
-  player.level++;
-
-  // Increase stats
-  const statGains = calculateStatGains(player);
-  applyStatGains(player, statGains);
-
-  // Full heal on level-up
-  player.hp = player.maxHp;
-
-  // Notify player
-  const levelUpMessage = `
-${colors.levelUp('━'.repeat(60))}
-${colors.levelUp('LEVEL UP!')} You are now level ${colors.highlight(player.level)}!
-
-${colors.statGain(`Max HP: ${player.maxHp - statGains.hp} → ${player.maxHp} (+${statGains.hp})`)}
-${formatStatGains(statGains)}
-
-${colors.hint('You have been fully healed!')}
-${colors.levelUp('━'.repeat(60))}
-`;
-
-  player.send(levelUpMessage);
-
-  // Persist
-  playerDB.updatePlayerLevel(player.username, player.level, player.maxHp, player.hp);
-}
-
-/**
- * Calculate XP reward for defeating an NPC
- * @param {Object} npc
- * @param {number} playerLevel
- * @returns {number}
- */
-function calculateCombatXP(npc, playerLevel) {
-  const baseXP = npc.xpReward || (npc.level * 50);
-  const levelDiff = npc.level - playerLevel;
-
-  // Scale XP based on level difference
-  // +20% per level above player, -20% per level below (min 10%)
-  let multiplier = 1 + (levelDiff * 0.2);
-  multiplier = Math.max(0.1, Math.min(2.0, multiplier));
-
-  return Math.floor(baseXP * multiplier);
-}
-
-/**
- * Get XP required for a specific level
- * @param {number} level
- * @returns {number}
- */
-function getXPForLevel(level) {
-  return XP_TABLE[level] || (XP_TABLE[50] * 2); // Max level fallback
-}
-
-/**
- * Get XP needed for next level
- * @param {Object} player
- * @returns {number}
- */
-function getXPToNextLevel(player) {
-  const nextLevelXP = getXPForLevel(player.level + 1);
-  return nextLevelXP - player.xp;
-}
-```
-
-### Stat Progression (`statProgression.js`)
-
-**Responsibilities:**
-- Calculate stat increases on level-up
-- Apply stat gains to player
-- Balance progression curve
-
-```javascript
-/**
- * Calculate stat gains for a level-up
- * @param {Object} player
- * @returns {Object} { hp, strength, dexterity, ... }
- */
-function calculateStatGains(player) {
-  const gains = {
-    hp: 5,  // Always +5 HP per level
-    strength: 0,
-    dexterity: 0,
-    constitution: 0,
-    intelligence: 0,
-    wisdom: 0,
-    charisma: 0
+## Core Data Structures
+
+### 2.1 Player Character Schema
+
+```typescript
+interface Player {
+  id: string;                    // Unique player ID
+  name: string;
+
+  // Core Stats
+  level: number;
+  currentXp: number;
+  maxHp: number;
+  currentHp: number;
+  resource: number;              // Mana/energy/etc (guild-specific)
+  maxResource: number;
+
+  // Attributes (base values)
+  str: number;
+  dex: number;
+  con: number;
+  int: number;
+  wis: number;
+  cha: number;
+
+  // Derived Stats
+  proficiency: number;           // Calculated: +2 at L1, +3 at L5, +4 at L9, etc.
+  armorClass: number;            // Base 10 + DEX mod + armor bonuses
+
+  // Equipment
+  equippedWeapon?: ItemInstance;
+  equippedArmor?: ItemInstance;
+  inventory: ItemInstance[];
+
+  // Combat State
+  currentWeapon: {
+    name: string;
+    damageDice: string;          // Default "1d4" for unarmed
+    damageType: DamageType;
   };
 
-  // Every 4 levels: +1 to primary stat (future: class-based)
-  // For now, let players choose or distribute evenly
+  // Guild & Progression
+  guildId?: string;
+  guildRank: number;
+
+  // Status Flags
+  isGhost: boolean;
+  isDead: boolean;
+  lastDamageTaken: number;       // Timestamp for resting checks
+  lastDefeatedBy: Set<string>;   // NPC instance IDs with 2-min cooldown
+
+  // Location
+  roomId: string;
+
+  // PvP
+  pvpCooldownUntil?: number;     // 5s spawn protection
+
+  // Cooldowns
+  fleeCooldownUntil?: number;    // 10s between flee attempts
+}
+```
+
+### 2.2 NPC Definition vs Instance
+
+**NPC Definition** (static template):
+
+```typescript
+interface NpcDefinition {
+  id: string;                    // Unique definition ID (e.g., "goblin_warrior")
+  name: string;
+  description: string;
+
+  // Base Stats
+  level: number;
+  maxHp: number;
+  armorClass: number;
+
+  // Attributes
+  str: number;
+  dex: number;
+  con: number;
+  int: number;
+  wis: number;
+  cha: number;
+
+  // Combat
+  damageDice: string;            // e.g., "1d6"
+  damageType: DamageType;
+  proficiency: number;
+
+  // Resistances/Vulnerabilities
+  resistances: Record<DamageType, number>;  // 0.0-1.0 multiplier
+  vulnerabilities: DamageType[];
+
+  // AI Behavior
+  aggressive: boolean;
+  socialAggro: boolean;          // Pull nearby same-type NPCs
+  leashDistance: number;         // Max distance from home
+  pursuitDurationSec: number;    // Max pursuit time
+
+  // Loot & XP
+  xpReward: number;              // Base XP for even-level kill
+  lootTable: LootEntry[];
+
+  // Respawn
+  respawnDelay: number;          // Seconds until respawn
+  homeRoomId: string;            // Where to spawn/retreat
+}
+```
+
+**NPC Instance** (spawned copy):
+
+```typescript
+interface NpcInstance {
+  instanceId: string;            // Unique instance ID
+  defId: string;                 // Reference to NpcDefinition
+
+  // Runtime State
+  currentHp: number;
+  currentRoomId: string;
+  homeRoomId: string;
+
+  // Combat State
+  inCombat: boolean;
+  targetId?: string;
+
+  // Leash State
+  pursuedSince?: number;         // Timestamp when pursuit started
+  distanceFromHome: number;      // Rooms away from home
+
+  // Aggro State
+  aggroList: AggroEntry[];       // Sorted by threat
+  lastDefeatedPlayers: Map<string, number>;  // PlayerId → timestamp
+
+  // Respawn
+  isDead: boolean;
+  respawnAt?: number;            // Timestamp for respawn
+}
+
+interface AggroEntry {
+  playerId: string;
+  threat: number;
+  addedAt: number;
+}
+```
+
+### 2.3 Combat Registry
+
+Centralized combat state management to prevent desyncs:
+
+```typescript
+interface CombatRegistry {
+  combats: Record<CombatId, Combat>;
+  entityToCombat: Record<EntityId, CombatId>;
+}
+
+interface Combat {
+  id: CombatId;                  // Unique combat ID
+  participants: Participant[];
+  currentTurn: number;           // Round counter
+  startedAt: number;             // Timestamp
+
+  // State
+  isActive: boolean;
+  pendingActions: Map<EntityId, CombatAction>;
+}
+
+interface Participant {
+  entityId: EntityId;            // Player or NPC instance ID
+  entityType: 'player' | 'npc';
+
+  // Snapshot at combat start
+  initialHp: number;
+  initialRoomId: string;
+
+  // Status Effects
+  effects: StatusEffect[];
+
+  // Combat Modifiers
+  advantageCount: number;        // Tracks advantage sources
+  disadvantageCount: number;     // Tracks disadvantage sources
+}
+
+interface StatusEffect {
+  type: string;                  // 'blinded', 'restrained', 'blessed', etc.
+  durationRounds: number;
+  source: string;
+  grantAdvantage?: boolean;
+  grantDisadvantage?: boolean;
+}
+
+type CombatId = string;
+type EntityId = string;          // Player ID or NPC instance ID
+```
+
+### 2.4 Corpse & Ghost
+
+```typescript
+interface Corpse {
+  id: string;
+  playerName: string;
+  playerId: string;
+  roomId: string;
+
+  // Contents
+  items: ItemInstance[];         // Unequipped items only
+
+  // Decay
+  createdAt: number;
+  decaysAt: number;              // createdAt + 30 minutes
+
+  // PvP Looting
+  isPvpCorpse: boolean;
+  killerId?: string;
+  lootableUntil?: number;        // 2-minute window for PvP
+}
+
+interface GhostState {
+  playerId: string;
+  deathLocation: string;         // Room ID where they died
+  diedAt: number;
+
+  // Movement penalty
+  movementSlowdown: number;      // Multiplier (e.g., 2.0 = twice as slow)
+}
+```
+
+### 2.5 Room Extensions
+
+```typescript
+interface Room {
+  id: string;
+  // ... existing room properties ...
+
+  // Combat-related
+  isPvpZone: boolean;
+  isSafeRoom: boolean;           // No combat allowed, allows resting
+  preventFleeing: boolean;       // Boss rooms
+
+  // NPC Instances
+  npcInstances: Set<string>;     // NPC instance IDs in this room
+
+  // Campfires (temporary safe zones)
+  campfires: Campfire[];
+}
+
+interface Campfire {
+  id: string;
+  createdBy: string;
+  createdAt: number;
+  expiresAt: number;
+  radius: number;                // Number of rooms (0 = same room only)
+}
+```
+
+---
+
+## XP & Leveling System
+
+### 3.1 XP Formula
+
+**Level-to-XP Requirement**:
+
+```typescript
+function getXpForLevel(level: number): number {
+  return Math.round(800 * Math.pow(level, 1.6));
+}
+```
+
+**Example Progression**:
+- L1 → L2: 800 XP
+- L2 → L3: 2,027 XP
+- L3 → L4: 3,831 XP
+- L4 → L5: 6,135 XP
+- L5 → L6: 8,871 XP
+
+**Total to L5**: ~12,793 XP (~90 min with casual pacing)
+
+### 3.2 XP Rewards
+
+**Mob XP Calculation**:
+
+```typescript
+function getMobXpReward(mobLevel: number, playerLevel: number): number {
+  const baseXp = 0.12 * getXpForLevel(mobLevel);
+
+  // Level difference scaling
+  const levelDiff = mobLevel - playerLevel;
+  let multiplier = 1.0;
+
+  if (levelDiff >= 5) multiplier = 1.5;      // Much higher level
+  else if (levelDiff >= 2) multiplier = 1.2; // Higher level
+  else if (levelDiff <= -5) multiplier = 0.3; // Much lower level
+  else if (levelDiff <= -2) multiplier = 0.6; // Lower level
+
+  return Math.round(baseXp * multiplier);
+}
+```
+
+**Group XP Sharing**:
+- Total XP is split evenly among all participants in combat
+- Each participant must have dealt at least 10% of total damage to qualify
+
+### 3.3 Level-Up Mechanics
+
+**Triggers**:
+1. After combat resolution, check if `currentXp >= getXpForLevel(level + 1)`
+2. If true, increment level and apply bonuses
+
+**Standard Level-Up Bonuses**:
+
+```typescript
+function applyLevelUp(player: Player): void {
+  player.level++;
+
+  // 1. HP Increase
+  player.maxHp += 5;
+  player.currentHp = player.maxHp;  // Full heal
+
+  // 2. Proficiency (every 4 levels)
+  player.proficiency = calculateProficiency(player.level);
+
+  // 3. Stat Choice (every 4th level)
   if (player.level % 4 === 0) {
-    // Future: Choose primary stat based on guild/class
-    // For now: +1 to STR and DEX alternating
-    if (player.level % 8 === 0) {
-      gains.strength = 1;
+    // Check if guild has custom rule
+    const guild = getGuild(player.guildId);
+    if (guild?.levelUpRule) {
+      guild.levelUpRule.applyStatGain(player);
     } else {
-      gains.dexterity = 1;
+      // Prompt player to choose +1 to any stat
+      promptStatChoice(player);
     }
   }
 
-  // Every 5 levels: +1 to constitution
-  if (player.level % 5 === 0) {
-    gains.constitution = 1;
+  // 4. Guild-specific bonuses
+  const guild = getGuild(player.guildId);
+  guild?.onLevelUp?.(player);
+
+  // 5. Broadcast message
+  sendToPlayer(player, `You have reached level ${player.level}!`);
+  sendToRoom(player.roomId, `${player.name} glows briefly as they gain a level!`, [player.id]);
+}
+
+function calculateProficiency(level: number): number {
+  // +2 at L1, +3 at L5, +4 at L9, +5 at L13, etc.
+  return 2 + Math.floor((level - 1) / 4);
+}
+```
+
+### 3.4 Guild Level-Up Hooks
+
+Guilds can customize leveling by implementing the `LevelUpRule` interface:
+
+```typescript
+interface LevelUpRule {
+  // Called when player levels up
+  applyStatGain(player: Player): void;
+
+  // Called every 4th level for stat choice
+  // Return true to override default stat choice
+  handleStatChoice(player: Player): boolean;
+
+  // Optional: grant guild-specific abilities at certain levels
+  grantAbilities?(player: Player): void;
+}
+
+// Example: Warrior Guild
+class WarriorLevelUpRule implements LevelUpRule {
+  applyStatGain(player: Player): void {
+    // Warriors get bonus HP
+    player.maxHp += 2;
+    player.currentHp += 2;
   }
 
-  return gains;
-}
+  handleStatChoice(player: Player): boolean {
+    if (player.level % 4 === 0) {
+      // Auto-assign STR or CON
+      if (player.str < player.con) {
+        player.str++;
+      } else {
+        player.con++;
+      }
+      return true;  // Handled, skip player choice
+    }
+    return false;
+  }
 
-/**
- * Apply stat gains to player
- * @param {Object} player
- * @param {Object} gains
- */
-function applyStatGains(player, gains) {
-  player.maxHp += gains.hp;
-  player.strength += gains.strength;
-  player.dexterity += gains.dexterity;
-  player.constitution += gains.constitution;
-  player.intelligence += gains.intelligence;
-  player.wisdom += gains.wisdom;
-  player.charisma += gains.charisma;
+  grantAbilities(player: Player): void {
+    if (player.level === 5) {
+      // Grant "Power Attack" ability
+      addAbility(player, 'power_attack');
+    }
+  }
 }
+```
 
-/**
- * Calculate ability modifier from stat value
- * @param {number} statValue
- * @returns {number}
- */
-function getModifier(statValue) {
-  return Math.floor((statValue - 10) / 2);
+### 3.5 XP Table Generation
+
+Generate at server startup for reference:
+
+```typescript
+function generateXpTable(): void {
+  console.log('=== XP Progression Table (L1-50) ===');
+  console.log('Level | XP Required | Cumulative XP | Proficiency');
+  console.log('------|-------------|---------------|------------');
+
+  let cumulative = 0;
+  for (let level = 1; level <= 50; level++) {
+    const xpNeeded = getXpForLevel(level);
+    cumulative += xpNeeded;
+    const prof = calculateProficiency(level);
+
+    console.log(
+      `${level.toString().padStart(5)} | ` +
+      `${xpNeeded.toString().padStart(11)} | ` +
+      `${cumulative.toString().padStart(13)} | ` +
+      `${prof.toString().padStart(11)}`
+    );
+  }
 }
 ```
 
 ---
 
-## Damage Types and Resistances
+## Combat System
 
-### Damage Type System
+### 4.1 Combat Initiation
 
-All attacks deal one of eight damage types:
+**Starting Combat**:
 
-| Type | Common Sources | Strategic Use |
-|------|----------------|---------------|
-| **Physical** | Weapons, unarmed strikes | Universal, no special properties |
-| **Fire** | Flaming weapons, fire spells | Burns over time (future), high burst damage |
-| **Ice** | Frost weapons, ice spells | Slows targets (future), area control |
-| **Lightning** | Storm weapons, shock spells | Chain damage (future), high single-target |
-| **Poison** | Poisoned weapons, toxins | Damage over time, bypasses armor (future) |
-| **Necrotic** | Dark magic, undead attacks | Life drain (future), anti-healing |
-| **Radiant** | Holy weapons, light spells | Bonus vs undead/demons, cleansing |
-| **Psychic** | Mind powers, eldritch attacks | Bypasses physical armor, confusion (future) |
+```typescript
+function initiateCombat(attacker: Entity, defender: Entity): CombatId {
+  // 1. Create combat instance
+  const combatId = generateCombatId();
+  const combat: Combat = {
+    id: combatId,
+    participants: [
+      createParticipant(attacker),
+      createParticipant(defender)
+    ],
+    currentTurn: 0,
+    startedAt: Date.now(),
+    isActive: true,
+    pendingActions: new Map()
+  };
 
-### Resistance Mechanics
+  // 2. Register in combat registry
+  combatRegistry.combats[combatId] = combat;
+  combatRegistry.entityToCombat[attacker.id] = combatId;
+  combatRegistry.entityToCombat[defender.id] = combatId;
 
-Resistances are percentage-based:
-- **0%:** Normal damage
-- **25%:** Resistant (takes 75% damage)
-- **50%:** Highly resistant (takes 50% damage)
-- **-25%:** Vulnerable (takes 125% damage)
-- **-50%:** Highly vulnerable (takes 150% damage)
+  // 3. Social aggro check (if defender is NPC)
+  if (defender.type === 'npc') {
+    triggerSocialAggro(defender as NpcInstance, attacker.id);
+  }
 
-**Example:**
-```javascript
-// NPC with 25% fire resistance takes fire damage
-const rawDamage = 20;
-const resistance = 25;
-const actualDamage = 20 * (1 - 0.25) = 15 damage
+  // 4. Send initial messages
+  broadcastCombatStart(combat);
 
-// NPC with -20% ice vulnerability takes ice damage
-const rawDamage = 20;
-const resistance = -20;
-const actualDamage = 20 * (1 - (-0.20)) = 24 damage
-```
-
-Resistances come from:
-- **Base resistances:** Defined per NPC/player race (future)
-- **Equipment:** Armor and accessories
-- **Buffs/Debuffs:** Temporary from spells (future)
-- **Environmental:** Room effects (future)
-
----
-
-## Combat Formulas
-
-### Attack Roll Formula
-
-```
-Attack Roll = 1d20 + Attack Bonus
-Attack Bonus = Proficiency Bonus + Ability Modifier + Equipment Bonus
-
-Proficiency Bonus = floor(level / 4) + 1
-  - Level 1-3: +1
-  - Level 4-7: +2
-  - Level 8-11: +3
-  - Level 12-15: +4
-  - etc.
-
-Ability Modifier = floor((Stat - 10) / 2)
-  - Melee attacks: Strength modifier
-  - Ranged attacks: Dexterity modifier
-  - Spell attacks (future): Intelligence/Wisdom modifier
-
-Equipment Bonus = Weapon bonus (future)
-
-Hit if: Attack Roll >= Target AC
-Critical Hit if: Natural 20 (roll shows 20 before modifiers)
-Critical Miss if: Natural 1 (roll shows 1 before modifiers)
-```
-
-### Damage Formula
-
-```
-Base Damage = Damage Dice + Damage Bonus
-Damage Dice = Weapon dice (e.g., 1d6, 2d8) or unarmed (1d4)
-Damage Bonus = Ability Modifier + Equipment Bonus
-
-Critical Hit Damage = Roll damage dice twice, then add bonuses once
-
-Final Damage = applyResistance(Base Damage, Damage Type, Target Resistances)
-```
-
-### Armor Class (AC) Formula
-
-```
-AC = Base AC + Dexterity Modifier + Armor Bonus + Shield Bonus
-
-Base AC = 10
-Dexterity Modifier = floor((DEX - 10) / 2)
-Armor Bonus = Armor value (future equipment)
-Shield Bonus = +2 if shield equipped (future)
-
-Example:
-- Unarmored, 14 DEX: AC = 10 + 2 = 12
-- Leather armor (+2), 16 DEX: AC = 10 + 3 + 2 = 15
-- Plate armor (+8), 10 DEX: AC = 10 + 0 + 8 = 18
-```
-
-### Initiative Formula
-
-```
-Initiative = 1d20 + Dexterity Modifier
-
-Tie-breaker: Higher Dexterity acts first
-```
-
-### HP Formula
-
-```
-Max HP = Base HP + (Level * HP per Level) + Constitution Modifier
-
-Base HP = 10
-HP per Level = 5
-Constitution Modifier = floor((CON - 10) / 2) * Level
-
-Example:
-- Level 1, 10 CON: HP = 10 + (1 * 5) + 0 = 15
-- Level 5, 14 CON: HP = 10 + (5 * 5) + (2 * 5) = 45
-- Level 10, 18 CON: HP = 10 + (10 * 5) + (4 * 10) = 100
-```
-
-### Flee Success Formula
-
-```
-Flee Roll = 1d20 + Dexterity Modifier
-DC = 10 + (Opponent Level / 2)
-
-Success if: Flee Roll >= DC
-
-On success: Combat ends, no XP gained, moved to random adjacent room
-On failure: Opponent gets opportunity attack, combat continues
-```
-
----
-
-## State Management
-
-### Player Combat State
-
-Track combat state on Player object:
-
-```javascript
-// Player in combat
-player.inCombat = true;
-player.combatTarget = 'blue_wumpy'; // NPC ID
-player.combatInitiative = 15;
-
-// Player not in combat
-player.inCombat = false;
-player.combatTarget = null;
-player.combatInitiative = 0;
-```
-
-### Global Combat Registry
-
-Maintain active combats in a Map:
-
-```javascript
-// In server.js or combatEngine.js
-const activeCombats = new Map();
-
-// Key: player username or NPC ID
-// Value: CombatEncounter instance
-activeCombats.set('alice', combatEncounter);
-
-// Check if entity is in combat
-function isInCombat(identifier) {
-  return activeCombats.has(identifier);
+  return combatId;
 }
 
-// Get combat for entity
-function getCombat(identifier) {
-  return activeCombats.get(identifier);
+function createParticipant(entity: Entity): Participant {
+  return {
+    entityId: entity.id,
+    entityType: entity.type,
+    initialHp: entity.currentHp,
+    initialRoomId: entity.roomId,
+    effects: [],
+    advantageCount: 0,
+    disadvantageCount: 0
+  };
 }
 ```
 
-### Combat State Persistence
+**Blocking Other Actions**:
+- Players in combat cannot move (except via `flee` command)
+- Players in combat cannot rest, use items, or interact with objects
+- Players in combat cannot initiate social commands
 
-Combat state is **NOT** persisted across server restarts. If server crashes mid-combat:
-- Player is removed from combat
-- NPC respawns with full HP
-- Player retains current HP (may need healing)
+### 4.2 Round Resolution
 
-Rationale: Prevents exploit of disconnecting to escape combat, keeps combat transient and immediate.
+Combat uses a turn-based round system:
 
-### NPC Respawn After Combat
+```typescript
+function processCombatRound(combatId: CombatId): void {
+  const combat = combatRegistry.combats[combatId];
+  if (!combat.isActive) return;
 
-When NPC is defeated:
-1. Remove NPC from room
-2. Schedule respawn via RespawnService (already implemented)
-3. NPC respawns with full HP at spawn location after timer (default: 5 minutes)
+  combat.currentTurn++;
 
----
-
-## Integration Points
-
-### Integration with Existing Systems
-
-#### 1. Player Object (`src/server.js`)
-
-**Changes needed:**
-- Add combat stats properties to Player constructor
-- Add methods: `takeDamage()`, `heal()`, `isDead()`, `getCombatStats()`
-- Persist new properties in playerDB
-
-#### 2. PlayerDB (`playerdb.js`)
-
-**New methods needed:**
-```javascript
-updatePlayerXP(username, xp)
-updatePlayerLevel(username, level, maxHp, hp)
-updatePlayerStats(username, stats)
-updatePlayerHP(username, hp)
-```
-
-**Schema changes:**
-Add to player save data:
-```javascript
-{
-  "username": "alice",
-  "passwordHash": "...",
-  "description": "...",
-  "currentRoom": "...",
-  "inventory": [],
-
-  // New fields
-  "level": 5,
-  "xp": 12000,
-  "hp": 40,
-  "maxHp": 45,
-  "stats": {
-    "strength": 12,
-    "dexterity": 14,
-    "constitution": 13,
-    "intelligence": 10,
-    "wisdom": 10,
-    "charisma": 8
-  },
-  "resistances": {
-    "physical": 0,
-    "fire": 5,
-    // ...
-  }
-}
-```
-
-#### 3. Commands (`src/commands.js`)
-
-**New commands needed:**
-- `attack [target]` / `kill [target]` - Initiate combat
-- `flee` - Attempt to flee from combat
-- `rest` - Recover HP outside combat (slow heal)
-- `score` - Display character stats (already exists, enhance with combat stats)
-
-**Modified commands:**
-- `look` - Show HP bars for NPCs and combatants
-- `quit` - Prevent quitting during combat
-- Movement commands - Prevent movement during combat
-
-**Example command handlers:**
-```javascript
-attack: (player, args, world, playerDB, allPlayers, activeCombats) => {
-  if (player.inCombat) {
-    player.send(colors.error('You are already in combat!'));
-    return;
-  }
-
-  if (args.length === 0) {
-    player.send(colors.error('Attack what?'));
-    return;
-  }
-
-  const targetName = args.join(' ').toLowerCase();
-  const room = world.getRoom(player.currentRoom);
-  const npc = room.npcs.find(n =>
-    n.keywords.some(k => k.toLowerCase().includes(targetName))
-  );
-
-  if (!npc) {
-    player.send(colors.error('You don\'t see that here.'));
-    return;
-  }
-
-  // Initiate combat
-  const combat = combatEngine.initiateCombat(player, npc, 'player', 'npc', world);
-  activeCombats.set(player.username, combat);
-  activeCombats.set(npc.id, combat);
-
-  player.send(colors.combat(`You attack ${npc.name}!`));
-
-  // Start combat loop
-  combatEngine.startCombatLoop(combat, activeCombats, playerDB, world);
-},
-
-flee: (player, args, world, playerDB, allPlayers, activeCombats) => {
-  if (!player.inCombat) {
-    player.send(colors.error('You are not in combat!'));
-    return;
-  }
-
-  const combat = activeCombats.get(player.username);
-  combatEngine.attemptFlee(player, combat, world, activeCombats, playerDB);
-}
-```
-
-#### 4. World (`world.js`)
-
-**Changes needed:**
-- Load combat stats from NPC definitions
-- Create NPC instances with combat properties
-- Track NPC HP in world state (separate from definition)
-- Provide methods to get/update NPC combat state
-
-**Example methods:**
-```javascript
-class World {
-  // ... existing methods ...
-
-  getNPC(npcId) {
-    // Return NPC instance with current HP
-    return this.npcInstances[npcId];
-  }
-
-  updateNPCHP(npcId, hp) {
-    if (this.npcInstances[npcId]) {
-      this.npcInstances[npcId].hp = hp;
+  // 1. Process all pending actions simultaneously
+  for (const participant of combat.participants) {
+    const action = combat.pendingActions.get(participant.entityId);
+    if (!action) {
+      // Auto-attack if no action queued
+      queueAutoAttack(participant);
     }
   }
 
-  respawnNPC(npcId) {
-    const npcData = this.npcDefinitions[npcId];
-    this.npcInstances[npcId] = {
-      ...npcData,
-      hp: npcData.maxHp || npcData.hp
+  // 2. Resolve actions in initiative order
+  const initiativeOrder = rollInitiative(combat.participants);
+
+  for (const participant of initiativeOrder) {
+    if (!isAlive(participant)) continue;
+
+    const action = combat.pendingActions.get(participant.entityId);
+    executeAction(combat, participant, action);
+  }
+
+  // 3. Clear pending actions
+  combat.pendingActions.clear();
+
+  // 4. Apply status effects
+  tickStatusEffects(combat);
+
+  // 5. Check for combat end
+  if (isCombatOver(combat)) {
+    endCombat(combat);
+  }
+}
+
+function rollInitiative(participants: Participant[]): Participant[] {
+  return participants
+    .map(p => ({
+      participant: p,
+      roll: rollD20() + getModifier(getEntity(p.entityId).dex)
+    }))
+    .sort((a, b) => b.roll - a.roll)
+    .map(entry => entry.participant);
+}
+```
+
+### 4.3 Attack Resolution
+
+**Attack Roll Mechanics**:
+
+```typescript
+function resolveAttack(attacker: Entity, defender: Entity, combat: Combat): AttackResult {
+  const attackerParticipant = getParticipant(combat, attacker.id);
+  const defenderParticipant = getParticipant(combat, defender.id);
+
+  // 1. Determine advantage/disadvantage
+  const netAdvantage = calculateNetAdvantage(attackerParticipant, defenderParticipant);
+
+  // 2. Roll attack
+  const attackRoll = rollAttack(netAdvantage);
+  const attackBonus = getModifier(attacker.str) + attacker.proficiency;
+  const totalAttack = attackRoll.total + attackBonus;
+
+  // 3. Check critical miss/hit
+  if (attackRoll.natural === 1) {
+    return {
+      hit: false,
+      critical: false,
+      fumble: true,
+      rolls: attackRoll.rolls,
+      total: totalAttack,
+      damage: 0
     };
   }
+
+  if (attackRoll.natural === 20) {
+    const damage = rollDamage(attacker.currentWeapon.damageDice, true);
+    applyDamage(defender, damage, attacker.currentWeapon.damageType);
+    return {
+      hit: true,
+      critical: true,
+      fumble: false,
+      rolls: attackRoll.rolls,
+      total: totalAttack,
+      damage
+    };
+  }
+
+  // 4. Normal hit check
+  if (totalAttack >= defender.armorClass) {
+    const damage = rollDamage(attacker.currentWeapon.damageDice, false);
+    applyDamage(defender, damage, attacker.currentWeapon.damageType);
+    return {
+      hit: true,
+      critical: false,
+      fumble: false,
+      rolls: attackRoll.rolls,
+      total: totalAttack,
+      damage
+    };
+  }
+
+  // 5. Miss
+  return {
+    hit: false,
+    critical: false,
+    fumble: false,
+    rolls: attackRoll.rolls,
+    total: totalAttack,
+    damage: 0
+  };
+}
+
+interface AttackRoll {
+  rolls: number[];      // Array of d20 rolls (1 or 2)
+  natural: number;      // The chosen natural roll
+  total: number;        // natural + bonuses
+}
+
+function rollAttack(advantage: 'advantage' | 'disadvantage' | 'normal'): AttackRoll {
+  if (advantage === 'advantage') {
+    const roll1 = rollD20();
+    const roll2 = rollD20();
+    const chosen = Math.max(roll1, roll2);
+    return { rolls: [roll1, roll2], natural: chosen, total: chosen };
+  } else if (advantage === 'disadvantage') {
+    const roll1 = rollD20();
+    const roll2 = rollD20();
+    const chosen = Math.min(roll1, roll2);
+    return { rolls: [roll1, roll2], natural: chosen, total: chosen };
+  } else {
+    const roll = rollD20();
+    return { rolls: [roll], natural: roll, total: roll };
+  }
+}
+
+function calculateNetAdvantage(attacker: Participant, defender: Participant): 'advantage' | 'disadvantage' | 'normal' {
+  const netCount = attacker.advantageCount - attacker.disadvantageCount;
+
+  if (netCount > 0) return 'advantage';
+  if (netCount < 0) return 'disadvantage';
+  return 'normal';
 }
 ```
 
-#### 5. RespawnService (`src/respawnService.js`)
+**Damage Calculation**:
 
-**Integration:**
-- After NPC defeated, schedule respawn
-- Respawn NPC with full HP after timer
-- Notify players in room when NPC respawns
+```typescript
+function rollDamage(damageDice: string, isCritical: boolean): number {
+  const parsed = parseDiceString(damageDice);
+  if (!parsed) return 0;
 
-#### 6. Colors (`src/colors.js`)
+  let total = 0;
+  const rollCount = isCritical ? parsed.count * 2 : parsed.count;
 
-**New color functions needed:**
-```javascript
-combat(text)      - Combat action messages
-hit(text)         - Successful attacks
-miss(text)        - Missed attacks
-critical(text)    - Critical hits
-damage(text)      - Damage numbers
-healing(text)     - Healing messages
-xpGain(text)      - XP rewards
-levelUp(text)     - Level-up announcements
-statGain(text)    - Stat increases
+  for (let i = 0; i < rollCount; i++) {
+    total += rollDie(parsed.sides);
+  }
+
+  total += parsed.modifier;
+  return Math.max(1, total);  // Minimum 1 damage
+}
+
+function applyDamage(target: Entity, damage: number, damageType: DamageType): void {
+  // Apply resistances/vulnerabilities
+  const multiplier = getResistanceMultiplier(target, damageType);
+  const finalDamage = Math.round(damage * multiplier);
+
+  target.currentHp = Math.max(0, target.currentHp - finalDamage);
+  target.lastDamageTaken = Date.now();
+
+  // Check for death
+  if (target.currentHp === 0) {
+    handleDeath(target);
+  }
+}
+
+function parseDiceString(dice: string): { count: number; sides: number; modifier: number } | null {
+  const match = dice.match(/^(\d+)d(\d+)([+\-]\d+)?$/);
+  if (!match) return null;
+
+  const count = parseInt(match[1]);
+  const sides = parseInt(match[2]);
+  const modifier = match[3] ? parseInt(match[3]) : 0;
+
+  // Validation
+  if (count < 1 || count > 100) return null;
+  if (sides < 2 || sides > 100) return null;
+
+  return { count, sides, modifier };
+}
+```
+
+### 4.4 Advantage/Disadvantage Sources
+
+```typescript
+function grantAdvantage(participant: Participant, source: string, duration: number): void {
+  participant.advantageCount++;
+  participant.effects.push({
+    type: `advantage_${source}`,
+    durationRounds: duration,
+    source,
+    grantAdvantage: true
+  });
+}
+
+function grantDisadvantage(participant: Participant, source: string, duration: number): void {
+  participant.disadvantageCount++;
+  participant.effects.push({
+    type: `disadvantage_${source}`,
+    durationRounds: duration,
+    source,
+    grantDisadvantage: true
+  });
+}
+
+// Common sources:
+// - First attack after leaving stealth (advantage)
+// - Target is blinded (advantage to attacker)
+// - Target is restrained (advantage to attacker)
+// - Flanking with ally in melee (advantage)
+// - Attacker is blinded (disadvantage)
+// - Attacking while prone (disadvantage)
+```
+
+### 4.5 Combat Output Formatting
+
+```typescript
+function formatAttackMessage(attacker: Entity, defender: Entity, result: AttackResult): string {
+  let msg = '';
+
+  // Show dice rolls
+  if (result.rolls.length > 1) {
+    const advType = result.rolls[0] === result.natural ? 'advantage' : 'disadvantage';
+    msg += `${attacker.name} attacks with ${advType}! `;
+    msg += `[Rolls: ${result.rolls.join(', ')} → ${result.natural}] `;
+  } else {
+    msg += `${attacker.name} rolls [${result.natural}] `;
+  }
+
+  msg += `(total: ${result.total}) vs AC ${defender.armorClass}\n`;
+
+  if (result.fumble) {
+    msg += `CRITICAL MISS! ${attacker.name} stumbles badly!`;
+  } else if (result.critical) {
+    msg += `CRITICAL HIT! ${defender.name} takes ${result.damage} damage!`;
+  } else if (result.hit) {
+    msg += `Hit! ${defender.name} takes ${result.damage} damage.`;
+  } else {
+    msg += `Miss!`;
+  }
+
+  return msg;
+}
+```
+
+### 4.6 Flee Mechanics
+
+**Flee Command**:
+
+```typescript
+function attemptFlee(player: Player, direction: string): FleeResult {
+  // 1. Validation
+  const combat = getCombatForEntity(player.id);
+  if (!combat) {
+    return { success: false, reason: 'You are not in combat.' };
+  }
+
+  const currentRoom = getRoom(player.roomId);
+  if (currentRoom.preventFleeing) {
+    return { success: false, reason: 'You cannot flee from this battle!' };
+  }
+
+  if (player.fleeCooldownUntil && Date.now() < player.fleeCooldownUntil) {
+    const remaining = Math.ceil((player.fleeCooldownUntil - Date.now()) / 1000);
+    return { success: false, reason: `You must wait ${remaining}s before fleeing again.` };
+  }
+
+  const exit = currentRoom.exits[direction];
+  if (!exit) {
+    return { success: false, reason: 'You cannot flee in that direction!' };
+  }
+
+  // 2. Get primary opponent
+  const opponent = getPrimaryOpponent(combat, player.id);
+
+  // 3. Opposed roll
+  const playerRoll = rollD20() + getModifier(player.dex) + player.proficiency;
+  const opponentRoll = rollD20() + getModifier(opponent.dex) + opponent.proficiency;
+
+  // 4. Opportunity attack (happens regardless of success)
+  const opportunityAttack = resolveAttack(opponent, player, combat);
+
+  sendToPlayer(player, formatAttackMessage(opponent, player, opportunityAttack));
+
+  // 5. Check flee success
+  if (playerRoll < opponentRoll) {
+    // Failed flee
+    sendToPlayer(player, `You try to flee but ${opponent.name} blocks your escape!`);
+    player.fleeCooldownUntil = Date.now() + 10000;  // 10s cooldown
+    return { success: false, reason: 'Flee failed!' };
+  }
+
+  // 6. Successful flee
+  player.fleeCooldownUntil = Date.now() + 10000;
+
+  // Remove from combat
+  removeCombatant(combat, player.id);
+
+  // Move to target room
+  movePlayer(player, exit.targetRoomId);
+
+  sendToPlayer(player, `You flee ${direction}!`);
+  sendToRoom(currentRoom.id, `${player.name} flees ${direction}!`, [player.id]);
+
+  return { success: true };
+}
+
+interface FleeResult {
+  success: boolean;
+  reason?: string;
+}
+```
+
+### 4.7 Target Time-to-Kill (TTK)
+
+**Design Targets**:
+- Even-level fight: 4-6 rounds average
+- ~60% hit rate for even-level encounters
+- Player AC ~13 at L1 (10 + 2 DEX mod + 1 armor)
+- NPC AC ~14 at L1
+- Proficiency: +2 at L1, +3 at L5, +4 at L9
+
+**Example L1 Combat**:
+- Player: 10 HP, AC 13, +3 to hit (STR +1, Prof +2), 1d6 damage (3.5 avg)
+- Goblin: 8 HP, AC 14, +3 to hit, 1d6 damage
+
+Expected outcome:
+- Player hits on 11+ (50% chance)
+- Goblin hits on 10+ (55% chance)
+- Player kills in ~3 hits (10.5 damage) = 6 rounds avg
+- Goblin kills in ~3 hits (10.5 damage) = 5.5 rounds avg
+
+This gives players a slight edge in even encounters, requiring tactical use of abilities and healing.
+
+---
+
+## Death & Resurrection
+
+### 5.1 Death Sequence
+
+```typescript
+function handleDeath(entity: Entity): void {
+  if (entity.type === 'player') {
+    handlePlayerDeath(entity as Player);
+  } else {
+    handleNpcDeath(entity as NpcInstance);
+  }
+}
+
+function handlePlayerDeath(player: Player): void {
+  const combat = getCombatForEntity(player.id);
+  const killer = combat ? getPrimaryOpponent(combat, player.id) : null;
+
+  // 1. Remove from combat
+  if (combat) {
+    removeCombatant(combat, player.id);
+  }
+
+  // 2. Calculate XP loss
+  const xpLoss = calculateXpLoss(player);
+  player.currentXp = Math.max(
+    player.currentXp - xpLoss,
+    getXpForLevel(player.level)  // Never drop below current level
+  );
+
+  // 3. Create corpse
+  const corpse = createCorpse(player, killer);
+  addCorpseToRoom(player.roomId, corpse);
+
+  // 4. Transform to ghost
+  player.isGhost = true;
+  player.isDead = true;
+  player.currentHp = 1;  // Ghosts have minimal HP
+
+  // Ghost state
+  const ghostState: GhostState = {
+    playerId: player.id,
+    deathLocation: player.roomId,
+    diedAt: Date.now(),
+    movementSlowdown: 2.0
+  };
+  setGhostState(player.id, ghostState);
+
+  // 5. If NPC killed player, add cooldown
+  if (killer && killer.type === 'npc') {
+    player.lastDefeatedBy.add(killer.id);
+    setTimeout(() => {
+      player.lastDefeatedBy.delete(killer.id);
+    }, 120000);  // 2 minutes
+  }
+
+  // 6. Messages
+  sendToPlayer(player, 'You have died! Your spirit rises from your corpse...');
+  sendToRoom(player.roomId, `${player.name} has died!`, [player.id]);
+}
+
+function calculateXpLoss(player: Player): number {
+  const currentLevelXp = getXpForLevel(player.level);
+  const nextLevelXp = getXpForLevel(player.level + 1);
+  const xpIntoLevel = player.currentXp - currentLevelXp;
+
+  let lossPercent: number;
+  if (player.level <= 10) {
+    lossPercent = 0.05;  // 5%
+  } else if (player.level <= 30) {
+    lossPercent = 0.03;  // 3%
+  } else {
+    lossPercent = 0.02;  // 2%
+  }
+
+  return Math.floor(xpIntoLevel * lossPercent);
+}
+```
+
+### 5.2 Corpse System
+
+```typescript
+function createCorpse(player: Player, killer?: Entity): Corpse {
+  const isPvpDeath = killer?.type === 'player';
+
+  // Separate equipped vs carried items
+  const carriedItems = player.inventory.filter(item => !item.isEquipped);
+
+  const corpse: Corpse = {
+    id: generateId(),
+    playerName: player.name,
+    playerId: player.id,
+    roomId: player.roomId,
+    items: carriedItems,
+    createdAt: Date.now(),
+    decaysAt: Date.now() + (30 * 60 * 1000),  // 30 minutes
+    isPvpCorpse: isPvpDeath,
+    killerId: isPvpDeath ? killer.id : undefined,
+    lootableUntil: isPvpDeath ? Date.now() + (2 * 60 * 1000) : undefined
+  };
+
+  // Remove items from player inventory (equipped items stay)
+  player.inventory = player.inventory.filter(item => item.isEquipped);
+
+  return corpse;
+}
+
+function processCorpseDecay(): void {
+  const now = Date.now();
+
+  for (const corpse of getAllCorpses()) {
+    if (now >= corpse.decaysAt) {
+      decayCorpse(corpse);
+    }
+  }
+}
+
+function decayCorpse(corpse: Corpse): void {
+  // Decay to "Remains" with 50% of items
+  const remainingItems = corpse.items.filter(() => Math.random() < 0.5);
+
+  if (remainingItems.length > 0) {
+    const remains = createRemains(corpse, remainingItems);
+    addRemainsToRoom(corpse.roomId, remains);
+  }
+
+  removeCorpse(corpse.id);
+
+  // Notify if player is ghost in same room
+  const ghost = getGhostByPlayerId(corpse.playerId);
+  if (ghost && ghost.roomId === corpse.roomId) {
+    sendToPlayer(ghost, 'Your corpse decays into scattered remains...');
+  }
+}
+```
+
+### 5.3 Resurrection
+
+```typescript
+function resurrectPlayer(player: Player, resurrector?: Entity): void {
+  if (!player.isGhost) {
+    return;  // Not dead
+  }
+
+  // 1. Restore to living state
+  player.isGhost = false;
+  player.isDead = false;
+  player.currentHp = Math.floor(player.maxHp * 0.5);  // 50% HP
+
+  // 2. Remove ghost state
+  removeGhostState(player.id);
+
+  // 3. Teleport to resurrection point (if not already there)
+  const resPoint = getResurrectionPoint(player);
+  if (player.roomId !== resPoint.roomId) {
+    movePlayer(player, resPoint.roomId);
+  }
+
+  // 4. Short spawn protection for PvP
+  if (getRoom(player.roomId).isPvpZone) {
+    player.pvpCooldownUntil = Date.now() + 5000;  // 5 seconds
+  }
+
+  // 5. Messages
+  sendToPlayer(player, 'Your spirit returns to your body!');
+  sendToRoom(player.roomId, `${player.name} is resurrected!`, [player.id]);
+
+  // 6. Resurrector message
+  if (resurrector) {
+    sendToPlayer(resurrector, `You have resurrected ${player.name}.`);
+  }
+}
+
+function getResurrectionPoint(player: Player): Room {
+  // Priority:
+  // 1. Bound resurrection shrine (if player has set one)
+  // 2. Guild temple
+  // 3. Default temple/respawn point
+
+  if (player.boundShrineId) {
+    return getRoom(player.boundShrineId);
+  }
+
+  if (player.guildId) {
+    const guild = getGuild(player.guildId);
+    if (guild.templeRoomId) {
+      return getRoom(guild.templeRoomId);
+    }
+  }
+
+  return getRoom('temple_of_light');  // Default
+}
+```
+
+### 5.4 Ghost Mechanics
+
+**Ghost Restrictions**:
+
+```typescript
+function canGhostPerformAction(player: Player, action: string): boolean {
+  if (!player.isGhost) return true;
+
+  const blockedActions = [
+    'attack',
+    'cast',
+    'use_item',
+    'get',
+    'drop',
+    'equip',
+    'unequip'
+  ];
+
+  return !blockedActions.includes(action);
+}
+
+// Movement is slower for ghosts
+function getMovementDelay(player: Player): number {
+  const baseDelay = 1000;  // 1 second
+
+  if (player.isGhost) {
+    const ghostState = getGhostState(player.id);
+    return baseDelay * (ghostState?.movementSlowdown || 2.0);
+  }
+
+  return baseDelay;
+}
 ```
 
 ---
 
-## File Organization
+## NPC AI & Behavior
 
-### Recommended Directory Structure
+### 6.1 Aggro System
+
+**Aggro Triggers**:
+
+```typescript
+function checkNpcAggro(npcInstance: NpcInstance, player: Player): void {
+  const npcDef = getNpcDefinition(npcInstance.defId);
+
+  // Skip if NPC isn't aggressive
+  if (!npcDef.aggressive) return;
+
+  // Skip if player just defeated this NPC (2-min cooldown)
+  const cooldownEnd = npcInstance.lastDefeatedPlayers.get(player.id);
+  if (cooldownEnd && Date.now() < cooldownEnd) return;
+
+  // Skip if player is ghost
+  if (player.isGhost) return;
+
+  // Skip if player has spawn protection
+  if (player.pvpCooldownUntil && Date.now() < player.pvpCooldownUntil) return;
+
+  // Initiate combat
+  initiateCombat(npcInstance, player);
+}
+
+function onPlayerEnterRoom(player: Player, room: Room): void {
+  for (const npcInstanceId of room.npcInstances) {
+    const npcInstance = getNpcInstance(npcInstanceId);
+    if (npcInstance && !npcInstance.inCombat) {
+      checkNpcAggro(npcInstance, player);
+    }
+  }
+}
+```
+
+**Social Aggro**:
+
+```typescript
+function triggerSocialAggro(npcInstance: NpcInstance, attackerId: string): void {
+  const npcDef = getNpcDefinition(npcInstance.defId);
+
+  if (!npcDef.socialAggro) return;
+
+  const room = getRoom(npcInstance.currentRoomId);
+
+  // Find nearby NPCs of same type
+  for (const nearbyNpcId of room.npcInstances) {
+    const nearbyNpc = getNpcInstance(nearbyNpcId);
+    if (!nearbyNpc || nearbyNpc.inCombat) continue;
+
+    if (nearbyNpc.defId === npcInstance.defId) {
+      // Join the fight
+      const combat = getCombatForEntity(npcInstance.instanceId);
+      if (combat) {
+        addCombatant(combat, nearbyNpc);
+        sendToRoom(room.id, `${nearbyNpc.name} joins the fight!`);
+      }
+    }
+  }
+}
+```
+
+### 6.2 Leash Mechanics
+
+**Leash Triggers**:
+
+```typescript
+function checkLeash(npcInstance: NpcInstance, combat: Combat): boolean {
+  const npcDef = getNpcDefinition(npcInstance.defId);
+
+  // Calculate distance from home
+  const distanceFromHome = calculateRoomDistance(
+    npcInstance.currentRoomId,
+    npcInstance.homeRoomId
+  );
+
+  // Check distance leash
+  if (distanceFromHome > npcDef.leashDistance) {
+    triggerLeash(npcInstance, combat, 'distance');
+    return true;
+  }
+
+  // Check time leash
+  if (npcInstance.pursuedSince) {
+    const pursuitDuration = (Date.now() - npcInstance.pursuedSince) / 1000;
+    if (pursuitDuration > npcDef.pursuitDurationSec) {
+      triggerLeash(npcInstance, combat, 'time');
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function triggerLeash(npcInstance: NpcInstance, combat: Combat, reason: string): void {
+  // 1. Remove from combat
+  removeCombatant(combat, npcInstance.instanceId);
+
+  // 2. Return to home
+  const currentRoom = getRoom(npcInstance.currentRoomId);
+  sendToRoom(currentRoom.id, `${getNpcName(npcInstance)} retreats!`);
+
+  moveNpcToHome(npcInstance);
+
+  // 3. Schedule healing after 10 seconds
+  setTimeout(() => {
+    npcInstance.currentHp = getNpcDefinition(npcInstance.defId).maxHp;
+    npcInstance.pursuedSince = undefined;
+  }, 10000);
+}
+
+function moveNpcToHome(npcInstance: NpcInstance): void {
+  const currentRoom = getRoom(npcInstance.currentRoomId);
+  const homeRoom = getRoom(npcInstance.homeRoomId);
+
+  // Remove from current room
+  currentRoom.npcInstances.delete(npcInstance.instanceId);
+
+  // Add to home room
+  homeRoom.npcInstances.add(npcInstance.instanceId);
+  npcInstance.currentRoomId = npcInstance.homeRoomId;
+}
+```
+
+### 6.3 NPC Death & Respawn
+
+```typescript
+function handleNpcDeath(npcInstance: NpcInstance): void {
+  const combat = getCombatForEntity(npcInstance.instanceId);
+  const npcDef = getNpcDefinition(npcInstance.defId);
+
+  // 1. Award XP to all combat participants
+  if (combat) {
+    awardCombatXp(combat, npcInstance);
+  }
+
+  // 2. Drop loot
+  const loot = generateLoot(npcDef.lootTable);
+  const room = getRoom(npcInstance.currentRoomId);
+  for (const item of loot) {
+    addItemToRoom(room, item);
+  }
+
+  // 3. Remove from room
+  room.npcInstances.delete(npcInstance.instanceId);
+
+  // 4. Mark as dead and schedule respawn
+  npcInstance.isDead = true;
+  npcInstance.respawnAt = Date.now() + (npcDef.respawnDelay * 1000);
+
+  // 5. Messages
+  sendToRoom(room.id, `${getNpcName(npcInstance)} has been defeated!`);
+
+  // 6. Remove from combat
+  if (combat) {
+    removeCombatant(combat, npcInstance.instanceId);
+  }
+}
+
+function processNpcRespawns(): void {
+  const now = Date.now();
+
+  for (const npcInstance of getAllNpcInstances()) {
+    if (npcInstance.isDead && npcInstance.respawnAt && now >= npcInstance.respawnAt) {
+      respawnNpc(npcInstance);
+    }
+  }
+}
+
+function respawnNpc(npcInstance: NpcInstance): void {
+  const npcDef = getNpcDefinition(npcInstance.defId);
+
+  // Reset to full health
+  npcInstance.currentHp = npcDef.maxHp;
+  npcInstance.isDead = false;
+  npcInstance.respawnAt = undefined;
+  npcInstance.currentRoomId = npcInstance.homeRoomId;
+
+  // Add back to home room
+  const homeRoom = getRoom(npcInstance.homeRoomId);
+  homeRoom.npcInstances.add(npcInstance.instanceId);
+
+  // Clear aggro list
+  npcInstance.aggroList = [];
+  npcInstance.lastDefeatedPlayers.clear();
+}
+```
+
+### 6.4 XP Award Distribution
+
+```typescript
+function awardCombatXp(combat: Combat, defeatedNpc: NpcInstance): void {
+  const npcDef = getNpcDefinition(defeatedNpc.defId);
+
+  // Get all player participants who dealt damage
+  const eligiblePlayers = combat.participants
+    .filter(p => p.entityType === 'player')
+    .map(p => getPlayer(p.entityId))
+    .filter(player => {
+      // Must have dealt at least 10% of total damage
+      const damageDealt = calculateDamageDealt(combat, player.id);
+      const totalDamage = npcDef.maxHp - defeatedNpc.currentHp;
+      return damageDealt >= totalDamage * 0.1;
+    });
+
+  if (eligiblePlayers.length === 0) return;
+
+  // Calculate XP per player
+  const baseXp = npcDef.xpReward;
+  const xpPerPlayer = Math.floor(baseXp / eligiblePlayers.length);
+
+  for (const player of eligiblePlayers) {
+    const adjustedXp = getMobXpReward(npcDef.level, player.level);
+    const finalXp = Math.floor(adjustedXp / eligiblePlayers.length);
+
+    player.currentXp += finalXp;
+    sendToPlayer(player, `You gain ${finalXp} experience points.`);
+
+    // Check for level up
+    checkLevelUp(player);
+  }
+}
+
+function checkLevelUp(player: Player): void {
+  const requiredXp = getXpForLevel(player.level + 1);
+
+  if (player.currentXp >= requiredXp) {
+    applyLevelUp(player);
+  }
+}
+```
+
+---
+
+## Resting System
+
+### 7.1 Rest Mechanics
+
+```typescript
+function attemptRest(player: Player): RestResult {
+  // 1. Validation
+  if (player.isGhost) {
+    return { success: false, reason: 'Ghosts cannot rest.' };
+  }
+
+  if (getCombatForEntity(player.id)) {
+    return { success: false, reason: 'You cannot rest while in combat!' };
+  }
+
+  const room = getRoom(player.roomId);
+  const canRestHere = room.isSafeRoom || hasCampfireInRange(player);
+
+  if (!canRestHere) {
+    return { success: false, reason: 'You cannot rest here. Find a safe room or campfire.' };
+  }
+
+  // Check recent damage
+  const timeSinceDamage = Date.now() - player.lastDamageTaken;
+  if (timeSinceDamage < 60000) {  // 60 seconds
+    const remaining = Math.ceil((60000 - timeSinceDamage) / 1000);
+    return {
+      success: false,
+      reason: `You are too agitated to rest. Wait ${remaining}s.`
+    };
+  }
+
+  // 2. Start rest
+  startRest(player);
+  return { success: true };
+}
+
+function startRest(player: Player): void {
+  const restDuration = 10000;  // 10 seconds
+
+  // Create rest state
+  const restState: RestState = {
+    playerId: player.id,
+    startedAt: Date.now(),
+    completesAt: Date.now() + restDuration,
+    interrupted: false
+  };
+
+  setRestState(player.id, restState);
+
+  sendToPlayer(player, 'You begin to rest...');
+  sendToRoom(player.roomId, `${player.name} sits down to rest.`, [player.id]);
+
+  // Schedule completion
+  setTimeout(() => {
+    completeRest(player);
+  }, restDuration);
+}
+
+function completeRest(player: Player): void {
+  const restState = getRestState(player.id);
+  if (!restState || restState.interrupted) {
+    return;  // Already interrupted
+  }
+
+  // Restore HP and resource
+  const hpRestored = Math.floor(player.maxHp * 0.25);
+  const resourceRestored = Math.floor(player.maxResource * 0.25);
+
+  player.currentHp = Math.min(player.maxHp, player.currentHp + hpRestored);
+  player.resource = Math.min(player.maxResource, player.resource + resourceRestored);
+
+  sendToPlayer(player, `You finish resting. (+${hpRestored} HP, +${resourceRestored} resource)`);
+  sendToRoom(player.roomId, `${player.name} finishes resting.`, [player.id]);
+
+  removeRestState(player.id);
+}
+
+function interruptRest(player: Player, reason: string): void {
+  const restState = getRestState(player.id);
+  if (!restState) return;
+
+  restState.interrupted = true;
+  removeRestState(player.id);
+
+  sendToPlayer(player, `Your rest is interrupted! (${reason})`);
+}
+
+// Hook into combat and movement
+function onCombatStarted(player: Player): void {
+  if (getRestState(player.id)) {
+    interruptRest(player, 'combat');
+  }
+}
+
+function onPlayerMove(player: Player): void {
+  if (getRestState(player.id)) {
+    interruptRest(player, 'movement');
+  }
+}
+
+interface RestState {
+  playerId: string;
+  startedAt: number;
+  completesAt: number;
+  interrupted: boolean;
+}
+
+interface RestResult {
+  success: boolean;
+  reason?: string;
+}
+```
+
+### 7.2 Campfire System
+
+```typescript
+function createCampfire(player: Player, duration: number, radius: number): Campfire {
+  const campfire: Campfire = {
+    id: generateId(),
+    createdBy: player.id,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + duration,
+    radius
+  };
+
+  const room = getRoom(player.roomId);
+  room.campfires.push(campfire);
+
+  sendToRoom(room.id, `${player.name} creates a warm campfire!`);
+
+  // Schedule expiration
+  setTimeout(() => {
+    expireCampfire(campfire);
+  }, duration);
+
+  return campfire;
+}
+
+function hasCampfireInRange(player: Player): boolean {
+  const room = getRoom(player.roomId);
+  const now = Date.now();
+
+  // Check current room
+  for (const campfire of room.campfires) {
+    if (now < campfire.expiresAt) {
+      return true;
+    }
+  }
+
+  // Check adjacent rooms if radius > 0
+  // (Implementation depends on room graph structure)
+
+  return false;
+}
+
+function expireCampfire(campfire: Campfire): void {
+  const room = findRoomWithCampfire(campfire.id);
+  if (!room) return;
+
+  room.campfires = room.campfires.filter(cf => cf.id !== campfire.id);
+  sendToRoom(room.id, 'A campfire burns out.');
+}
+```
+
+---
+
+## PvP System
+
+### 8.1 PvP Combat Rules
+
+```typescript
+function canInitiatePvp(attacker: Player, defender: Player): boolean {
+  const attackerRoom = getRoom(attacker.roomId);
+  const defenderRoom = getRoom(defender.roomId);
+
+  // Must be in same PvP zone
+  if (!attackerRoom.isPvpZone || !defenderRoom.isPvpZone) {
+    return false;
+  }
+
+  // Cannot attack during spawn protection
+  if (defender.pvpCooldownUntil && Date.now() < defender.pvpCooldownUntil) {
+    return false;
+  }
+
+  // Cannot attack ghosts
+  if (defender.isGhost) {
+    return false;
+  }
+
+  return true;
+}
+
+function handlePvpDeath(victim: Player, killer: Player): void {
+  // No XP loss in PvP
+  const savedXp = victim.currentXp;
+
+  handlePlayerDeath(victim);
+
+  // Restore XP
+  victim.currentXp = savedXp;
+
+  // Mark corpse as PvP lootable
+  const corpse = findCorpseByPlayerId(victim.id);
+  if (corpse) {
+    corpse.isPvpCorpse = true;
+    corpse.killerId = killer.id;
+    corpse.lootableUntil = Date.now() + (2 * 60 * 1000);  // 2 minutes
+  }
+
+  sendToPlayer(killer, `You have slain ${victim.name}!`);
+}
+```
+
+### 8.2 PvP Looting
+
+```typescript
+function canLootCorpse(player: Player, corpse: Corpse): LootPermission {
+  // Owner can always loot
+  if (corpse.playerId === player.id) {
+    return { allowed: true };
+  }
+
+  // PvP corpses have special rules
+  if (corpse.isPvpCorpse) {
+    const now = Date.now();
+
+    // Killer has 2-minute priority window
+    if (corpse.lootableUntil && now < corpse.lootableUntil) {
+      if (player.id === corpse.killerId) {
+        return { allowed: true };
+      } else {
+        const remaining = Math.ceil((corpse.lootableUntil - now) / 1000);
+        return {
+          allowed: false,
+          reason: `This corpse is protected for ${remaining}s.`
+        };
+      }
+    }
+
+    // After window, anyone can loot
+    return { allowed: true };
+  }
+
+  // Non-PvP corpses: owner only
+  return {
+    allowed: false,
+    reason: 'You cannot loot this corpse.'
+  };
+}
+
+interface LootPermission {
+  allowed: boolean;
+  reason?: string;
+}
+```
+
+---
+
+## Edge Cases & Error Handling
+
+### 9.1 Server Crash Recovery
+
+```typescript
+function recoverFromCrash(): void {
+  console.log('Performing crash recovery...');
+
+  // 1. Clear all active combats
+  for (const combat of Object.values(combatRegistry.combats)) {
+    for (const participant of combat.participants) {
+      const entity = getEntity(participant.entityId);
+
+      // Restore to pre-combat state
+      if (entity) {
+        entity.currentHp = participant.initialHp;
+
+        // Teleport back to initial room if moved during combat
+        if (entity.roomId !== participant.initialRoomId) {
+          moveEntity(entity, participant.initialRoomId);
+        }
+      }
+    }
+  }
+
+  // 2. Clear combat registry
+  combatRegistry.combats = {};
+  combatRegistry.entityToCombat = {};
+
+  // 3. Clear all rest states
+  clearAllRestStates();
+
+  // 4. Reset NPC leash states
+  for (const npcInstance of getAllNpcInstances()) {
+    npcInstance.pursuedSince = undefined;
+    if (npcInstance.currentRoomId !== npcInstance.homeRoomId) {
+      moveNpcToHome(npcInstance);
+    }
+  }
+
+  console.log('Crash recovery complete.');
+}
+
+// Call on server startup
+function onServerStart(): void {
+  generateXpTable();
+  recoverFromCrash();
+
+  // Start background processes
+  setInterval(processCorpseDecay, 60000);      // Every minute
+  setInterval(processNpcRespawns, 10000);      // Every 10 seconds
+  setInterval(processLeashChecks, 5000);       // Every 5 seconds
+}
+```
+
+### 9.2 Combat Cleanup
+
+```typescript
+function endCombat(combat: Combat): void {
+  combat.isActive = false;
+
+  // Determine victor
+  const survivors = combat.participants.filter(p => isAlive(getEntity(p.entityId)));
+
+  if (survivors.length === 0) {
+    // Mutual destruction (rare)
+    sendToRoom(getFirstParticipantRoom(combat), 'The battle ends in mutual destruction!');
+  } else if (survivors.length === 1) {
+    // Clear winner
+    const victor = getEntity(survivors[0].entityId);
+    sendToRoom(victor.roomId, `${getEntityName(victor)} is victorious!`);
+  }
+
+  // Clean up registry
+  for (const participant of combat.participants) {
+    delete combatRegistry.entityToCombat[participant.entityId];
+  }
+  delete combatRegistry.combats[combat.id];
+}
+
+function removeCombatant(combat: Combat, entityId: EntityId): void {
+  combat.participants = combat.participants.filter(p => p.entityId !== entityId);
+  delete combatRegistry.entityToCombat[entityId];
+
+  // If only one participant remains, end combat
+  if (combat.participants.length <= 1) {
+    endCombat(combat);
+  }
+}
+```
+
+### 9.3 Movement Blocking
+
+```typescript
+function canMove(player: Player, direction: string): MoveResult {
+  // Check if in combat
+  const combat = getCombatForEntity(player.id);
+  if (combat) {
+    // Exception: fleeing is allowed via flee command
+    // This function shouldn't be called during flee transition
+    return {
+      allowed: false,
+      reason: 'You cannot move while in combat! Use "flee" to escape.'
+    };
+  }
+
+  // Check if resting
+  if (getRestState(player.id)) {
+    return {
+      allowed: false,
+      reason: 'You cannot move while resting!'
+    };
+  }
+
+  // Ghost slowdown is applied as delay, not blocking
+  const delay = getMovementDelay(player);
+
+  return { allowed: true, delay };
+}
+
+interface MoveResult {
+  allowed: boolean;
+  reason?: string;
+  delay?: number;
+}
+```
+
+### 9.4 Dice String Validation
+
+```typescript
+function parseDiceString(dice: string): DiceRoll | null {
+  // Pattern: XdY or XdY+Z or XdY-Z
+  const match = dice.match(/^(\d+)d(\d+)([+\-]\d+)?$/);
+  if (!match) {
+    console.error(`Invalid dice string: ${dice}`);
+    return null;
+  }
+
+  const count = parseInt(match[1]);
+  const sides = parseInt(match[2]);
+  const modifier = match[3] ? parseInt(match[3]) : 0;
+
+  // Validate ranges
+  if (count < 1 || count > 100) {
+    console.error(`Dice count out of range: ${count}`);
+    return null;
+  }
+
+  if (sides < 2 || sides > 100) {
+    console.error(`Dice sides out of range: ${sides}`);
+    return null;
+  }
+
+  if (Math.abs(modifier) > 1000) {
+    console.error(`Dice modifier out of range: ${modifier}`);
+    return null;
+  }
+
+  return { count, sides, modifier };
+}
+
+interface DiceRoll {
+  count: number;
+  sides: number;
+  modifier: number;
+}
+```
+
+---
+
+## Implementation Guide
+
+### 10.1 File Structure
 
 ```
-/Users/au288926/Documents/mudmud/
-├── src/
-│   ├── server.js                  (modified: add combat stats to Player)
-│   ├── commands.js                (modified: add combat commands)
-│   ├── colors.js                  (modified: add combat colors)
+src/
+├── systems/
+│   ├── combat/
+│   │   ├── CombatRegistry.ts        // Central combat state
+│   │   ├── CombatResolver.ts        // Attack resolution, rounds
+│   │   ├── AttackRoll.ts            // D20 rolling, advantage/disadvantage
+│   │   ├── DamageCalculator.ts      // Damage dice, resistances
+│   │   ├── FleeHandler.ts           // Flee mechanics
+│   │   └── StatusEffects.ts         // Buffs/debuffs
 │   │
-│   ├── combat/                    (NEW)
-│   │   ├── combatEngine.js        (main combat orchestrator)
-│   │   ├── combatResolver.js      (attack/damage calculations)
-│   │   ├── damageTypes.js         (damage type definitions)
-│   │   ├── initiative.js          (initiative and turn order)
-│   │   ├── combatAI.js            (NPC combat behavior)
-│   │   └── combatMessages.js      (combat text generation)
+│   ├── progression/
+│   │   ├── XpSystem.ts              // XP formulas, rewards
+│   │   ├── LevelUpHandler.ts        // Level-up bonuses
+│   │   ├── GuildHooks.ts            // Guild customization interface
+│   │   └── XpTable.ts               // Table generation
 │   │
-│   ├── progression/               (NEW)
-│   │   ├── xpSystem.js            (XP gain and level-up)
-│   │   ├── xpTable.js             (level thresholds)
-│   │   └── statProgression.js     (stat calculations)
+│   ├── death/
+│   │   ├── DeathHandler.ts          // Death sequence
+│   │   ├── CorpseSystem.ts          // Corpse creation, decay
+│   │   ├── GhostState.ts            // Ghost mechanics
+│   │   └── Resurrection.ts          // Resurrection logic
 │   │
-│   ├── utils/                     (NEW or existing)
-│   │   ├── dice.js                (dice rolling utilities)
-│   │   └── mathUtils.js           (general math helpers)
+│   ├── npc/
+│   │   ├── NpcDefinitions.ts        // Static templates
+│   │   ├── NpcInstances.ts          // Spawned instances
+│   │   ├── NpcAI.ts                 // Aggro, targeting
+│   │   ├── LeashSystem.ts           // Leash mechanics
+│   │   └── NpcRespawn.ts            // Respawn scheduling
 │   │
-│   └── respawnService.js          (existing, may need modifications)
+│   └── rest/
+│       ├── RestHandler.ts           // Rest mechanics
+│       └── CampfireSystem.ts        // Campfire creation
 │
-├── playerdb.js                    (modified: persist combat stats)
-├── world.js                       (modified: NPC combat instances)
+├── data/
+│   ├── Player.ts                    // Player schema
+│   ├── NpcDefinition.ts             // NPC definition schema
+│   ├── NpcInstance.ts               // NPC instance schema
+│   ├── Combat.ts                    // Combat data structures
+│   └── Room.ts                      // Room extensions
 │
-├── world/
-│   └── sesame_street/
-│       └── npcs/
-│           ├── blue_wumpy.js      (modified: add combatStats, xpReward, etc.)
-│           └── ... (all NPCs)
+├── commands/
+│   ├── combat/
+│   │   ├── attack.ts
+│   │   ├── flee.ts
+│   │   └── status.ts
+│   │
+│   └── rest/
+│       └── rest.ts
 │
-└── docs/
-    └── COMBAT_XP_ARCHITECTURE.md  (this document)
+└── utils/
+    ├── dice.ts                      // Dice rolling utilities
+    ├── modifiers.ts                 // Stat modifiers
+    └── validation.ts                // Input validation
 ```
 
-### Module Dependencies
+### 10.2 Module Organization
 
-```
-server.js
-  ├─ requires playerdb.js
-  ├─ requires world.js
-  ├─ requires commands.js
-  └─ requires combat/combatEngine.js
+**CombatRegistry** (singleton):
+- Maintains `combats` and `entityToCombat` maps
+- Provides lookup functions: `getCombatForEntity()`, `getCombat()`
+- Handles combat creation and cleanup
 
-commands.js
-  ├─ requires combat/combatEngine.js
-  ├─ requires progression/xpSystem.js
-  └─ requires colors.js
+**CombatResolver**:
+- Manages round progression
+- Coordinates action execution
+- Checks win/loss conditions
 
-combat/combatEngine.js
-  ├─ requires combat/combatResolver.js
-  ├─ requires combat/initiative.js
-  ├─ requires combat/combatAI.js
-  ├─ requires combat/combatMessages.js
-  └─ requires progression/xpSystem.js
+**XpSystem**:
+- Calculates XP requirements and rewards
+- Handles XP distribution after combat
+- Triggers level-up checks
 
-combat/combatResolver.js
-  ├─ requires combat/damageTypes.js
-  ├─ requires utils/dice.js
-  └─ requires progression/statProgression.js (for getModifier)
+**LevelUpHandler**:
+- Applies standard bonuses
+- Invokes guild hooks
+- Manages stat choice prompts
 
-progression/xpSystem.js
-  ├─ requires progression/xpTable.js
-  ├─ requires progression/statProgression.js
-  └─ requires colors.js
-```
+**NpcAI**:
+- Processes aggro triggers
+- Manages aggro lists
+- Selects targets
 
----
+**LeashSystem**:
+- Monitors distance and time
+- Triggers retreats
+- Schedules healing
 
-## Implementation Phases
+### 10.3 Event Hooks
 
-### Phase 1: Foundation (Est. 4-6 hours)
+```typescript
+// Define event system for cross-module communication
+interface GameEvents {
+  'combat:started': (combat: Combat) => void;
+  'combat:ended': (combat: Combat, victor?: Entity) => void;
+  'combat:round': (combat: Combat) => void;
 
-**Goal:** Create data structures and utility functions
+  'player:death': (player: Player, killer?: Entity) => void;
+  'player:levelup': (player: Player, newLevel: number) => void;
+  'player:xp_gained': (player: Player, amount: number) => void;
 
-**Tasks:**
-1. Create directory structure (`combat/`, `progression/`, `utils/`)
-2. Implement `utils/dice.js` with dice rolling functions
-3. Create `progression/xpTable.js` with level thresholds
-4. Create `combat/damageTypes.js` with damage type registry
-5. Create `progression/statProgression.js` with modifier calculations
-6. Add combat stat properties to Player class
-7. Update PlayerDB to persist combat stats
-8. Update existing player saves with default values
+  'npc:death': (npc: NpcInstance, killers: Player[]) => void;
+  'npc:respawn': (npc: NpcInstance) => void;
+  'npc:leash': (npc: NpcInstance, reason: string) => void;
 
-**Deliverables:**
-- Dice rolling works: `rollD20()`, `rollDice('2d6+3')`
-- XP table accessible: `getXPForLevel(5)` returns correct value
-- Stat modifiers calculate: `getModifier(16)` returns `+3`
-- Players have combat stats in database
+  'rest:started': (player: Player) => void;
+  'rest:completed': (player: Player) => void;
+  'rest:interrupted': (player: Player, reason: string) => void;
+}
 
-**Testing:**
-- Unit test dice rolling (manual or automated)
-- Verify XP table progression curve
-- Test modifier calculation for all stat ranges (3-20)
-- Load player, verify combat stats populated
+// Usage:
+gameEvents.on('combat:started', (combat) => {
+  // Interrupt rest for all participants
+  for (const participant of combat.participants) {
+    if (participant.entityType === 'player') {
+      const player = getPlayer(participant.entityId);
+      if (getRestState(player.id)) {
+        interruptRest(player, 'combat');
+      }
+    }
+  }
+});
 
----
+gameEvents.on('player:death', (player, killer) => {
+  // Log to database
+  logDeath(player, killer);
 
-### Phase 2: Combat Resolution (Est. 6-8 hours)
+  // Update statistics
+  updatePlayerStats(player, { deaths: +1 });
 
-**Goal:** Implement attack rolls, damage calculation, HP tracking
-
-**Tasks:**
-1. Create `combat/combatResolver.js` with attack/damage functions
-2. Implement attack roll logic (1d20 + modifiers vs AC)
-3. Implement damage rolling and resistance application
-4. Implement critical hit/miss mechanics
-5. Add `takeDamage()`, `heal()`, `isDead()` methods to Player
-6. Create HP tracking for NPC instances in World
-7. Implement flee mechanics
-8. Add combat color functions to `colors.js`
-
-**Deliverables:**
-- Attack rolls function correctly
-- Damage applies with resistance calculations
-- HP updates on Player and NPCs
-- Critical hits deal double damage
-- Flee success based on formula
-
-**Testing:**
-- Mock combat: player attacks NPC, verify hit/miss logic
-- Test damage with various resistances (0%, 25%, -25%)
-- Verify critical hit doubles damage dice
-- Test flee with various DEX modifiers
-
----
-
-### Phase 3: Combat Engine (Est. 8-10 hours)
-
-**Goal:** Orchestrate full combat encounters
-
-**Tasks:**
-1. Create `CombatEncounter` class in `combat/combatEngine.js`
-2. Implement initiative rolling (`combat/initiative.js`)
-3. Implement `initiateCombat()` function
-4. Implement combat round execution
-5. Implement turn-based combat loop
-6. Create `combat/combatMessages.js` for dynamic text
-7. Implement combat end conditions (death, flee)
-8. Integrate with RespawnService for defeated NPCs
-9. Add combat state tracking (activeCombats Map)
-
-**Deliverables:**
-- Players can initiate combat with `attack [npc]`
-- Combat proceeds in turn-based rounds
-- Initiative determines action order
-- Combat ends on death or flee
-- Defeated NPCs respawn after timer
-- Combat state prevents simultaneous combats
-
-**Testing:**
-- Full combat encounter: player vs NPC to completion
-- Verify initiative determines turn order
-- Test combat end on NPC death
-- Test combat end on player death (if implemented)
-- Test flee during combat
-- Verify NPC respawns after defeat
-
----
-
-### Phase 4: NPC AI (Est. 4-6 hours)
-
-**Goal:** NPC decision-making and automated turns
-
-**Tasks:**
-1. Create `combat/combatAI.js`
-2. Implement NPC action selection (attack, flee)
-3. Implement flee threshold checking
-4. Add automated NPC turns in combat loop
-5. Add aggressive NPC behavior (attack on sight)
-6. Create variety in NPC attack messages
-
-**Deliverables:**
-- NPCs attack automatically on their turn
-- NPCs flee when HP low
-- Aggressive NPCs initiate combat with players
-- Variety in combat text
-
-**Testing:**
-- NPC attacks player automatically
-- NPC flees when HP below threshold
-- Aggressive NPC attacks player on entry
-- Combat feels dynamic with message variety
-
----
-
-### Phase 5: XP and Levelling (Est. 5-7 hours)
-
-**Goal:** Implement progression system
-
-**Tasks:**
-1. Create `progression/xpSystem.js`
-2. Implement `awardXP()` function
-3. Implement `checkLevelUp()` and `levelUp()` functions
-4. Implement XP calculation for combat victories
-5. Implement stat gain application on level-up
-6. Create level-up notification messages
-7. Add `score` command enhancements to show XP/level
-8. Persist XP and level in PlayerDB
-9. Full heal on level-up
-
-**Deliverables:**
-- Players gain XP from defeating NPCs
-- XP scaled based on level difference
-- Level-up triggers at correct thresholds
-- Stats increase on level-up
-- Level-up provides full heal
-- Score shows level, XP, and progress to next level
-
-**Testing:**
-- Award XP, verify accumulation
-- Force level-up, verify stat increases
-- Test multi-level jumps (e.g., level 1 to 3 in one XP gain)
-- Verify XP scales with NPC level difference
-- Test level-up at various levels (1→2, 5→6, 19→20)
-
----
-
-### Phase 6: Commands and Polish (Est. 4-6 hours)
-
-**Goal:** Integrate combat into command system and polish UX
-
-**Tasks:**
-1. Implement `attack` and `kill` commands in `commands.js`
-2. Implement `flee` command
-3. Implement `rest` command for HP recovery
-4. Enhance `look` to show HP bars for combatants
-5. Enhance `score` to show combat stats
-6. Prevent movement during combat
-7. Prevent quit during combat
-8. Prevent pickup/drop during combat
-9. Add combat state to player prompt (optional)
-10. Broadcast combat events to room
-
-**Deliverables:**
-- All combat commands functional
-- Combat state restricts certain actions
-- Room sees combat events
-- Clean, colorful combat output
-- Help text updated with combat commands
-
-**Testing:**
-- Full player experience: login, attack NPC, defeat, level up
-- Test movement prevention during combat
-- Test quit prevention during combat
-- Test rest command HP recovery
-- Verify other players see combat messages
-
----
-
-### Phase 7: NPC Updates (Est. 3-4 hours)
-
-**Goal:** Update all NPCs with combat data
-
-**Tasks:**
-1. Update all Sesame Street NPCs with `combatStats`
-2. Add `xpReward` to all NPCs
-3. Add `attackMessages` and `deathMessages`
-4. Balance NPC stats for levels 1-5
-5. Add resistances to themed NPCs (e.g., fire wumpy has fire resistance)
-6. Test combat with each NPC
-
-**Deliverables:**
-- All 8 Sesame Street NPCs combat-ready
-- Balanced progression for new players
-- Variety in combat encounters
-
-**Testing:**
-- Combat test with each NPC
-- Verify XP rewards feel appropriate
-- Check stat balance (level 1 player can defeat level 1 NPC)
-
----
-
-### Total Implementation Time Estimate
-
-| Phase | Estimated Time | Priority |
-|-------|----------------|----------|
-| Phase 1: Foundation | 4-6 hours | Critical |
-| Phase 2: Combat Resolution | 6-8 hours | Critical |
-| Phase 3: Combat Engine | 8-10 hours | Critical |
-| Phase 4: NPC AI | 4-6 hours | High |
-| Phase 5: XP and Levelling | 5-7 hours | High |
-| Phase 6: Commands and Polish | 4-6 hours | High |
-| Phase 7: NPC Updates | 3-4 hours | Medium |
-| **Total** | **34-47 hours** | |
-
-**Minimal Viable Combat (Phases 1-3):** 18-24 hours
-**Full System (All Phases):** 34-47 hours
-
----
-
-## Future Extensions
-
-### Planned Enhancements (Post-Initial Implementation)
-
-#### 1. Guild System Integration
-
-- Guild-specific abilities in combat
-- Spell casting commands (separate from basic attacks)
-- Mana/energy resources
-- Cooldown management
-- Combo attacks
-
-**File additions:**
-```
-src/guilds/
-  ├── guildSystem.js
-  ├── spellSystem.js
-  └── abilityEffects.js
+  if (killer?.type === 'player') {
+    updatePlayerStats(killer as Player, { kills: +1 });
+  }
+});
 ```
 
-#### 2. Equipment System
+### 10.4 Testing Strategy
 
-- Weapon damage dice (1d6 dagger, 2d6 sword, 1d12 greataxe)
-- Armor AC bonuses
-- Magical item properties
-- Equipment durability
-- Enchantments
+**Unit Tests**:
+- XP formula correctness
+- Dice parsing and validation
+- Attack roll calculations
+- Advantage/disadvantage logic
+- Damage calculation with resistances
 
-**Integration:**
-- Modify `getAttackBonus()` to include weapon bonuses
-- Modify `getArmorClass()` to include armor bonuses
-- Add equipment damage types
+**Integration Tests**:
+- Full combat sequence from start to end
+- Level-up triggers and bonuses
+- Death and corpse creation
+- Flee mechanics
+- Leash behavior
+- Rest system
 
-#### 3. Status Effects
+**Example Test**:
 
-- Buffs: Strength boost, haste, regeneration
-- Debuffs: Poison, slow, blind, stunned
-- Duration tracking
-- Effect stacking rules
-- Cleansing/dispel mechanics
+```typescript
+describe('Combat System', () => {
+  it('should resolve a basic attack correctly', () => {
+    const attacker = createTestPlayer({
+      str: 14,
+      proficiency: 2,
+      currentWeapon: { name: 'Sword', damageDice: '1d6', damageType: 'physical' }
+    });
 
-**File additions:**
+    const defender = createTestNpc({
+      level: 1,
+      armorClass: 14,
+      currentHp: 10
+    });
+
+    const combat = initiateCombat(attacker, defender);
+
+    // Mock d20 roll to 15 (hit)
+    mockD20Roll(15);
+    mockDamageRoll(4);
+
+    const result = resolveAttack(attacker, defender, combat);
+
+    expect(result.hit).toBe(true);
+    expect(result.total).toBe(15 + 2 + 2);  // 15 (roll) + 2 (STR mod) + 2 (prof)
+    expect(defender.currentHp).toBe(6);     // 10 - 4 damage
+  });
+
+  it('should apply advantage correctly', () => {
+    const attacker = createTestPlayer();
+    const defender = createTestNpc();
+    const combat = initiateCombat(attacker, defender);
+
+    const participant = getParticipant(combat, attacker.id);
+    grantAdvantage(participant, 'test', 1);
+
+    mockD20Rolls([8, 15]);  // Should keep 15
+
+    const roll = rollAttack('advantage');
+    expect(roll.natural).toBe(15);
+    expect(roll.rolls).toEqual([8, 15]);
+  });
+});
 ```
-src/combat/statusEffects.js
-src/combat/effectManager.js
+
+### 10.5 Performance Considerations
+
+**Combat Registry Optimization**:
+- Use `Map` instead of plain objects for frequent lookups
+- Index by both entity ID and combat ID
+- Cleanup dead combats immediately
+
+**NPC Instance Management**:
+- Limit total spawned instances (e.g., 1000 max)
+- Despawn instances far from players
+- Pool respawning instances instead of creating new ones
+
+**Event Processing**:
+- Batch combat round processing (all combats simultaneously)
+- Use event queues to prevent blocking
+- Rate-limit aggro checks
+
+### 10.6 Configuration Management
+
+```typescript
+// config/combat.ts
+export const CombatConfig = {
+  // XP & Leveling
+  xp: {
+    baseFormula: (level: number) => Math.round(800 * Math.pow(level, 1.6)),
+    mobRewardPercent: 0.12,
+    lossPercents: {
+      low: 0.05,      // L1-10
+      mid: 0.03,      // L11-30
+      high: 0.02      // L31+
+    }
+  },
+
+  // Combat Mechanics
+  combat: {
+    baseHitChance: 0.60,
+    criticalHit: 20,
+    criticalMiss: 1,
+    proficiencyProgression: [2, 3, 4, 5, 6, 7, 8, 9],  // Every 4 levels
+    baseDamageDice: '1d4',
+    roundTimeout: 30000  // 30s per round
+  },
+
+  // Death & Corpse
+  death: {
+    corpseDecayTime: 30 * 60 * 1000,      // 30 minutes
+    remainsRetentionPercent: 0.5,
+    ghostMovementSlowdown: 2.0,
+    pvpLootWindow: 2 * 60 * 1000,         // 2 minutes
+    defeatCooldown: 2 * 60 * 1000         // 2 minutes
+  },
+
+  // Rest
+  rest: {
+    duration: 10000,                       // 10 seconds
+    damageBlockDuration: 60000,           // 60 seconds
+    hpRestorePercent: 0.25,
+    resourceRestorePercent: 0.25
+  },
+
+  // Flee
+  flee: {
+    cooldown: 10000,                      // 10 seconds
+    opportunityAttackBonus: 0             // Free attack has no penalty
+  },
+
+  // NPC Behavior
+  npc: {
+    defaultLeashDistance: 5,
+    defaultPursuitDuration: 30,           // 30 seconds
+    healDelayAfterLeash: 10000,          // 10 seconds
+    spawnProtection: 5000                // 5 seconds
+  }
+};
 ```
-
-#### 4. Advanced Combat
-
-- Multiple combatants (group combat)
-- Area-of-effect attacks
-- Positioning and range
-- Cover and concealment
-- Opportunity attacks
-- Reactions (parry, dodge)
-
-#### 5. Quest XP
-
-- Quest completion awards
-- Quest chains with scaled rewards
-- Repeatable quest diminishing returns
-- Bonus XP for quest achievements
-
-**Integration:**
-Add to `awardXP()`:
-```javascript
-awardXP(player, questReward, 'quest:quest_name', playerDB);
-```
-
-#### 6. Player vs Player (PvP)
-
-- Dueling system
-- PvP consent mechanics
-- Honor/infamy tracking
-- PvP zones
-- Duel arenas
-
-**Considerations:**
-- Balance: Players stronger than NPCs of same level
-- Griefing prevention
-- Rewards for PvP victories
-
-#### 7. Difficulty Scaling
-
-- Easy/Normal/Hard mode toggle
-- Scaling NPC stats based on party size
-- Dynamic difficulty adjustment
-
-#### 8. Combat Statistics
-
-- Track player combat stats (kills, deaths, damage dealt)
-- Leaderboards
-- Achievement integration
-- Combat log review
 
 ---
 
-## Design Decisions and Rationale
+## Reference Configuration
 
-### Why D20 Instead of Percentile?
+### 11.1 Startup Parameters
 
-**Chosen:** D20 (roll 1-20 + modifiers)
-**Alternative:** Percentile (roll 1-100 vs skill percentage)
+```typescript
+// Server startup configuration
+const GAME_CONFIG = {
+  // XP Progression
+  xpFormula: (level: number) => Math.round(800 * Math.pow(level, 1.6)),
 
-**Rationale:**
-- D20 is familiar to modern tabletop gamers (D&D 5e)
-- Modifiers feel more impactful (+5 matters more on d20 than on d100)
-- Easier to balance with bounded accuracy
-- Critical hits/misses naturally at 1 and 20
+  // Target pacing (minutes)
+  targetTimes: {
+    L1_to_L2: 5,
+    L2_to_L3: 15,
+    L3_to_L4: 25,
+    L4_to_L5: 45,
+    totalToL5: 90
+  },
 
-### Why Turn-Based Instead of Real-Time?
+  // Combat balance
+  evenLevelHitRate: 0.60,
+  targetRoundsPerFight: { min: 4, max: 6 },
 
-**Chosen:** Turn-based rounds
-**Alternative:** Real-time with action cooldowns
+  // Starting stats
+  playerStartingStats: {
+    level: 1,
+    hp: 10,
+    ac: 13,
+    proficiency: 2,
+    damageDice: '1d4'
+  },
 
-**Rationale:**
-- MUD tradition is turn-based
-- Easier to implement and debug
-- Works better with text interface
-- Allows for tactical thinking
-- No timing advantage for players with faster connections
+  npcStartingStats: {
+    level: 1,
+    hp: 8,
+    ac: 14,
+    proficiency: 2,
+    damageDice: '1d6'
+  },
 
-### Why Round-Robin Turns Instead of Speed-Based?
+  // Progression
+  hpPerLevel: 5,
+  statChoiceInterval: 4,  // Every 4 levels
 
-**Chosen:** Initiative determines turn order, then alternating
-**Alternative:** Speed stat allows multiple actions
+  // Damage types
+  damageTypes: [
+    'physical',
+    'fire',
+    'ice',
+    'lightning',
+    'poison',
+    'necrotic',
+    'radiant',
+    'psychic'
+  ]
+};
+```
 
-**Rationale:**
-- Simpler to understand and implement
-- Prevents runaway speed advantage
-- More predictable for players
-- Can add speed mechanics later via buffs/abilities
+### 11.2 Example NPC Definitions
 
-### Why HP Instead of Wounds/Vitality?
+```typescript
+const EXAMPLE_NPCS: NpcDefinition[] = [
+  {
+    id: 'goblin_scout',
+    name: 'Goblin Scout',
+    description: 'A small, green-skinned humanoid with beady eyes.',
+    level: 1,
+    maxHp: 8,
+    armorClass: 14,
+    str: 8,
+    dex: 14,
+    con: 10,
+    int: 8,
+    wis: 10,
+    cha: 6,
+    damageDice: '1d6',
+    damageType: 'physical',
+    proficiency: 2,
+    resistances: {},
+    vulnerabilities: [],
+    aggressive: true,
+    socialAggro: true,
+    leashDistance: 5,
+    pursuitDurationSec: 30,
+    xpReward: 96,  // 0.12 * 800
+    lootTable: [
+      { itemId: 'rusty_dagger', chance: 0.3 },
+      { itemId: 'copper_coin', chance: 1.0, quantity: { min: 1, max: 5 } }
+    ],
+    respawnDelay: 300,  // 5 minutes
+    homeRoomId: 'goblin_camp_1'
+  },
 
-**Chosen:** Single HP pool
-**Alternative:** Separate vitality and wounds tracks
+  {
+    id: 'boss_ogre_chief',
+    name: 'Ogre Chief',
+    description: 'A massive ogre covered in crude armor and battle scars.',
+    level: 5,
+    maxHp: 45,
+    armorClass: 16,
+    str: 18,
+    dex: 8,
+    con: 16,
+    int: 6,
+    wis: 10,
+    cha: 8,
+    damageDice: '2d8+4',
+    damageType: 'physical',
+    proficiency: 3,
+    resistances: { physical: 0.5 },  // 50% resistance
+    vulnerabilities: ['fire'],
+    aggressive: true,
+    socialAggro: false,  // Boss fights are solo
+    leashDistance: 0,     // Cannot leave boss room
+    pursuitDurationSec: 999999,
+    xpReward: 1065,  // 0.12 * 8871
+    lootTable: [
+      { itemId: 'ogre_greatclub', chance: 1.0 },
+      { itemId: 'boss_chest_key', chance: 1.0 },
+      { itemId: 'gold_coin', chance: 1.0, quantity: { min: 10, max: 20 } }
+    ],
+    respawnDelay: 3600,  // 1 hour
+    homeRoomId: 'ogre_throne_room'
+  }
+];
+```
 
-**Rationale:**
-- Simpler mental model
-- Easier to display in text
-- Standard for the genre
-- Can add complexity later with temporary HP
+### 11.3 Default Player Initialization
 
-### Why Resistance Percentage Instead of Flat Reduction?
+```typescript
+function createNewPlayer(name: string): Player {
+  return {
+    id: generateId(),
+    name,
 
-**Chosen:** Percentage reduction (25% fire resistance = 0.75x fire damage)
-**Alternative:** Flat damage reduction (fire resist 5 = -5 fire damage)
+    // Core Stats
+    level: 1,
+    currentXp: 0,
+    maxHp: 10,
+    currentHp: 10,
+    resource: 100,
+    maxResource: 100,
 
-**Rationale:**
-- Scales naturally with damage amounts
-- Easier to balance high-level content
-- More intuitive (50% = half damage)
-- Prevents trivializing damage with high flat reduction
+    // Base Attributes (point-buy or roll)
+    str: 10,
+    dex: 12,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
 
-### Why No Mana for Basic Attacks?
+    // Derived
+    proficiency: 2,
+    armorClass: 11,  // 10 + 1 (DEX mod)
 
-**Chosen:** Unlimited basic attacks
-**Alternative:** Stamina/energy cost per attack
+    // Equipment
+    equippedWeapon: undefined,
+    equippedArmor: undefined,
+    inventory: [],
 
-**Rationale:**
-- Simplifies basic combat
-- Mana reserved for spells (guild system)
-- Prevents "stuck without resources" frustration
-- Focuses tactical choices on abilities, not basic attacks
+    // Default weapon
+    currentWeapon: {
+      name: 'Fists',
+      damageDice: '1d4',
+      damageType: 'physical'
+    },
 
----
+    // Guild
+    guildId: undefined,
+    guildRank: 0,
 
-## Testing Strategy
+    // Status
+    isGhost: false,
+    isDead: false,
+    lastDamageTaken: 0,
+    lastDefeatedBy: new Set(),
 
-### Unit Testing Priorities
+    // Location
+    roomId: 'starting_room',
 
-1. **Dice Rolling:**
-   - `rollD20()` returns 1-20
-   - `rollDice('2d6+3')` returns 5-15
-   - Critical hit doubles dice only, not modifiers
-
-2. **Stat Calculations:**
-   - `getModifier()` correct for all stat values
-   - `getProficiencyBonus()` scales with level
-   - `getArmorClass()` includes all bonuses
-
-3. **Damage Calculations:**
-   - Attack roll vs AC determines hit/miss
-   - Resistance reduces damage correctly
-   - Vulnerability increases damage correctly
-
-4. **XP System:**
-   - XP thresholds match table
-   - Level-up triggers at correct XP
-   - Stat gains apply correctly
-
-### Integration Testing
-
-1. **Full Combat Encounter:**
-   - Player attacks NPC
-   - Initiative determines order
-   - Attacks resolve with hit/miss
-   - Damage applies and HP decreases
-   - Combat ends on death
-   - XP awarded
-   - Level-up triggers if threshold reached
-   - NPC respawns after timer
-
-2. **Edge Cases:**
-   - Attack non-existent target
-   - Attack during combat
-   - Flee with low/high DEX
-   - Level-up multiple levels at once
-   - NPC with 0 HP
-   - Player with 0 HP
-
-### Manual Testing Checklist
-
-- [ ] Create new character, verify default stats
-- [ ] Attack weak NPC, defeat, gain XP
-- [ ] Level up from 1 to 2, verify stat increases
-- [ ] Attack strong NPC, flee successfully
-- [ ] Attack strong NPC, flee fails, take opportunity damage
-- [ ] Let NPC defeat player (death mechanics)
-- [ ] Rest command recovers HP
-- [ ] Multiple combats in sequence
-- [ ] Aggressive NPC attacks on room entry
-- [ ] Combat messages colorful and varied
-- [ ] Score shows correct stats
-- [ ] Look shows NPC HP bars
-
----
-
-## Open Questions for Implementation
-
-### Questions to Resolve Before/During Implementation
-
-1. **Player Death:**
-   - Permanent death?
-   - Respawn at spawn point with HP penalty?
-   - XP loss on death?
-   - Ghost mode to return to body?
-
-   **Recommendation:** Respawn at spawn point with 1 HP, no XP loss (beginner-friendly)
-
-2. **Healing Mechanics:**
-   - Rest command: How much HP per rest? Cooldown?
-   - Passive regeneration outside combat?
-   - Healing items (potions)?
-   - Healing from NPCs (cleric, healer)?
-
-   **Recommendation:**
-   - Rest: Recover 25% max HP, 1 minute cooldown
-   - No passive regen (keeps healing valuable)
-   - Potions added with equipment system
-
-3. **Equipment Drops:**
-   - NPCs drop equipment on death?
-   - Random loot or fixed drops?
-   - Currency drops?
-
-   **Recommendation:** Phase 1 = no drops, add with equipment system
-
-4. **Multiple Combatants:**
-   - Support group combat in Phase 1?
-   - Or limit to 1v1 for simplicity?
-
-   **Recommendation:** 1v1 only initially, group combat in future phase
-
-5. **Aggressive NPCs:**
-   - Attack immediately on room entry?
-   - Wander and aggro if player in room?
-   - Cooldown after defeat before re-aggro?
-
-   **Recommendation:**
-   - Attack on entry if `aggressive: true`
-   - Check every 5 seconds for players in room
-   - 5 minute cooldown per player after defeat
-
-6. **Combat Display Format:**
-   - One-line-per-action or detailed panels?
-   - HP bars visual (===---) or numeric (15/20)?
-
-   **Recommendation:**
-   - One-line-per-action for simplicity
-   - HP bars: "Blue Wumpy [██████░░░░] 12/20 HP"
-
-7. **Stat Point Allocation:**
-   - Auto-distribute stats on level-up?
-   - Let player choose where to spend points?
-
-   **Recommendation:** Auto-distribute initially, player choice when guild system adds classes
+    // Cooldowns
+    pvpCooldownUntil: undefined,
+    fleeCooldownUntil: undefined
+  };
+}
+```
 
 ---
 
 ## Conclusion
 
-This architecture provides a solid foundation for a D20-based combat and progression system that:
+This architecture provides a complete foundation for a D20-based MUD combat system with integrated XP progression, death mechanics, NPC AI, and PvP support. The modular design allows for easy extension through guild hooks, status effects, and custom abilities while maintaining balanced gameplay through formula-driven progression.
 
-- **Scales cleanly** from level 1 to 50+
-- **Integrates seamlessly** with existing MUD infrastructure
-- **Extends naturally** to support guilds, spells, and equipment
-- **Feels familiar** to modern tabletop gamers
-- **Stays true** to classic MUD design
+Key implementation priorities:
+1. Combat Registry and basic attack resolution
+2. XP system and level-up mechanics
+3. NPC instance system and aggro
+4. Death, corpse, and ghost mechanics
+5. Leash and flee systems
+6. Rest and regeneration
+7. PvP rules and looting
 
-The modular structure ensures each component can be tested, debugged, and extended independently. The turn-based combat provides a smooth, predictable experience for text-based gameplay. The XP system rewards both combat and questing (future), encouraging diverse gameplay.
-
-With an estimated 34-47 hours of implementation time, this system can be built incrementally, tested thoroughly, and polished for an excellent player experience.
-
----
-
-**Next Steps:**
-1. Review and approve this architecture plan
-2. Create Phase 1 implementation plan with specific file/function signatures
-3. Set up testing strategy and fixtures
-4. Begin implementation with Phase 1 (Foundation)
-
-**Questions or Feedback:**
-- Any concerns about the D20 mechanics?
-- Should we adjust damage type variety?
-- Preferred player death mechanics?
-- Timeline constraints for implementation?
-
----
-
-*Document prepared by the MUD Architect for The Wumpy and Grift*
-*Ready for implementation review and approval*
+All systems are designed to work together seamlessly while remaining independently testable and maintainable.

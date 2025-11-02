@@ -1,6 +1,36 @@
 const colors = require('../colors');
 const { DAMAGE_TYPES } = require('./damageTypes');
 
+function createHealthBar(currentHp, maxHp, barLength = 20) {
+  // Ensure we have valid numbers
+  const current = Math.max(0, Math.floor(currentHp));
+  const max = Math.max(1, Math.floor(maxHp));
+  const percentage = current / max;
+
+  // Calculate filled portion
+  const filledLength = Math.round(barLength * percentage);
+  const emptyLength = barLength - filledLength;
+
+  // Create bar using block characters
+  const filledBar = '#'.repeat(filledLength);
+  const emptyBar = '-'.repeat(emptyLength);
+
+  // Color based on health percentage
+  let barColor;
+  if (percentage > 0.6) {
+    barColor = colors.MUD_COLORS.SUCCESS; // Green
+  } else if (percentage > 0.3) {
+    barColor = colors.MUD_COLORS.WARNING; // Yellow
+  } else {
+    barColor = colors.MUD_COLORS.ERROR; // Red
+  }
+
+  const coloredBar = colors.colorize(filledBar + emptyBar, barColor);
+  const hpText = colors.hint(` ${current}/${max} HP`);
+
+  return coloredBar + hpText;
+}
+
 function getAttackMessage(attacker, defender, hit, critical) {
   const attackerName = attacker.username || attacker.name;
   const defenderName = defender.username || defender.name;
@@ -13,7 +43,7 @@ function getAttackMessage(attacker, defender, hit, critical) {
     const messages = [
       `${attackerName} strikes ${defenderName}!`,
       `${attackerName} hits ${defenderName} solidly!`,
-      `${attackerName} lands a blow on ${defenderName} அளிக்க!`
+      `${attackerName} lands a blow on ${defenderName}!`
     ];
     return colors.hit(messages[Math.floor(Math.random() * messages.length)]);
   } else {
@@ -26,10 +56,19 @@ function getAttackMessage(attacker, defender, hit, critical) {
   }
 }
 
-function getDamageMessage(damage, damageType) {
+function getDamageMessage(damage, damageType, target = null) {
   const typeInfo = DAMAGE_TYPES[damageType];
   const colorFn = colors[typeInfo.color] || colors.damage;
-  return colorFn(`${damage} ${typeInfo.name} damage!`);
+  let message = colorFn(`${damage} ${typeInfo.name} damage!`);
+
+  // Add HP bar if target is provided
+  if (target && target.hp !== undefined && target.maxHp !== undefined) {
+    const targetName = target.username || target.name;
+    const hpBar = createHealthBar(target.hp, target.maxHp);
+    message += `\n${colors.hint(targetName + ':')} ${hpBar}`;
+  }
+
+  return message;
 }
 
 function getDeathMessage(combatant) {
@@ -46,5 +85,6 @@ function getDeathMessage(combatant) {
 module.exports = {
   getAttackMessage,
   getDamageMessage,
-  getDeathMessage
+  getDeathMessage,
+  createHealthBar
 };
