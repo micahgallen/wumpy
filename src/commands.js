@@ -15,6 +15,13 @@ const taunts = [
 
 const commands = {
   attack: (player, args, world, playerDB, allPlayers, activeInteractions, combatEngine) => {
+    // Check if player is a ghost
+    if (player.isGhost) {
+      player.send('\n' + colors.error('You cannot attack while you are a ghost!'));
+      player.send('\n' + colors.hint('Your ethereal form passes through the world without substance.\n'));
+      return;
+    }
+
     if (args.length === 0) {
       player.send('\n' + colors.error('Attack what? Try "attack [target]"\n'));
       return;
@@ -65,18 +72,66 @@ const commands = {
     }
 
     if (targetName) {
+      // Check self
       if (targetName === player.username.toLowerCase()) {
-        player.send(`\n${colors.playerName(player.username)}\n${player.description}\n`);
+        let output = `\n${colors.playerName(player.username)}`;
+        if (player.isGhost) {
+          output += colors.hint(' (ghost)');
+        }
+        output += `\n${player.description}`;
+        if (player.isGhost) {
+          output += `\n${colors.hint('Your form is translucent and ethereal.')}`;
+        }
+        player.send(output + '\n');
         return;
       }
 
+      // Check other players
       for (const p of allPlayers) {
         if (p.username.toLowerCase() === targetName && p.currentRoom === player.currentRoom) {
-          player.send(`\n${colors.playerName(p.username)}\n${p.description}\n`);
+          let output = `\n${colors.playerName(p.username)}`;
+          if (p.isGhost) {
+            output += colors.hint(' (ghost)');
+          }
+          output += `\n${p.description}`;
+          if (p.isGhost) {
+            output += `\n${colors.hint('Their form is translucent and ethereal, barely visible in this world.')}`;
+          }
+          player.send(output + '\n');
           return;
         }
       }
-      player.send(`\n${colors.error('You don\'t see that person here.')}\n`);
+
+      // Check NPCs - delegate to examine command for consistent behavior
+      const room = world.getRoom(player.currentRoom);
+      if (room && room.npcs) {
+        for (const npcId of room.npcs) {
+          const npc = world.getNPC(npcId);
+          if (npc && npc.keywords) {
+            if (npc.keywords.some(keyword => keyword.toLowerCase() === targetName || targetName.includes(keyword.toLowerCase()))) {
+              // Found matching NPC - use examine logic
+              commands.examine(player, args, world, playerDB, allPlayers);
+              return;
+            }
+          }
+        }
+      }
+
+      // Check objects - delegate to examine command
+      if (room && room.objects) {
+        for (const objId of room.objects) {
+          const obj = world.getObject(objId);
+          if (obj && obj.keywords) {
+            if (obj.keywords.some(keyword => keyword.toLowerCase() === targetName || targetName.includes(keyword.toLowerCase()))) {
+              // Found matching object - use examine logic
+              commands.examine(player, args, world, playerDB, allPlayers);
+              return;
+            }
+          }
+        }
+      }
+
+      player.send(`\n${colors.error('You don\'t see that here.')}\n`);
       return;
     }
 
@@ -171,7 +226,15 @@ ${colors.highlight('System:')}
     // Search for players in the current room
     for (const p of allPlayers) {
       if (p.username.toLowerCase() === target && p.currentRoom === player.currentRoom) {
-        player.send(`\n${colors.playerName(p.username)}\n${p.description}\n`);
+        let output = `\n${colors.playerName(p.username)}`;
+        if (p.isGhost) {
+          output += colors.hint(' (ghost)');
+        }
+        output += `\n${p.description}`;
+        if (p.isGhost) {
+          output += `\n${colors.hint('Their form is translucent and ethereal, barely visible in this world.')}`;
+        }
+        player.send(output + '\n');
         return;
       }
     }
@@ -829,6 +892,12 @@ ${colors.highlight('System:')}
     output.push(`${colors.highlight('Name:')} ${colors.playerName(player.username)}`);
     output.push(`${colors.highlight('Location:')} ${world.getRoom(player.currentRoom)?.name || 'Unknown'}`);
 
+    // Show ghost status prominently if applicable
+    if (player.isGhost) {
+      output.push(`${colors.highlight('Status:')} ${colors.error('GHOST')}`);
+      output.push(colors.hint('  You are currently a ghost and cannot attack.'));
+    }
+
     if (player.inventory && player.inventory.length > 0) {
       output.push(`${colors.highlight('Carrying:')} ${player.inventory.length} item(s)`);
     } else {
@@ -836,8 +905,13 @@ ${colors.highlight('System:')}
     }
 
     output.push('');
-    output.push(colors.hint('You are a fledgling adventurer in The Wumpy and Grift.'));
-    output.push(colors.hint('More stats will appear here as you progress...'));
+    if (player.isGhost) {
+      output.push(colors.hint('You are a ghostly spirit in The Wumpy and Grift.'));
+      output.push(colors.hint('Your translucent form drifts through the world...'));
+    } else {
+      output.push(colors.hint('You are a fledgling adventurer in The Wumpy and Grift.'));
+      output.push(colors.hint('More stats will appear here as you progress...'));
+    }
 
     player.send('\n' + output.join('\n') + '\n');
   },

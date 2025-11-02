@@ -51,6 +51,20 @@ class CombatEncounter {
                 if (damageResult.dead) {
                     const deathMessage = getDeathMessage(target);
                     this.broadcast(deathMessage);
+
+                    // Set ghost status for players
+                    if (target.socket && target.username) {
+                        target.isGhost = true;
+                        target.send('\n' + colors.error('======================================'));
+                        target.send('\n' + colors.error('        YOU HAVE DIED!'));
+                        target.send('\n' + colors.error('======================================'));
+                        target.send('\n' + colors.info('You are now a GHOST.'));
+                        target.send('\n' + colors.hint('As a ghost, you cannot attack or be attacked.'));
+                        target.send('\n' + colors.hint('Your form is translucent and ethereal.'));
+                        target.send('\n' + colors.hint('(Respawn mechanics coming soon...)'));
+                        target.send('\n');
+                    }
+
                     this.endCombat();
                     return;
                 }
@@ -71,9 +85,13 @@ class CombatEncounter {
     }
 
     broadcast(message) {
-        for (const participant of this.participants) {
-            if (participant.socket) { // Check if it's a player
-                participant.send('\n' + message + '\n');
+        // Send combat messages to all players in the same room, not just participants
+        const room = this.world.getRoom(this.participants[0].currentRoom);
+        if (room) {
+            for (const p of this.allPlayers) {
+                if (p.currentRoom === room.id) {
+                    p.send('\n' + message + '\n');
+                }
             }
         }
     }

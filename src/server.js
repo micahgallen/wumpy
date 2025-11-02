@@ -33,6 +33,7 @@ class Player {
     this.wisdom = 10;
     this.charisma = 10;
     this.resistances = {}; // Damage type resistances (e.g., { fire: 25 } = 25% fire resistance)
+    this.isGhost = false; // Ghost status after death
   }
 
   /**

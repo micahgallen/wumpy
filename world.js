@@ -170,14 +170,14 @@ class World {
       output.push('\n' + colors.exitsLabel('Exits: ') + colors.hint('none'));
     }
 
-    // NPCs (with color and wrapping)
+    // NPCs (brief presence indication only)
     if (room.npcs && room.npcs.length > 0) {
       output.push('');
       for (const npcId of room.npcs) {
         const npc = this.getNPC(npcId);
         if (npc) {
-          const wrappedNpc = colors.wrap(colors.npc(npc.description), 80);
-          output.push(wrappedNpc);
+          // Show only the NPC name, not the full description
+          output.push(colors.npc(npc.name) + ' is here.');
         }
       }
     }
@@ -198,11 +198,16 @@ class World {
       const playersInRoom = [];
       for (const p of allPlayers) {
         if (p.currentRoom === roomId && p.username !== currentPlayer.username) {
-          playersInRoom.push(p.username);
+          // Add ghost indicator if player is a ghost
+          if (p.isGhost) {
+            playersInRoom.push(colors.playerName(p.username) + colors.hint(' (ghost)'));
+          } else {
+            playersInRoom.push(colors.playerName(p.username));
+          }
         }
       }
       if (playersInRoom.length > 0) {
-        output.push('\n' + colors.info('Also here: ') + playersInRoom.map(name => colors.playerName(name)).join(', '));
+        output.push('\n' + colors.info('Also here: ') + playersInRoom.join(', '));
       }
     }
 
