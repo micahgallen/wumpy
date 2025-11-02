@@ -5,7 +5,11 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/runAllTests.js",
+    "test:dice": "node tests/diceTests.js",
+    "test:modifiers": "node tests/modifierTests.js",
+    "test:combat": "node tests/combatTests.js",
+    "test:integration": "node tests/integrationTest.js"
   },
   "keywords": [],
   "author": "",
