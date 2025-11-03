@@ -43,6 +43,14 @@ class RespawnService {
         for (const npcId of missingNpcIds) {
           // Add the missing NPC back to the room
           currentRoom.npcs.push(npcId);
+
+          // Reset NPC HP when respawning
+          const npc = this.world.getNPC(npcId);
+          if (npc) {
+            npc.hp = npc.maxHp;
+            console.log(`Reset HP for ${npc.name} (${npcId}): ${npc.hp}/${npc.maxHp}`);
+          }
+
           // TODO: Notify players in the room about the respawn
         }
       }

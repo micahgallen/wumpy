@@ -57,6 +57,10 @@ class CombatEncounter {
 
                 if (action === 'flee') {
                     this.broadcast(`${attacker.name} flees from combat!`);
+
+                    // Remove NPC from the room when it flees
+                    this.removeNPCFromRoom(attacker);
+
                     this.endCombat();
                     return;
                 }
@@ -102,12 +106,38 @@ class CombatEncounter {
         const winner = this.participants.find(p => !p.isDead());
         const loser = this.participants.find(p => p.isDead());
 
+        // Award XP if player won against NPC
         if (winner && loser && winner.socket && !loser.socket) {
             const xp = calculateCombatXP(loser, winner.level);
             awardXP(winner, xp, 'combat', this.playerDB);
+
+            // Remove dead NPC from room so it can respawn properly
+            this.removeNPCFromRoom(loser);
         }
 
         this.broadcast(colors.combat('Combat has ended!'));
+    }
+
+    /**
+     * Remove an NPC from its current room
+     * @param {Object} npc - The NPC to remove
+     */
+    removeNPCFromRoom(npc) {
+        if (!npc || npc.socket) return; // Only remove NPCs, not players
+
+        const room = this.world.getRoom(this.roomId);
+        if (room && room.npcs) {
+            // Find the NPC ID in the room
+            const npcId = Object.keys(this.world.npcs).find(id => this.world.npcs[id] === npc);
+
+            if (npcId) {
+                const index = room.npcs.indexOf(npcId);
+                if (index > -1) {
+                    room.npcs.splice(index, 1);
+                    logger.log(`Removed NPC ${npc.name} (${npcId}) from room ${room.id}`);
+                }
+            }
+        }
     }
 
     broadcast(message) {

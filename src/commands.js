@@ -45,6 +45,12 @@ const commands = {
           if (npc.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
             // Found matching NPC
 
+            // Check if NPC is dead
+            if (npc.isDead && npc.isDead()) {
+              player.send('\n' + colors.error(`The ${npc.name} is already dead.\n`));
+              return;
+            }
+
             // Retaliation logic
             if (!npc.aggressive) {
               const timidity = npc.timidity !== undefined ? npc.timidity : 0.5;
