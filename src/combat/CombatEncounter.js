@@ -56,10 +56,46 @@ class CombatEncounter {
                 const action = determineNPCAction(attacker, this);
 
                 if (action === 'flee') {
-                    this.broadcast(`${attacker.name} flees from combat!`);
+                    // NPC attempts to flee - player gets attack of opportunity
+                    const player = target; // The other participant must be the player
 
-                    // Remove NPC from the room when it flees
-                    this.removeNPCFromRoom(attacker);
+                    this.broadcast(colors.combat(`${attacker.name} attempts to flee!`));
+
+                    // Attack of opportunity
+                    const opportunityAttack = rollAttack(player, attacker);
+                    const opportunityMessage = getAttackMessage(player, attacker, opportunityAttack.hit, opportunityAttack.critical);
+                    this.broadcast(colors.hit(`[Attack of Opportunity] `) + opportunityMessage);
+
+                    if (opportunityAttack.hit) {
+                        const damage = rollDamage(player, '1d6', opportunityAttack.critical);
+                        const damageResult = applyDamage(attacker, damage, 'physical');
+                        const damageMessage = getDamageMessage(damageResult.finalDamage, 'physical', attacker);
+                        this.broadcast(damageMessage);
+
+                        if (damageResult.dead) {
+                            const deathMessage = getDeathMessage(attacker);
+                            this.broadcast(deathMessage);
+                            this.broadcast(colors.combat(`${attacker.name} dies while trying to flee!`));
+
+                            // Award XP and remove dead NPC
+                            if (player.socket && player.username) {
+                                const xp = calculateCombatXP(attacker, player.level);
+                                awardXP(player, xp, 'combat', this.playerDB);
+                            }
+                            this.removeNPCFromRoom(attacker);
+                            this.endCombat();
+                            return;
+                        }
+                    }
+
+                    // NPC survives and flees to adjacent room
+                    const fleeSuccess = this.moveNPCToAdjacentRoom(attacker);
+
+                    if (fleeSuccess) {
+                        this.broadcast(colors.combat(`${attacker.name} flees from combat!`));
+                    } else {
+                        this.broadcast(colors.combat(`${attacker.name} tries to flee but there's nowhere to go!`));
+                    }
 
                     this.endCombat();
                     return;
@@ -138,6 +174,57 @@ class CombatEncounter {
                 }
             }
         }
+    }
+
+    /**
+     * Move an NPC to a random adjacent room
+     * @param {Object} npc - The NPC to move
+     * @returns {boolean} True if moved successfully, false if no exits
+     */
+    moveNPCToAdjacentRoom(npc) {
+        if (!npc || npc.socket) return false; // Only move NPCs, not players
+
+        const currentRoom = this.world.getRoom(this.roomId);
+        if (!currentRoom || !currentRoom.exits || currentRoom.exits.length === 0) {
+            return false; // No exits available
+        }
+
+        // Find the NPC ID
+        const npcId = Object.keys(this.world.npcs).find(id => this.world.npcs[id] === npc);
+        if (!npcId) {
+            return false;
+        }
+
+        // Choose random exit
+        const randomExit = currentRoom.exits[Math.floor(Math.random() * currentRoom.exits.length)];
+        const destinationRoom = this.world.getRoom(randomExit.room);
+
+        if (!destinationRoom) {
+            return false; // Destination doesn't exist
+        }
+
+        // Remove NPC from current room
+        const index = currentRoom.npcs.indexOf(npcId);
+        if (index > -1) {
+            currentRoom.npcs.splice(index, 1);
+        }
+
+        // Add NPC to destination room
+        if (!destinationRoom.npcs) {
+            destinationRoom.npcs = [];
+        }
+        destinationRoom.npcs.push(npcId);
+
+        logger.log(`NPC ${npc.name} (${npcId}) fled from ${currentRoom.id} to ${destinationRoom.id} via ${randomExit.direction}`);
+
+        // Notify players in destination room
+        for (const p of this.allPlayers) {
+            if (p.currentRoom === destinationRoom.id) {
+                p.send(`\n${colors.action(`${npc.name} arrives, fleeing from combat!`)}\n`);
+            }
+        }
+
+        return true;
     }
 
     broadcast(message) {
