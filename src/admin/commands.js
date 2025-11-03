@@ -52,6 +52,38 @@ function findNPC(target, world) {
 }
 
 /**
+ * Find an NPC by name or ID, prioritizing the current room
+ * @param {string} target - Target name or ID
+ * @param {Object} player - Player object (for current room)
+ * @param {Object} world - World object
+ * @returns {Object|null} NPC object or null
+ */
+function findNPCInRoom(target, player, world) {
+  const targetLower = target.toLowerCase();
+  const currentRoom = world.getRoom(player.currentRoom);
+
+  // First, search NPCs in current room
+  if (currentRoom && currentRoom.npcs) {
+    for (const npcId of currentRoom.npcs) {
+      const npc = world.getNPC(npcId);
+      if (npc) {
+        // Check if NPC ID matches
+        if (npcId.toLowerCase() === targetLower) {
+          return npc;
+        }
+        // Check if any keyword matches
+        if (npc.keywords && npc.keywords.some(kw => kw.toLowerCase() === targetLower)) {
+          return npc;
+        }
+      }
+    }
+  }
+
+  // If not found in room, fall back to global search
+  return findNPC(target, world);
+}
+
+/**
  * Parse duration argument (e.g., "24h", "7d", "30m")
  * @param {string} arg - Duration argument
  * @returns {number} Duration in hours
@@ -501,10 +533,10 @@ async function removelevelCommand(player, args, context) {
 }
 
 /**
- * Kill command - Instantly kill a player or NPC
- * Usage: @kill <playerOrId|npcId>
+ * Slay command - Instantly kill a player or NPC (prioritizes current room)
+ * Usage: @slay <playerOrId|npcId>
  */
-async function killCommand(player, args, context) {
+async function slayCommand(player, args, context) {
   const { adminService, allPlayers, world, rateLimiter } = context;
 
   const issuer = {
@@ -513,12 +545,12 @@ async function killCommand(player, args, context) {
     name: player.username
   };
 
-  if (!hasPermission(issuer, Command.KILL)) {
+  if (!hasPermission(issuer, Command.SLAY)) {
     player.send('\n' + colors.error('You do not have permission to use this command.\n'));
     writeAuditLog({
       issuerID: issuer.id,
       issuerRank: issuer.role,
-      command: Command.KILL,
+      command: Command.SLAY,
       args: args,
       result: 'denied',
       reason: 'Insufficient permissions'
@@ -533,7 +565,7 @@ async function killCommand(player, args, context) {
   }
 
   if (args.length === 0) {
-    player.send('\n' + colors.error('Usage: @kill <playerOrId|npcId>\n'));
+    player.send('\n' + colors.error('Usage: @slay <playerOrId|npcId>\n'));
     return;
   }
 
@@ -546,40 +578,40 @@ async function killCommand(player, args, context) {
     targetPlayer.isGhost = true;
 
     targetPlayer.send('\n' + colors.error(`\n=== You have been slain by admin power ===\n`));
-    targetPlayer.send(colors.error(`Killed by: ${player.username}\n\n`));
+    targetPlayer.send(colors.error(`Slain by: ${player.username}\n\n`));
 
-    player.send('\n' + colors.success(`Killed ${targetPlayer.username}\n`));
+    player.send('\n' + colors.success(`Slain ${targetPlayer.username}\n`));
 
     rateLimiter.recordCommand(issuer.id);
 
     writeAuditLog({
       issuerID: issuer.id,
       issuerRank: issuer.role,
-      command: Command.KILL,
+      command: Command.SLAY,
       args: [targetPlayer.username],
       result: 'success',
-      reason: 'Player killed'
+      reason: 'Player slain'
     });
 
     return;
   }
 
-  // Try to find NPC
-  const targetNPC = findNPC(targetName, world);
+  // Try to find NPC (prioritizes current room)
+  const targetNPC = findNPCInRoom(targetName, player, world);
   if (targetNPC) {
     targetNPC.hp = 0;
 
-    player.send('\n' + colors.success(`Killed ${targetNPC.name} (${targetName})\n`));
+    player.send('\n' + colors.success(`Slain ${targetNPC.name}\n`));
 
     rateLimiter.recordCommand(issuer.id);
 
     writeAuditLog({
       issuerID: issuer.id,
       issuerRank: issuer.role,
-      command: Command.KILL,
-      args: [targetName],
+      command: Command.SLAY,
+      args: [targetNPC.name],
       result: 'success',
-      reason: 'NPC killed'
+      reason: 'NPC slain'
     });
 
     return;
@@ -589,7 +621,7 @@ async function killCommand(player, args, context) {
   writeAuditLog({
     issuerID: issuer.id,
     issuerRank: issuer.role,
-    command: Command.KILL,
+    command: Command.SLAY,
     args: args,
     result: 'failed',
     reason: 'Target not found'
@@ -844,7 +876,7 @@ async function adminhelpCommand(player, args, context) {
     { cmd: Command.UNBAN, usage: '@unban <player|ip>', desc: 'Remove a ban', minRole: Role.SHERIFF },
     { cmd: Command.ADDLEVEL, usage: '@addlevel <player> <delta>', desc: 'Add levels to player', minRole: Role.CREATOR },
     { cmd: Command.REMOVELEVEL, usage: '@removelevel <player> <levels>', desc: 'Remove levels from player', minRole: Role.CREATOR },
-    { cmd: Command.KILL, usage: '@kill <player|npc>', desc: 'Instantly kill target', minRole: Role.CREATOR },
+    { cmd: Command.SLAY, usage: '@slay <player|npc>', desc: 'Instantly kill target (room priority)', minRole: Role.CREATOR },
     { cmd: Command.REVIVE, usage: '@revive <player>', desc: 'Revive a dead player', minRole: Role.CREATOR },
     { cmd: Command.SPAWN, usage: '@spawn <itemId> [qty]', desc: 'Spawn items', minRole: Role.CREATOR },
     { cmd: Command.PROMOTE, usage: '@promote <player> <role>', desc: 'Promote a player', minRole: Role.ADMIN },
@@ -957,12 +989,13 @@ module.exports = {
   unbanCommand,
   addlevelCommand,
   removelevelCommand,
-  killCommand,
+  slayCommand,
   spawnCommand,
   promoteCommand,
   demoteCommand,
   adminhelpCommand,
   reviveCommand,
   findPlayer,
-  findNPC
+  findNPC,
+  findNPCInRoom
 };

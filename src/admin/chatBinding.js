@@ -9,7 +9,7 @@ const {
   unbanCommand,
   addlevelCommand,
   removelevelCommand,
-  killCommand,
+  slayCommand,
   spawnCommand,
   promoteCommand,
   demoteCommand,
@@ -22,7 +22,7 @@ const {
  */
 const adminCommands = [
   'kick', 'ban', 'unban', 'addlevel', 'removelevel',
-  'kill', 'spawn', 'promote', 'demote', 'adminhelp', 'revive'
+  'slay', 'spawn', 'promote', 'demote', 'adminhelp', 'revive'
 ];
 
 /**
@@ -78,7 +78,7 @@ async function executeAdminCommand(input, player, context) {
     'unban': unbanCommand,
     'addlevel': addlevelCommand,
     'removelevel': removelevelCommand,
-    'kill': killCommand,
+    'slay': slayCommand,
     'spawn': spawnCommand,
     'promote': promoteCommand,
     'demote': demoteCommand,
