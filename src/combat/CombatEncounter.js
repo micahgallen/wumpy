@@ -83,7 +83,7 @@ class CombatEncounter {
                                 awardXP(player, xp, 'combat', this.playerDB);
                             }
                             this.removeNPCFromRoom(attacker);
-                            this.endCombat();
+                            this.endCombat(true); // Skip XP award in endCombat (already awarded)
                             return;
                         }
                     }
@@ -136,18 +136,21 @@ class CombatEncounter {
         }
     }
 
-    endCombat() {
+    endCombat(skipXpAward = false) {
         this.isActive = false;
 
         const winner = this.participants.find(p => !p.isDead());
         const loser = this.participants.find(p => p.isDead());
 
-        // Award XP if player won against NPC
-        if (winner && loser && winner.socket && !loser.socket) {
+        // Award XP if player won against NPC (unless already awarded, e.g., during flee)
+        if (winner && loser && winner.socket && !loser.socket && !skipXpAward) {
             const xp = calculateCombatXP(loser, winner.level);
             awardXP(winner, xp, 'combat', this.playerDB);
 
             // Remove dead NPC from room so it can respawn properly
+            this.removeNPCFromRoom(loser);
+        } else if (loser && !loser.socket && skipXpAward) {
+            // XP was already awarded (e.g., during flee), just remove the NPC
             this.removeNPCFromRoom(loser);
         }
 

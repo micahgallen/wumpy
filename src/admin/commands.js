@@ -6,6 +6,7 @@
 const colors = require('../colors');
 const { Command, hasPermission, Role, isValidRole } = require('./permissions');
 const { writeAuditLog } = require('./audit');
+const { getXPForLevel } = require('../progression/xpSystem');
 
 /**
  * Find a player by name or ID in the current game
@@ -396,19 +397,26 @@ async function addlevelCommand(player, args, context) {
   const oldLevel = targetData.level || 1;
   const newLevel = Math.max(1, oldLevel + delta);
 
+  // Set XP to the minimum for the new level to avoid negative XP display
+  const newXP = getXPForLevel(newLevel);
+
   // Update in database
   playerDB.updatePlayerLevel(targetData.username, newLevel, targetData.maxHp, targetData.hp);
+  playerDB.updatePlayerXP(targetData.username, newXP);
 
   // Update online player if present
   if (targetPlayer) {
     targetPlayer.level = newLevel;
+    targetPlayer.xp = newXP;
     targetPlayer.send('\n' + colors.success(`\n=== Your level has been changed ===\n`));
     targetPlayer.send(colors.success(`Old level: ${oldLevel}\n`));
     targetPlayer.send(colors.success(`New level: ${newLevel}\n`));
+    targetPlayer.send(colors.success(`XP set to: ${newXP}\n`));
     targetPlayer.send(colors.success(`Changed by: ${player.username}\n\n`));
   }
 
   player.send('\n' + colors.success(`Changed ${targetData.username}'s level from ${oldLevel} to ${newLevel}\n`));
+  player.send(colors.success(`XP set to: ${newXP} (minimum for level ${newLevel})\n`));
 
   rateLimiter.recordCommand(issuer.id);
 
@@ -501,24 +509,31 @@ async function removelevelCommand(player, args, context) {
   const newMaxHp = Math.max(20, oldMaxHp - hpReduction);
   const newHp = Math.min(targetData.hp || 20, newMaxHp);
 
+  // Set XP to the minimum for the new level to avoid negative XP display
+  const newXP = getXPForLevel(newLevel);
+
   // Update in database
   playerDB.updatePlayerLevel(targetData.username, newLevel, newMaxHp, newHp);
+  playerDB.updatePlayerXP(targetData.username, newXP);
 
   // Update online player if present
   if (targetPlayer) {
     targetPlayer.level = newLevel;
     targetPlayer.maxHp = newMaxHp;
     targetPlayer.hp = newHp;
+    targetPlayer.xp = newXP;
     targetPlayer.send('\n' + colors.warning(`\n=== Your level has been reduced ===\n`));
     targetPlayer.send(colors.warning(`Old level: ${oldLevel}\n`));
     targetPlayer.send(colors.warning(`New level: ${newLevel}\n`));
     targetPlayer.send(colors.warning(`HP: ${newHp}/${newMaxHp}\n`));
+    targetPlayer.send(colors.warning(`XP set to: ${newXP}\n`));
     targetPlayer.send(colors.warning(`Reduced by: ${player.username}\n\n`));
   }
 
   player.send('\n' + colors.success(`Removed ${actualRemoved} level(s) from ${targetData.username}\n`));
   player.send(colors.success(`Level: ${oldLevel} -> ${newLevel}\n`));
   player.send(colors.success(`HP: ${oldMaxHp} -> ${newMaxHp}\n`));
+  player.send(colors.success(`XP set to: ${newXP} (minimum for level ${newLevel})\n`));
 
   rateLimiter.recordCommand(issuer.id);
 
