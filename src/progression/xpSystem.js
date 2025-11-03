@@ -12,6 +12,9 @@ const { calculateStatGains, applyStatGains } = require('./statProgression');
 function awardXP(player, xpAmount, source, playerDB) {
   player.xp += xpAmount;
 
+  // Ensure XP never goes below 0
+  player.xp = Math.max(0, player.xp);
+
   player.socket.write(colors.xpGain(`You gain ${xpAmount} XP! (${source})
 `));
 
@@ -19,7 +22,7 @@ function awardXP(player, xpAmount, source, playerDB) {
   checkLevelUp(player, playerDB);
 
   // Persist
-  playerDB.updatePlayerXP(player.name, player.xp);
+  playerDB.updatePlayerXP(player.username, player.xp);
 }
 
 /**
@@ -68,7 +71,7 @@ ${colors.levelUp('━'.repeat(60))}
   player.socket.write(levelUpMessage + '\n');
 
   // Persist
-  playerDB.updatePlayerLevel(player.name, player.level, player.maxHp, player.hp);
+  playerDB.updatePlayerLevel(player.username, player.level, player.maxHp, player.hp);
 }
 
 /**

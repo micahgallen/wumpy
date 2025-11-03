@@ -44,7 +44,7 @@ function calculateStatGains(player) {
 function applyStatGains(player, gains) {
   if (gains.hp) {
     player.maxHp += gains.hp;
-    player.currentHp += gains.hp; // Heal when leveling up
+    player.hp += gains.hp; // Heal when leveling up
   }
   if (gains.strength) player.strength += gains.strength;
   if (gains.dexterity) player.dexterity += gains.dexterity;

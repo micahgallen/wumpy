@@ -76,6 +76,7 @@ class PlayerDB {
       xp: 0,
       hp: 20,
       maxHp: 20,
+      isGhost: false,
       stats: {
         strength: 10,
         dexterity: 10,
@@ -202,6 +203,32 @@ class PlayerDB {
       player.level = level;
       player.maxHp = maxHp;
       player.hp = hp;
+      this.save();
+    }
+  }
+
+  /**
+   * Update player's ghost status
+   * @param {string} username - Player username
+   * @param {boolean} isGhost - Ghost status
+   */
+  updatePlayerGhostStatus(username, isGhost) {
+    const lowerUsername = username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].isGhost = isGhost;
+      this.save();
+    }
+  }
+
+  /**
+   * Update player's HP
+   * @param {string} username - Player username
+   * @param {number} hp - Current HP
+   */
+  updatePlayerHP(username, hp) {
+    const lowerUsername = username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].hp = hp;
       this.save();
     }
   }

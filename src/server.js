@@ -7,6 +7,7 @@ const colors = require('./colors');
 const { getBanner } = require('./banner');
 const RespawnService = require('./respawnService');
 const logger = require('./logger');
+const { bootstrapAdmin, createBanEnforcementHook, updatePlayerInfoOnLogin } = require('./admin/bootstrap');
 
 /**
  * Player class - Represents a connected player
@@ -26,7 +27,7 @@ class Player {
     // Combat stats (D20 system) - these will be loaded from playerDB
     this.level = 1;
     this.xp = 0;
-    this.currentHp = 20;
+    this.hp = 20;
     this.maxHp = 20;
     this.strength = 10;
     this.dexterity = 10;
@@ -95,6 +96,21 @@ const combatEngine = new CombatEngine(world, players, playerDB);
 const respawnService = new RespawnService(world);
 respawnService.start();
 
+// Initialize admin system
+let adminSystem = null;
+let banEnforcementHook = null;
+
+(async () => {
+  adminSystem = await bootstrapAdmin({
+    playerDB,
+    world,
+    allPlayers: players,
+    combatEngine
+  });
+  banEnforcementHook = createBanEnforcementHook(adminSystem.adminService);
+  logger.log('Admin system ready.');
+})();
+
 /**
  * Handle player input based on their current state
  * @param {Player} player - Player object
@@ -122,7 +138,7 @@ function handleInput(player, input) {
       break;
 
     case 'playing':
-      parseCommand(trimmed, player, world, playerDB, players, activeInteractions, combatEngine);
+      parseCommand(trimmed, player, world, playerDB, players, activeInteractions, combatEngine, adminSystem);
       player.sendPrompt();
       break;
 
@@ -165,6 +181,11 @@ function handleLoginPassword(player, password) {
   const playerData = playerDB.authenticate(player.tempUsername, password);
 
   if (playerData) {
+    // Check ban before allowing login
+    if (banEnforcementHook && banEnforcementHook(player)) {
+      return; // Player is banned, connection will be closed
+    }
+
     player.username = playerData.username;
     player.description = playerData.description || 'A normal-looking person.';
     player.currentRoom = playerData.currentRoom;
@@ -183,13 +204,19 @@ function handleLoginPassword(player, password) {
     player.charisma = playerData.stats?.charisma ?? 10;
 
     player.resistances = playerData.resistances ?? {};
+    player.isGhost = playerData.isGhost ?? false;
 
     player.state = 'playing';
+
+    // Update admin info
+    if (adminSystem) {
+      updatePlayerInfoOnLogin(adminSystem.adminService, player);
+    }
 
     logger.log(`Player ${player.username} logged in.`);
 
     player.send('\n' + colors.success(`Welcome back, ${player.username}!\n\n`));
-    parseCommand('look', player, world, playerDB, players);
+    parseCommand('look', player, world, playerDB, players, null, null, adminSystem);
     player.sendPrompt();
   } else {
     // Failed login
@@ -250,14 +277,20 @@ function handleCreatePassword(player, password) {
     player.charisma = playerData.stats?.charisma ?? 10;
 
     player.resistances = playerData.resistances ?? {};
+    player.isGhost = playerData.isGhost ?? false;
 
     player.state = 'playing';
+
+    // Update admin info
+    if (adminSystem) {
+      updatePlayerInfoOnLogin(adminSystem.adminService, player);
+    }
 
     logger.log(`New player created: ${player.username}`);
 
     player.send('\n' + colors.success(`Account created! Welcome to The Wumpy and Grift, ${player.username}!\n`));
     player.send(colors.hint('Type \'help\' for a list of commands.\n\n'));
-    parseCommand('look', player, world, playerDB, players);
+    parseCommand('look', player, world, playerDB, players, null, null, adminSystem);
     player.sendPrompt();
   } else {
     // This shouldn't happen, but handle it anyway

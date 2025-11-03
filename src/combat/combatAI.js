@@ -6,7 +6,7 @@
  * @returns {string} The action to take ('attack', 'flee').
  */
 function determineNPCAction(npc, combat) {
-  const hpPercent = npc.currentHp / npc.maxHp;
+  const hpPercent = npc.hp / npc.maxHp;
   const fleeThreshold = npc.fleeThreshold !== undefined ? npc.fleeThreshold : 0.1;
 
   // Adjust flee chance by timidity. Higher timidity makes fleeing more likely.

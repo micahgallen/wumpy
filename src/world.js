@@ -109,8 +109,8 @@ class World {
     if (!npc.maxHp) {
       npc.maxHp = npc.hp || 10;
     }
-    if (npc.currentHp === undefined) {
-      npc.currentHp = npc.maxHp;
+    if (npc.hp === undefined) {
+      npc.hp = npc.maxHp;
     }
     if (!npc.strength) npc.strength = 10;
     if (!npc.dexterity) npc.dexterity = 10;
@@ -120,12 +120,12 @@ class World {
     // Add combat methods if not already present
     if (!npc.takeDamage) {
       npc.takeDamage = function(damage) {
-        this.currentHp = Math.max(0, this.currentHp - damage);
+        this.hp = Math.max(0, this.hp - damage);
       };
     }
     if (!npc.isDead) {
       npc.isDead = function() {
-        return this.currentHp <= 0;
+        return this.hp <= 0;
       };
     }
 

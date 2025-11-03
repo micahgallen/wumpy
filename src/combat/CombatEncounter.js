@@ -9,7 +9,7 @@ const logger = require('../logger');
 class CombatEncounter {
     constructor(participants, world, allPlayers, playerDB) {
 
-        
+
         // Ensure participants are live Player objects from allPlayers set or actual NPC objects
         const actualCombatants = participants.map(p => {
             if (p.socket) { // If it's a player
@@ -25,13 +25,15 @@ class CombatEncounter {
         this.playerDB = playerDB;
         this.turn = 0;
         this.isActive = true;
+
+        // Store the room ID for this combat - find it from any player participant
+        // NPCs don't have currentRoom, so we need to find a player
+        const player = this.participants.find(p => p.socket && p.currentRoom);
+        this.roomId = player ? player.currentRoom : null;
     }
 
     initiateCombat() {
-        const room = this.world.getRoom(this.participants[0].currentRoom);
-        if (room) {
-            this.broadcast(colors.combat('Combat has begun!'));
-        }
+        this.broadcast(colors.combat('Combat has begun!'));
     }
 
     executeCombatRound() {
@@ -76,6 +78,7 @@ class CombatEncounter {
 
                     if (target.socket && target.username) {
                         target.isGhost = true;
+                        this.playerDB.updatePlayerGhostStatus(target.username, true);
                         target.send('\n' + colors.error('======================================'));
                         target.send('\n' + colors.error('        YOU HAVE DIED!'));
                         target.send('\n' + colors.error('======================================'));
@@ -109,7 +112,12 @@ class CombatEncounter {
 
     broadcast(message) {
         // Send combat messages to all players in the same room, not just participants
-        const room = this.world.getRoom(this.participants[0].currentRoom);
+        if (!this.roomId) {
+            logger.log('Warning: Combat has no room ID, cannot broadcast');
+            return;
+        }
+
+        const room = this.world.getRoom(this.roomId);
         if (room) {
             for (const p of this.allPlayers) {
                 if (p.currentRoom === room.id) {

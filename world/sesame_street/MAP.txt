@@ -75,45 +75,111 @@ NORTH
                                  |
                                 (N)
                                  |
-                  [Southern End of Sesame Street]
+                  [Southern End of Sesame Street]----(W)----[REALITY STREET]
                       (sesame_street_south)
                         NPCs: Red Wumpy
                        Objects: welcome_sign
-                                 |
-                                (S)
-                                 |
-                        [REALITY STREET]
-                       (reality_street_01)
-                      *** Darker Area ***
-                      *** More Dangerous ***
 
   |
   v
 SOUTH
 
 ================================================================================
+                            REALITY STREET - MAP
+         "Where the gutter meets the information superhighway."
+================================================================================
+
+[sesame_street_south]
+      |
+     (W)
+      |
+[Grime Alley]--(W)--[The Bent Spoon]--(W)--[Preacher's Corner]--(W)--[Mugger's Nook]--(W)--[Crossroads of Despair]
+(reality_alley)    (reality_street_01)    (reality_street_02)      (reality_street_03)    (reality_crossroads)
+NPCs:               NPCs: Gonzo the        NPCs: Reverend Frog      NPCs: Data-Thief       Objects: flickering_
+Glitching Rat      Greatly Addicted       Objects: soapbox,        Cookie Monster         hologram_ad
+Objects:           Objects:               discarded_pamphlets      Objects: grimy_crate
+overflowing_       non-euclidean_spoon
+dumpster
+
+                                                                                              |
+                                                                    -------------------------------------------
+                                                                    |                         |                 |
+                                                                   (N)                       (W)               (S)
+                                                                    |                         |                 |
+                                                            [Synth-Gin Lane]----(N)----[The Flophouse]   [Blackout Blvd]----(S)----[Squatter's Camp]
+                                                            (synth_gin_01)           (synth_gin_02)     (blackout_blvd_01)       (blackout_blvd_02)
+                                                            NPCs: Barfly Bot         NPCs: Weary         Objects: abandoned_      NPCs: Various
+                                                            Objects: sticky_bar      Travelers           power_station            Squatters
+                                                                                     Objects: stained_                            Objects: makeshift_
+                                                                                     mattresses                                   tents, barrel_fire
+                                                                                       |
+                                                                                      (W)
+                                                                                       |
+                                                            [Cyber-Junk Row]----(W)----[Data-Broker Den]----(W)----[The Glitch Park]
+                                                            (cyber_junk_01)          (cyber_junk_02)            (glitch_park_entrance)
+                                                            NPCs: Scrap-Heap           NPCs: The Librarian      (See detailed map below)
+                                                            Sam
+                                                            Objects: stall_of_         Objects: data_terminal,
+                                                            obsolete_tech            flickering_server_rack
+
+--------------------------------------------------------------------------------
+                          THE GLITCH PARK (Conceptual)
+--------------------------------------------------------------------------------
+A 3x3 grid of decay and digital detritus.
+
+[Entrance]--(N)--[Corrupted Grove]--(N)--[Pixelated Pond]
+   |                |                      |
+  (W)              (W)                    (W)
+   |                |                      |
+[Statue Garden]--(C)--[Broken Fountain]--(C)--[Phantom Swings]
+   |                |                      |
+  (S)              (S)                    (S)
+   |                |                      |
+[Meme Weeds]----(E)----[Uncanny Valley]----(E)--[Exit to... ?]
+
+- Center: A fountain spraying static-laced water.
+- North: A pond where the ducks are just `404 Not Found` errors.
+- West: A garden of statues for forgotten dot-com CEOs, covered in digital graffiti.
+- East: A playground where the swings phase in and out of reality.
+- Surrounding areas are filled with overgrown weeds displaying looping, nonsensical memes.
+
+================================================================================
                             ROOM SUMMARY
 ================================================================================
 
-MAIN STREET (North to South):
+SESAME STREET (North to South):
 1. teleport_booth        - Portal to other realms (Florida, Texas, etc.)
 2. sesame_street_north   - Northern terminus with bench
 3. sesame_street_03      - Mid-north section, hotel access
 4. sesame_street_01      - CENTRAL PLAZA (hub) with Big Bird & Oscar
 5. sesame_street_02      - Mid-south section with hopscotch
-6. sesame_street_south   - Southern entrance/exit to Reality Street
+6. sesame_street_south   - Southern entrance, leads to Reality Street
 
-BUILDINGS (East/West branches):
+SESAME BUILDINGS (East/West branches):
 7. general_store         - Hooper's shop (east from central plaza)
 8. bar                   - Furry Arms Tavern (west from central plaza)
 9. hotel_lobby           - Snuggly Sleeper Hotel (west from mid-north)
 10. hotel_room_01        - Guest room (west from lobby)
 
-COMBAT ARENA (South from bar):
+SESAME COMBAT ARENA (South from bar):
 11. arena_lounge         - Pit Fighter's Lounge (preparation area)
 12. arena_main           - Wumpie Colosseum (combat testing ground)
 
-TOTAL ROOMS: 12
+REALITY STREET (West from sesame_street_south):
+13. reality_alley        - Entrance alley, smells of ozone and despair.
+14. reality_street_01    - "The Bent Spoon" cafe, home to the addicted.
+15. reality_street_02    - "Preacher's Corner," sermons on the Singularity.
+16. reality_street_03    - "Mugger's Nook," a dangerous, shadowy corner.
+17. reality_crossroads   - Hub of Reality Street's various districts.
+18. synth_gin_01         - A seedy bar populated by malfunctioning bots.
+19. synth_gin_02         - A flophouse with questionable stains.
+20. cyber_junk_01        - A market for obsolete and dangerous technology.
+21. cyber_junk_02        - A den for information trafficking.
+22. blackout_blvd_01     - An abandoned power station humming with latent energy.
+23. blackout_blvd_02     - A camp for those who have fallen through the cracks of the digital world.
+24. glitch_park_entrance - The threshold to a park where nature has been corrupted by code.
+
+TOTAL ROOMS: 24
 
 ================================================================================
                               NPC LOCATIONS
@@ -126,70 +192,48 @@ WUMPIES (Roaming, Kickable):
 - Green Wumpy  → sesame_street_north   (calculating, judgmental)
 - Purple Wumpy → bar                   (regal, haughty)
 
-MERCHANTS & NPCS:
+SESAME STREET RESIDENTS:
 - Big Bird     → sesame_street_01      (Level 5, friendly)
 - Mr. Hooper   → general_store         (Level 5, merchant)
 - Bartender    → bar                   (Level 5, Grover)
-
-COMBAT ARENA:
-- Gronk the Undefeated → arena_main   (Level 4, Arena Champion, AC 15, 45 HP)
-
-HIDDEN:
+- Gronk        → arena_main            (Level 4, Arena Champion)
 - Oscar        → trashcan (in sesame_street_01)
+
+REALITY STREET DENIZENS:
+- Glitching Rat        → reality_alley       (A rat that jitters and clips through the geometry)
+- Gonzo the Addicted   → reality_street_01   (Muttering about "electric dreams" and chasing the digital dragon)
+- Reverend Frog        → reality_street_02   (A Kermit-like figure preaching the gospel of the Great Glitch)
+- Data-Thief Cookie    → reality_street_03   ("ME WANT DATA! OM NOM NOM!")
+- Barfly Bot           → synth_gin_01        (A rusty robot drowning its sorrows in low-voltage gin)
+- Scrap-Heap Sam       → cyber_junk_01       (Sells broken cybernetics and conspiracy theories)
+- The Librarian        → cyber_junk_02       (A shadowy figure who trades secrets for data chips)
 
 ================================================================================
                           INTERACTIVE OBJECTS
 ================================================================================
 
-STREET FURNITURE:
-- welcome_sign, lamppost, hopscotch_squares, fire_hydrant, window_boxes,
-  street_bench
+SESAME STREET:
+- Street Furniture: welcome_sign, lamppost, hopscotch_squares, fire_hydrant, window_boxes, street_bench
+- Teleport Booth: telephone (usable), destination_cards
+- General Store: store_counter, shelves (container), cookie_jar (container/openable), penny_candy_display
+- Bar: bar_counter, bar_stools (sittable), dartboard (usable), jukebox (usable)
+- Hotel: reception_desk, guest_book (readable), luggage_cart, potted_plant, hotel_bed (sleepable), nightstand (container), television (usable)
+- Arena: equipment_rack, rules_board (readable), nervous_stool (sittable), arena_weapons_rack, betting_board (readable), bloodstains, arena_benches (sittable)
+- Misc: trashcan (container, contains Oscar)
 
-TELEPORT BOOTH:
-- telephone (usable), destination_cards
-
-GENERAL STORE:
-- store_counter, shelves (container), cookie_jar (container/openable),
-  penny_candy_display
-
-BAR:
-- bar_counter, bar_stools (sittable), dartboard (usable), jukebox (usable)
-
-HOTEL:
-- reception_desk, guest_book (readable), luggage_cart, potted_plant,
-  hotel_bed (sleepable), nightstand (container), television (usable)
-
-COMBAT ARENA:
-- equipment_rack, rules_board (readable), nervous_stool (sittable),
-  arena_weapons_rack, betting_board (readable), bloodstains,
-  arena_benches (sittable)
-
-EXISTING:
-- trashcan (container, contains Oscar)
+REALITY STREET:
+- Scenery: overflowing_dumpster, flickering_hologram_ad, abandoned_power_station, makeshift_tents, barrel_fire
+- Usable/Readable: non-euclidean_spoon, soapbox, discarded_pamphlets, grimy_crate, sticky_bar, stained_mattresses, stall_of_obsolete_tech, data_terminal, flickering_server_rack
 
 ================================================================================
                             DESIGN NOTES
 ================================================================================
 
-THEME: Satirical 90s nostalgia meets Terry Pratchett wit
-TONE: Friendly but slightly off, wholesome with subtle darkness
-STYLE: Tongue-in-cheek, observational humor, unexpected details
-
-WUMPY MECHANICS:
-- Low-level (Level 1) creatures
-- Kickable for player amusement
-- Each has distinct personality
-- Roaming property set for wandering behavior
-
-CONNECTIONS TO OTHER REALMS:
-- North: Teleport booth → Other realms (not yet implemented)
-- South: Reality Street → Darker area (not yet implemented)
+SESAME STREET THEME: Satirical 90s nostalgia meets Terry Pratchett wit. Wholesome with subtle darkness.
+REALITY STREET THEME: A satirical take on gritty 80s/90s urban decay, inspired by movies like the original Teenage Mutant Ninja Turtles. The aesthetic is one of analog grime and street-level realism. The world is characterized by graffiti-covered brick walls, steam rising from manholes, and the flickering neon of a seedy arcade. The humor is dark and cynical, grounded in the absurdity of city life, with its inhabitants ranging from wise-cracking vermin to disgruntled cabbies and petty thugs. It's a place where the biggest challenges are navigating the treacherous alleys and outsmarting the locals.
 
 EXPANSION OPPORTUNITIES:
-- Additional hotel rooms
-- Back rooms for bar/store
-- Alleyways off main street
-- Basement/secret areas
-- More interactive NPCs
+- Sesame: Additional hotel rooms, back rooms for bar/store, alleyways.
+- Reality: The Condemned Park can be fully built out. More tenements to explore. A sewer system accessible from the abandoned subway. A rival street gang's turf.
 
 ================================================================================

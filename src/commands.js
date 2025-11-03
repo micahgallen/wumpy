@@ -5,6 +5,7 @@
 
 const colors = require('./colors');
 const logger = require('./logger');
+const { isAdminCommand, executeAdminCommand } = require('./admin/chatBinding');
 
 const taunts = [
   'I don\'t want to talk to you no more, you empty-headed animal food trough water! ',
@@ -1311,11 +1312,27 @@ function movePlayer(player, direction, world, playerDB, allPlayers, combatEngine
  * @param {Object} playerDB - PlayerDB object
  * @param {Set} allPlayers - Set of all connected players (optional)
  * @param {Map} activeInteractions - Map of active interactions (optional)
+ * @param {Object} combatEngine - CombatEngine instance (optional)
+ * @param {Object} adminSystem - Admin system components (optional)
  */
-function parseCommand(input, player, world, playerDB, allPlayers = null, activeInteractions = null, combatEngine = null) {
+function parseCommand(input, player, world, playerDB, allPlayers = null, activeInteractions = null, combatEngine = null, adminSystem = null) {
   const trimmed = input.trim();
   if (!trimmed) {
     return; // Ignore empty commands
+  }
+
+  // Check for admin commands (starting with @)
+  if (adminSystem && isAdminCommand(trimmed)) {
+    const context = {
+      adminService: adminSystem.adminService,
+      rateLimiter: adminSystem.rateLimiter,
+      allPlayers: allPlayers,
+      world: world,
+      playerDB: playerDB,
+      combatEngine: combatEngine
+    };
+    executeAdminCommand(trimmed, player, context);
+    return;
   }
 
   // Handle "sorry" for wumpy interaction
