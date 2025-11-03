@@ -1,5 +1,5 @@
 const { determineTurnOrder } = require('./initiative');
-const { rollAttack, rollDamage, applyDamage } = require('./combatResolver');
+const { rollAttack, rollDamage, applyDamage, getDamageDice } = require('./combatResolver');
 const { getAttackMessage, getDamageMessage, getDeathMessage } = require('./combatMessages');
 const { determineNPCAction } = require('./combatAI');
 const { awardXP, calculateCombatXP } = require('../progression/xpSystem');
@@ -67,7 +67,8 @@ class CombatEncounter {
                     this.broadcast(colors.hit(`[Attack of Opportunity] `) + opportunityMessage);
 
                     if (opportunityAttack.hit) {
-                        const damage = rollDamage(player, '1d6', opportunityAttack.critical);
+                        const damageDice = getDamageDice(player);
+                        const damage = rollDamage(player, damageDice, opportunityAttack.critical);
                         const damageResult = applyDamage(attacker, damage, 'physical');
                         const damageMessage = getDamageMessage(damageResult.finalDamage, 'physical', attacker);
                         this.broadcast(damageMessage);
@@ -107,7 +108,8 @@ class CombatEncounter {
             this.broadcast(attackMessage);
 
             if (attackResult.hit) {
-                const damage = rollDamage(attacker, '1d6', attackResult.critical);
+                const damageDice = getDamageDice(attacker);
+                const damage = rollDamage(attacker, damageDice, attackResult.critical);
                 const damageResult = applyDamage(target, damage, 'physical');
                 const damageMessage = getDamageMessage(damageResult.finalDamage, 'physical', target);
                 this.broadcast(damageMessage);
