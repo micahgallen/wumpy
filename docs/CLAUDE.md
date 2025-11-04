@@ -34,7 +34,39 @@ Note: This requires `gtimeout` to be installed (GNU coreutils on macOS).
   1. New connection creates a Player instance
   2. Player enters 'new' state and is prompted for name
   3. After providing name, transitions to 'playing' state
-  4. All subsequent input is treated as commands (currently echoed back)
+  4. All subsequent input is treated as commands and dispatched via the modular command system
+
+### Command System Architecture
+
+The MUD uses a modular, registry-based command system that separates command definitions from parsing and dispatch logic.
+
+**Core Components:**
+- `src/commands.js` - Main dispatcher with parseCommand() function
+- `src/commands/registry.js` - Central command registry with O(1) lookup
+- `src/commands/utils.js` - Shared utilities (movement, emotes, player lookup)
+- `src/commands/<domain>/` - Modular command implementations by category
+
+**Command Flow:**
+1. User input → parseCommand() splits command and arguments
+2. Registry lookup → registry.getCommand(commandName)
+3. Guard execution (optional) → Pre-checks like requireAlive, requireNotInCombat
+4. Command execution → descriptor.execute(player, args, context)
+5. Error handling → Catch and log exceptions
+
+**Directory Structure:**
+- `commands/combat/` - Combat-related commands (attack, kill)
+- `commands/core/` - Core game commands (look, score, inventory, etc.)
+- `commands/movement/` - Directional navigation (north, south, east, west, up, down)
+- `commands/emotes/` - Social emotes (bow, dance, laugh, etc.)
+
+**Key Features:**
+- 39 commands registered with efficient Map-based lookup
+- Alias system (e.g., 'attack', 'kill', 'k' all work)
+- Guard functions for permission checks
+- Context injection for world, combat, and player systems
+- 86% code reduction in main commands.js file (1387 → 195 lines)
+
+For detailed architecture, see `docs/COMMAND_SYSTEM_ARCHITECTURE.md`.
 
 ### World Data Structure
 

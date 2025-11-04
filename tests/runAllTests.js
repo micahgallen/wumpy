@@ -13,7 +13,8 @@ async function runAllTests() {
     require('./diceTests'),
     require('./modifierTests'),
     require('./combatTests'),
-    require('./integrationTest')
+    require('./integrationTest'),
+    require('./commands/combat/attackTests')
   ];
 
   let totalPassed = 0;
