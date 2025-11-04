@@ -8,8 +8,12 @@ function getProficiencyBonus(level) {
 }
 
 function calculateStatGains(player) {
+  // HP gain formula: 4 base + CON modifier (minimum 1)
+  const conMod = getModifier(player.constitution);
+  const hpGain = Math.max(1, 4 + conMod);
+
   const gains = {
-    hp: 5,
+    hp: hpGain,
     strength: 0,
     dexterity: 0,
     constitution: 0,

@@ -535,6 +535,12 @@ describe('Level Manipulation Commands', () => {
           player.maxHp = maxHp;
           player.hp = hp;
         }
+      },
+      updatePlayerXP: (username, xp) => {
+        const player = players.get(username.toLowerCase());
+        if (player) {
+          player.xp = xp;
+        }
       }
     };
 
@@ -543,7 +549,15 @@ describe('Level Manipulation Commands', () => {
       username: 'testplayer',
       level: 5,
       maxHp: 70,
-      hp: 70
+      hp: 70,
+      xp: 5000,
+      strength: 10,
+      dexterity: 10,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 10,
+      proficiency: 2
     });
 
     allPlayers = new Set();
@@ -565,6 +579,7 @@ describe('Level Manipulation Commands', () => {
         send: (msg) => messages.push(msg)
       };
 
+      // Note: With offline player, level is updated in DB but not via levelUp()
       await addlevelCommand(mockPlayer, ['testplayer', '2'], context);
 
       const updated = playerDB.getPlayer('testplayer');
@@ -579,6 +594,7 @@ describe('Level Manipulation Commands', () => {
         send: (msg) => messages.push(msg)
       };
 
+      // Note: With offline player, level is updated in DB but not via levelUp()
       await addlevelCommand(mockPlayer, ['testplayer', '3'], context);
 
       const updated = playerDB.getPlayer('testplayer');

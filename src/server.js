@@ -27,16 +27,21 @@ class Player {
     // Combat stats (D20 system) - these will be loaded from playerDB
     this.level = 1;
     this.xp = 0;
-    this.hp = 20;
-    this.maxHp = 20;
     this.strength = 10;
     this.dexterity = 10;
     this.constitution = 10;
     this.intelligence = 10;
     this.wisdom = 10;
     this.charisma = 10;
+
+    // Calculate starting HP with CON modifier: 15 + CON_mod
+    const conMod = Math.floor((this.constitution - 10) / 2);
+    this.maxHp = 15 + conMod;
+    this.hp = this.maxHp;
+
     this.resistances = {};
     this.isGhost = false;
+    this.lastDamageTaken = 0;  // Timestamp of last damage taken (for rest system)
   }
 
   /**
@@ -192,8 +197,6 @@ function handleLoginPassword(player, password) {
     player.inventory = playerData.inventory || [];
     player.level = playerData.level ?? 1;
     player.xp = playerData.xp ?? 0;
-    player.hp = playerData.hp ?? playerData.maxHp ?? 20;
-    player.maxHp = playerData.maxHp ?? 20;
 
     // Ensure player.stats is an object before accessing its properties
     player.strength = playerData.stats?.strength ?? 10;
@@ -203,8 +206,30 @@ function handleLoginPassword(player, password) {
     player.wisdom = playerData.stats?.wisdom ?? 10;
     player.charisma = playerData.stats?.charisma ?? 10;
 
+    // Recalculate maxHp based on level and CON modifier
+    // Formula: 15 base + CON_mod + (level-1) * (4 + CON_mod)
+    const conMod = Math.floor((player.constitution - 10) / 2);
+    const calculatedMaxHp = 15 + conMod + (player.level - 1) * Math.max(1, 4 + conMod);
+
+    // Use stored maxHp if it exists and matches expected, otherwise recalculate (migration)
+    if (playerData.maxHp && playerData.maxHp === calculatedMaxHp) {
+      player.maxHp = playerData.maxHp;
+    } else {
+      // Migration: recalculate HP and preserve HP percentage
+      const oldMaxHp = playerData.maxHp ?? 20;
+      const hpPercentage = (playerData.hp ?? oldMaxHp) / oldMaxHp;
+      player.maxHp = calculatedMaxHp;
+      player.hp = Math.max(1, Math.floor(player.maxHp * hpPercentage));
+      logger.log(`Migrated ${player.username} HP: ${oldMaxHp} -> ${player.maxHp}`);
+    }
+
+    // Set current HP
+    player.hp = playerData.hp ?? player.maxHp;
+    player.hp = Math.min(player.hp, player.maxHp); // Cap at maxHp
+
     player.resistances = playerData.resistances ?? {};
     player.isGhost = playerData.isGhost ?? false;
+    player.lastDamageTaken = playerData.lastDamageTaken || 0;
 
     player.state = 'playing';
 
@@ -265,8 +290,6 @@ function handleCreatePassword(player, password) {
     player.inventory = playerData.inventory || [];
     player.level = playerData.level ?? 1;
     player.xp = playerData.xp ?? 0;
-    player.hp = playerData.hp ?? playerData.maxHp ?? 20;
-    player.maxHp = playerData.maxHp ?? 20;
 
     // Ensure player.stats is an object before accessing its properties
     player.strength = playerData.stats?.strength ?? 10;
@@ -276,8 +299,14 @@ function handleCreatePassword(player, password) {
     player.wisdom = playerData.stats?.wisdom ?? 10;
     player.charisma = playerData.stats?.charisma ?? 10;
 
+    // Calculate maxHp with CON modifier: 15 + CON_mod
+    const conMod = Math.floor((player.constitution - 10) / 2);
+    player.maxHp = 15 + conMod;
+    player.hp = player.maxHp;
+
     player.resistances = playerData.resistances ?? {};
     player.isGhost = playerData.isGhost ?? false;
+    player.lastDamageTaken = playerData.lastDamageTaken || 0;
 
     player.state = 'playing';
 

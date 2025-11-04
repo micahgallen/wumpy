@@ -45,8 +45,8 @@ function getDamageDice(attacker) {
     return attacker.equippedWeapon.damage;
   }
 
-  // Unarmed damage: 1d3 (will add STR modifier separately)
-  return '1d3';
+  // Unarmed damage: 1d4 (will add STR modifier separately)
+  return '1d4';
 }
 
 /**
@@ -62,9 +62,9 @@ function rollDamage(attacker, damageDice, critical = false) {
   // Add STR modifier for melee/unarmed attacks
   const strModifier = getModifier(attacker.strength || 10);
 
-  // For unarmed attacks (1d3), always add STR
+  // For unarmed attacks (1d4), always add STR
   // For weapons, check if weapon uses STR (melee) or DEX (finesse/ranged)
-  const isUnarmed = damageDice === '1d3';
+  const isUnarmed = damageDice === '1d4';
   const weaponUsesStr = !attacker.equippedWeapon ||
                         !attacker.equippedWeapon.finesse; // Future: finesse weapons use DEX
 
@@ -86,6 +86,11 @@ function applyDamage(target, rawDamage, damageType) {
   const finalDamage = calculateResistance(rawDamage, damageType, target.resistances);
 
   target.takeDamage(finalDamage);
+
+  // Track damage timestamp for rest system (only for players with sockets)
+  if (target.socket) {
+    target.lastDamageTaken = Date.now();
+  }
 
   return {
     rawDamage,

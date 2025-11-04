@@ -66,6 +66,11 @@ class PlayerDB {
       return null; // Username already exists
     }
 
+    // Calculate starting HP with CON modifier: 15 + CON_mod
+    const constitution = 10; // Default starting CON
+    const conMod = Math.floor((constitution - 10) / 2);
+    const startingHp = 15 + conMod;
+
     const playerData = {
       username: username,
       passwordHash: this.hashPassword(password),
@@ -74,9 +79,10 @@ class PlayerDB {
       inventory: [], // Empty inventory for new players
       level: 1,
       xp: 0,
-      hp: 20,
-      maxHp: 20,
+      hp: startingHp,
+      maxHp: startingHp,
       isGhost: false,
+      lastDamageTaken: 0,
       stats: {
         strength: 10,
         dexterity: 10,

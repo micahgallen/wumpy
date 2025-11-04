@@ -1,6 +1,6 @@
 const colors = require('../colors');
 const { getXPForLevel, XP_TABLE } = require('./xpTable');
-const { calculateStatGains, applyStatGains } = require('./statProgression');
+const { calculateStatGains, applyStatGains, getProficiencyBonus } = require('./statProgression');
 
 /**
  * Award XP to a player
@@ -48,6 +48,9 @@ function checkLevelUp(player, playerDB) {
  */
 function levelUp(player, playerDB) {
   player.level++;
+
+  // Update proficiency bonus based on new level
+  player.proficiency = getProficiencyBonus(player.level);
 
   // Increase stats
   const statGains = calculateStatGains(player);

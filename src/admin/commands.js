@@ -6,7 +6,8 @@
 const colors = require('../colors');
 const { Command, hasPermission, Role, isValidRole } = require('./permissions');
 const { writeAuditLog } = require('./audit');
-const { getXPForLevel } = require('../progression/xpSystem');
+const { getXPForLevel, levelUp } = require('../progression/xpSystem');
+const { getProficiencyBonus, getModifier } = require('../progression/statProgression');
 
 /**
  * Find a player by name or ID in the current game
@@ -396,27 +397,71 @@ async function addlevelCommand(player, args, context) {
 
   const oldLevel = targetData.level || 1;
   const newLevel = Math.max(1, oldLevel + delta);
-
-  // Set XP to the minimum for the new level to avoid negative XP display
-  const newXP = getXPForLevel(newLevel);
-
-  // Update in database
-  playerDB.updatePlayerLevel(targetData.username, newLevel, targetData.maxHp, targetData.hp);
-  playerDB.updatePlayerXP(targetData.username, newXP);
+  const levelsToApply = newLevel - oldLevel;
 
   // Update online player if present
   if (targetPlayer) {
-    targetPlayer.level = newLevel;
-    targetPlayer.xp = newXP;
-    targetPlayer.send('\n' + colors.success(`\n=== Your level has been changed ===\n`));
-    targetPlayer.send(colors.success(`Old level: ${oldLevel}\n`));
-    targetPlayer.send(colors.success(`New level: ${newLevel}\n`));
-    targetPlayer.send(colors.success(`XP set to: ${newXP}\n`));
-    targetPlayer.send(colors.success(`Changed by: ${player.username}\n\n`));
+    if (levelsToApply > 0) {
+      // Leveling up: call levelUp() multiple times to apply all stat gains
+      for (let i = 0; i < levelsToApply; i++) {
+        levelUp(targetPlayer, playerDB);
+      }
+
+      targetPlayer.send('\n' + colors.success(`\n=== Your level has been increased ===\n`));
+      targetPlayer.send(colors.success(`Old level: ${oldLevel}\n`));
+      targetPlayer.send(colors.success(`New level: ${newLevel}\n`));
+      targetPlayer.send(colors.success(`Applied ${levelsToApply} level-up(s) with full stat gains!\n`));
+      targetPlayer.send(colors.success(`HP: ${targetPlayer.hp}/${targetPlayer.maxHp}\n`));
+      targetPlayer.send(colors.success(`Proficiency: +${targetPlayer.proficiency}\n`));
+      targetPlayer.send(colors.success(`Changed by: ${player.username}\n\n`));
+    } else if (levelsToApply < 0) {
+      // Leveling down: recalculate stats based on new level
+      // Note: This is complex because we need to reverse stat gains
+      // For admin commands, we'll recalculate HP and proficiency
+
+      targetPlayer.level = newLevel;
+      targetPlayer.xp = getXPForLevel(newLevel);
+
+      // Recalculate max HP based on new level
+      // Base HP (15) + CON modifier + (level-1) * (4 + CON modifier)
+      const conMod = getModifier(targetPlayer.constitution);
+      const baseHp = 15 + conMod;
+      const levelHp = (newLevel - 1) * Math.max(1, 4 + conMod);
+      targetPlayer.maxHp = baseHp + levelHp;
+      targetPlayer.hp = Math.min(targetPlayer.hp, targetPlayer.maxHp);
+
+      // Update proficiency
+      targetPlayer.proficiency = getProficiencyBonus(newLevel);
+
+      // Update database
+      playerDB.updatePlayerLevel(targetPlayer.username, newLevel, targetPlayer.maxHp, targetPlayer.hp);
+      playerDB.updatePlayerXP(targetPlayer.username, targetPlayer.xp);
+
+      targetPlayer.send('\n' + colors.warning(`\n=== Your level has been reduced ===\n`));
+      targetPlayer.send(colors.warning(`Old level: ${oldLevel}\n`));
+      targetPlayer.send(colors.warning(`New level: ${newLevel}\n`));
+      targetPlayer.send(colors.warning(`HP recalculated: ${targetPlayer.hp}/${targetPlayer.maxHp}\n`));
+      targetPlayer.send(colors.warning(`Proficiency: +${targetPlayer.proficiency}\n`));
+      targetPlayer.send(colors.warning(`Note: Stat gains (STR/DEX/CON) not reversed - manual adjustment needed\n`));
+      targetPlayer.send(colors.warning(`Changed by: ${player.username}\n\n`));
+    }
+  } else {
+    // Offline player: update database with new level and XP
+    // They will get stat recalculation on next login if there's a migration system
+    const newXP = getXPForLevel(newLevel);
+    playerDB.updatePlayerLevel(targetData.username, newLevel, targetData.maxHp, targetData.hp);
+    playerDB.updatePlayerXP(targetData.username, newXP);
   }
 
   player.send('\n' + colors.success(`Changed ${targetData.username}'s level from ${oldLevel} to ${newLevel}\n`));
-  player.send(colors.success(`XP set to: ${newXP} (minimum for level ${newLevel})\n`));
+  if (levelsToApply > 0 && targetPlayer) {
+    player.send(colors.success(`Applied ${levelsToApply} level-up(s) with full stat gains\n`));
+    player.send(colors.success(`New HP: ${targetPlayer.hp}/${targetPlayer.maxHp}, Proficiency: +${targetPlayer.proficiency}\n`));
+  } else if (levelsToApply < 0 && targetPlayer) {
+    player.send(colors.warning(`Reduced level by ${Math.abs(levelsToApply)} - HP and proficiency recalculated\n`));
+  } else if (!targetPlayer) {
+    player.send(colors.info(`Player is offline - level/XP updated in database\n`));
+  }
 
   rateLimiter.recordCommand(issuer.id);
 
