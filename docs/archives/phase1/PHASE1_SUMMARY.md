@@ -1,4 +1,5 @@
 # Phase 1 Implementation Summary
+> **Archived:** Historical summary; see `reports/phase/` for current phase completions.
 
 ## Executive Summary
 

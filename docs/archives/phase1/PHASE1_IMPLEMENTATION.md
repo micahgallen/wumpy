@@ -1,4 +1,5 @@
 # Phase 1 Implementation: Combat Registry and Basic Attack Resolution
+> **Archived:** Documentation from the initial combat rollout; newer phases live under `library/combat/` and `systems/combat/`.
 
 ## Overview
 

@@ -1,4 +1,6 @@
 # Implementation Summary - Phase 1 Features
+# Implementation Summary - Phase 1 Features
+> **Archived:** Retained for historical context from Phase 1; refer to `library/` and `systems/` for the current implementation.
 
 **Date**: November 1, 2025
 **Implementer**: Claude Code (The MUD Architect)

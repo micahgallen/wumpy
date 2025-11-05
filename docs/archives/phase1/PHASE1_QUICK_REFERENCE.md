@@ -1,4 +1,5 @@
 # Phase 1 Quick Reference Guide
+> **Archived:** Reference for Phase 1 only; consult updated quick starts in `library/combat/`.
 
 ## File Locations (Absolute Paths)
 

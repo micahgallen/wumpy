@@ -1,124 +1,33 @@
-# The Wumpy and Grift MUD Server
+# Documentation Library
 
-A bare bones but functional Multi-User Dungeon (MUD) server built with Node.js. This is a text-based multiplayer online game inspired by classic LPC MUDs like LooneyMUD and Discworld.
+This folder now separates active references, operational guides, in-progress plans, published reports, and historical archives. Start with the **library** when you need authoritative documentation for the current build, then branch into the other sections as required.
 
-## Features Implemented
+## Directory Guide
+- `library/` — Canonical documentation kept current for day-to-day development.
+  - `library/general/` — Project overview and architecture (`AGENTS.md`, `DESIGN.md`).
+  - `library/admin/` — Active admin system manuals (`admin-system.md`).
+  - `library/combat/` — Combat player guides and diagrams (`COMBAT_QUICK_START.md`).
+  - `library/ux/` — UX reference materials (`BEFORE_AFTER_EXAMPLES.md`).
+- `operations/` — Playbook-style checklists and demos for running live flows.
+- `systems/` — Deep technical design docs by subsystem (combat, items, status).
+- `plans-roadmaps/` — Future work, handoffs, and in-flight planning notes.
+- `reports/` — Completed work: bugfix write-ups, postmortems, and phase summaries.
+- `archives/` — Superseded material retained for historical reference (see `archives/README.md`).
 
-### 1. Player Creation & Authentication System
-- **Account Creation**: New connections can create accounts with username and password
-- **Password Security**: Passwords are hashed using SHA-256 before storage
-- **Persistent Storage**: Player accounts are saved to `players.json`
-- **Login System**: Returning players can log in with their credentials
-- **Error Handling**: Invalid passwords are rejected, usernames are case-insensitive
+## Quick Entry Points
+- New contributor onboarding: `library/general/AGENTS.md`
+- Combat feature walkthroughs: `library/combat/COMBAT_QUICK_START.md`
+- Admin permissions and capabilities: `library/admin/admin-system.md`
+- Current roadmap: `plans-roadmaps/FEATURES_ROADMAP.md`
+- Latest combat implementation status: `reports/combat/COMBAT_IMPLEMENTATION_STATUS.md`
 
-### 2. World System
-- **World Loader**: Automatically loads rooms, NPCs, and objects from the `world/` directory
-- **Rich Content**: 10 fully-connected rooms, 8 unique NPCs, 24 interactive objects
-- **Room Navigation**: Players can move between connected rooms
-- **Starting Location**: New players spawn in Sesame Street (room ID: `sesame_street_01`)
-- **Position Persistence**: Player's current room is saved and restored on login
+## Maintaining This Layout
+- Place new canonical docs under `library/` and keep them updated as the source of truth.
+- File operational runbooks under `operations/` so liveops tooling stays discoverable.
+- When closing out work, move planning notes into `reports/` (or `archives/` if superseded).
+- Add a short status note when archiving material, and list it in `archives/README.md`.
 
-### 3. Enhanced Command System
-- **Command Parser**: Flexible command parsing with argument support and command aliases
-- **Movement Commands**:
-  - `north`, `south`, `east`, `west`, `up`, `down` - Cardinal directions
-  - `n`, `s`, `e`, `w`, `u`, `d` - Short aliases
-- **Interaction Commands**:
-  - `look` or `l` - Display current room description
-  - `examine [target]` or `ex [target]` - Examine NPCs or objects in detail
-  - `get [item]` or `take [item]` - Pick up objects from the room
-  - `drop [item]` - Drop objects from your inventory
-  - `inventory` or `i` - Show what you're carrying
-- **Communication Commands**:
-  - `say [message]` - Speak to others in the room
-  - `emote [action]` or `: [action]` - Perform emotes/actions
-- **Information Commands**:
-  - `who` - List all online players
-  - `score` - Show your character information
-  - `help` - Display available commands
-- **System Commands**:
-  - `quit` - Gracefully disconnect from the server
-- **Error Handling**: Unknown commands provide helpful, colorized feedback
-
-### 4. Inventory System
-- **Player Inventory**: Each player has a persistent inventory that saves across sessions
-- **Object Pickup**: Take objects from rooms (if they're marked as takeable)
-- **Object Drop**: Drop objects from inventory into the current room
-- **Inventory Display**: View all carried items with the `inventory` command
-- **Persistence**: Inventory automatically saves to `players.json`
-- **Dynamic Rooms**: Room displays update when objects are taken or dropped
-
-### 5. Examination System
-- **Detailed Inspection**: Examine NPCs and objects for detailed descriptions
-- **Smart Targeting**: Search current room and inventory for targets
-- **Keyword Matching**: Flexible keyword system (e.g., "blue wumpy", "wumpy", "blue")
-- **Property Display**: Shows container states, usability hints, furniture info
-- **NPC Information**: Displays level, dialogue availability, special properties
-
-### 6. Color Text Support
-- **ANSI Color Codes**: Full support for colorized terminal output
-- **Semantic Colors**: Consistent color scheme throughout the MUD
-  - Room names: Bright Cyan
-  - Exits: Yellow/Bright Yellow
-  - NPCs: Green/Bright Green
-  - Objects: Magenta/Bright Magenta
-  - Errors: Red
-  - Success: Bright Green
-  - System messages: Bright Blue
-  - Hints: Dim Cyan
-- **Color Utility Module**: `colors.js` provides reusable color functions
-- **Enhanced Readability**: Colored room descriptions, exits, and objects
-
-### 7. Communication System
-- **Say Command**: Speak messages in the current room
-- **Emote System**: Perform third-person actions
-- **Player Tracking**: Who command shows all online players with locations
-- **Future-Ready**: Infrastructure for room broadcasting (single-player for now)
-
-### 8. Architecture
-- **Modular Design**: Separate modules for colors, player database, world management, and commands
-- **TCP Sockets**: Uses Node.js built-in `net` module for network communication
-- **State Machine**: Player connection state management (login/create/playing)
-- **Multiple Players**: Supports concurrent player connections
-- **Extensible Commands**: Easy to add new commands with consistent interface
-
-## File Structure
-
-```
-mudmud/
-├── server.js              - Main server with Player class and connection handling
-├── playerdb.js            - Player account management and persistence
-├── world.js               - World data loader and room formatting
-├── commands.js            - Command handlers and parser
-├── colors.js              - ANSI color utilities for terminal output
-├── players.json           - Player account storage (auto-generated)
-├── world/                 - World data directory
-│   └── sesame_street/     - Starting area (10 rooms, 8 NPCs, 24 objects)
-│       ├── rooms/         - Room definitions
-│       ├── npcs/          - NPC definitions
-│       ├── objects/       - Object definitions
-│       ├── MAP.txt        - ASCII map of the area
-│       └── README.md      - Area documentation
-├── DESIGN.md              - Design documentation
-├── IMPLEMENTATION.md      - Technical implementation notes
-├── FEATURES_ROADMAP.md    - Prioritized feature development roadmap
-└── README.md              - This file
-```
-
-## Running the Server
-
-### Start the Server
-```bash
-node server.js
-```
-
-The server will listen on port 4000.
-
-### Connect to the Server
-Use any telnet client:
-```bash
-telnet localhost 4000
-```
+For older content or context before Phase 2, check the `archives/` section; everything else in this tree is intended to reflect the current build.
 
 Or use netcat:
 ```bash
