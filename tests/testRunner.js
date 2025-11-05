@@ -43,7 +43,8 @@ class TestRunner {
       }
     }
 
-    this.printSummary();
+    const suiteSuccess = this.printSummary();
+    return suiteSuccess;
   }
 
   /**

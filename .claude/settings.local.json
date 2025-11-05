@@ -5,7 +5,11 @@
       "Bash(find:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(node tests/diceTests.js:*)",
+      "Bash(timeout 3 node:*)",
+      "Bash(mkdir:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []
