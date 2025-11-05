@@ -31,7 +31,8 @@ const Command = {
   PROMOTE: 'promote',
   DEMOTE: 'demote',
   ADMINHELP: 'adminhelp',
-  REVIVE: 'revive'
+  REVIVE: 'revive',
+  CREATEEMOTE: 'createemote'
 };
 
 // Permission matrix: maps commands to minimum required role
@@ -44,6 +45,7 @@ const PermissionMatrix = {
   [Command.SLAY]: Role.CREATOR,
   [Command.SPAWN]: Role.CREATOR,
   [Command.REVIVE]: Role.CREATOR,
+  [Command.CREATEEMOTE]: Role.CREATOR,
   [Command.PROMOTE]: Role.ADMIN,
   [Command.DEMOTE]: Role.ADMIN,
   [Command.ADMINHELP]: Role.PLAYER // Everyone can see help

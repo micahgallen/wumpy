@@ -1043,6 +1043,142 @@ async function reviveCommand(player, args, context) {
   });
 }
 
+/**
+ * Create Emote command - Generate a new emote template file
+ * Usage: @createemote <name> [description]
+ */
+async function createemoteCommand(player, args, context) {
+  const fs = require('fs');
+  const path = require('path');
+  const { adminService, rateLimiter } = context;
+
+  const issuer = {
+    id: player.username.toLowerCase(),
+    role: adminService.getRole(player.username),
+    name: player.username
+  };
+
+  if (!hasPermission(issuer, Command.CREATEEMOTE)) {
+    player.send('\n' + colors.error('You do not have permission to use this command.\n'));
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.CREATEEMOTE,
+      args: args,
+      result: 'denied',
+      reason: 'Insufficient permissions'
+    });
+    return;
+  }
+
+  const rateLimit = rateLimiter.checkLimit(issuer.id);
+  if (!rateLimit.allowed) {
+    player.send('\n' + colors.error(`Rate limit exceeded. Try again in ${rateLimit.resetIn} seconds.\n`));
+    return;
+  }
+
+  if (args.length === 0) {
+    player.send('\n' + colors.error('Usage: @createemote <name> [description]\n'));
+    player.send(colors.hint('Example: @createemote wave "Wave at someone"\n'));
+    return;
+  }
+
+  const emoteName = args[0].toLowerCase();
+  const description = args.slice(1).join(' ') || `Perform the ${emoteName} emote`;
+
+  // Validate emote name (alphanumeric only)
+  if (!/^[a-z][a-z0-9]*$/.test(emoteName)) {
+    player.send('\n' + colors.error('Emote name must start with a letter and contain only lowercase letters and numbers.\n'));
+    return;
+  }
+
+  // Check if emote already exists
+  const emoteFilePath = path.join(__dirname, '../commands/emotes', `${emoteName}.js`);
+  if (fs.existsSync(emoteFilePath)) {
+    player.send('\n' + colors.error(`Emote "${emoteName}" already exists.\n`));
+    player.send(colors.hint('Use a different name or edit the existing file directly.\n'));
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.CREATEEMOTE,
+      args: args,
+      result: 'failed',
+      reason: 'Emote already exists'
+    });
+    return;
+  }
+
+  // Generate emote template
+  const template = `/**
+ * ${emoteName.charAt(0).toUpperCase() + emoteName.slice(1)} Emote
+ * ${description}
+ *
+ * Created by: ${player.username}
+ */
+
+const createEmote = require('./createEmote');
+
+module.exports = createEmote({
+  name: '${emoteName}',
+  aliases: [],
+  help: {
+    description: '${description}',
+    usage: '${emoteName} [target]',
+    examples: [
+      '${emoteName}',
+      '${emoteName} PlayerName'
+    ]
+  },
+  messages: {
+    noTarget: {
+      self: 'TODO: Message shown to you when you ${emoteName}.',
+      room: (player) => \`TODO: Message shown to room when \${player.username} ${emoteName}s.\`
+    },
+    withTarget: {
+      self: (player, target) => \`TODO: Message shown to you when you ${emoteName} at \${target.username}.\`,
+      target: (player) => \`TODO: Message shown to \${player.username} when they are ${emoteName}ed at.\`,
+      room: (player, target) => \`TODO: Message shown to room when \${player.username} ${emoteName}s at \${target.username}.\`
+    }
+  }
+});
+`;
+
+  try {
+    // Write the file
+    fs.writeFileSync(emoteFilePath, template, 'utf8');
+
+    player.send('\n' + colors.success(`Created emote template: ${emoteFilePath}\n`));
+    player.send(colors.info('\nNext steps:\n'));
+    player.send(colors.info(`1. Edit ${emoteFilePath}\n`));
+    player.send(colors.info('2. Replace all TODO messages with actual emote text\n'));
+    player.send(colors.info('3. Optionally remove "withTarget" section if emote has no target\n'));
+    player.send(colors.info('4. Add the emote to src/commands/emotes/registry.js\n'));
+    player.send(colors.info('5. Restart the server to load the new emote\n\n'));
+    player.send(colors.hint(`Usage after setup: ${emoteName} [target]\n`));
+
+    rateLimiter.recordCommand(issuer.id);
+
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.CREATEEMOTE,
+      args: [emoteName, description],
+      result: 'success',
+      reason: `Created emote template: ${emoteName}.js`
+    });
+  } catch (err) {
+    player.send('\n' + colors.error(`Failed to create emote file: ${err.message}\n`));
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.CREATEEMOTE,
+      args: args,
+      result: 'failed',
+      reason: `File write error: ${err.message}`
+    });
+  }
+}
+
 module.exports = {
   kickCommand,
   banCommand,
@@ -1055,6 +1191,7 @@ module.exports = {
   demoteCommand,
   adminhelpCommand,
   reviveCommand,
+  createemoteCommand,
   findPlayer,
   findNPC,
   findNPCInRoom

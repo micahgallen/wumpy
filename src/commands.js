@@ -9,12 +9,8 @@ const { isAdminCommand, executeAdminCommand } = require('./admin/chatBinding');
 
 // Import shared utilities from commands/utils.js
 const {
-  taunts,
   oppositeDirection,
-  emoteDefinitions,
   findPlayerInRoom,
-  getEmoteMessages,
-  broadcastEmote,
   checkAggressiveNPCs,
   movePlayer
 } = require('./commands/utils');
@@ -167,12 +163,8 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
 module.exports = {
   parseCommand,
   // Re-export utilities for backward compatibility
-  taunts,
   oppositeDirection,
-  emoteDefinitions,
   findPlayerInRoom,
-  getEmoteMessages,
-  broadcastEmote,
   checkAggressiveNPCs,
   movePlayer
 };

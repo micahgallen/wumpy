@@ -14,7 +14,8 @@ const {
   promoteCommand,
   demoteCommand,
   adminhelpCommand,
-  reviveCommand
+  reviveCommand,
+  createemoteCommand
 } = require('./commands');
 
 /**
@@ -22,7 +23,7 @@ const {
  */
 const adminCommands = [
   'kick', 'ban', 'unban', 'addlevel', 'removelevel',
-  'slay', 'spawn', 'promote', 'demote', 'adminhelp', 'revive'
+  'slay', 'spawn', 'promote', 'demote', 'adminhelp', 'revive', 'createemote'
 ];
 
 /**
@@ -84,7 +85,8 @@ async function executeAdminCommand(input, player, context) {
     'demote': demoteCommand,
     'adminhelp': adminhelpCommand,
     'help': adminhelpCommand,
-    'revive': reviveCommand
+    'revive': reviveCommand,
+    'createemote': createemoteCommand
   };
 
   const handler = commandMap[command];

@@ -3,7 +3,7 @@
  */
 
 const colors = require('../../colors');
-const { emoteDefinitions } = require('../utils');
+const emoteRegistry = require('../emotes/registry');
 
 /**
  * Execute help command
@@ -13,7 +13,7 @@ const { emoteDefinitions } = require('../utils');
  */
 function execute(player, args, context) {
   if (args.length > 0 && args[0].toLowerCase() === 'emote') {
-    const emoteNames = Object.keys(emoteDefinitions).sort().join(', ');
+    const emoteNames = emoteRegistry.map(e => e.name).sort().join(', ');
     const emoteHelpText = `
 ${colors.info('Available Emotes:')}
 ${colors.line(19, '-')}
