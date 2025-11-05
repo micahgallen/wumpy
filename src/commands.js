@@ -66,26 +66,9 @@ registry.registerCommand(movementCommands.west);
 registry.registerCommand(movementCommands.up);
 registry.registerCommand(movementCommands.down);
 
-// Emote commands
-const emoteCommands = require('./commands/emotes/emotes');
-registry.registerCommand(emoteCommands.applaud);
-registry.registerCommand(emoteCommands.bow);
-registry.registerCommand(emoteCommands.cackle);
-registry.registerCommand(emoteCommands.cheer);
-registry.registerCommand(emoteCommands.chuckle);
-registry.registerCommand(emoteCommands.cry);
-registry.registerCommand(emoteCommands.dance);
-registry.registerCommand(emoteCommands.fart);
-registry.registerCommand(emoteCommands.flex);
-registry.registerCommand(emoteCommands.giggle);
-registry.registerCommand(emoteCommands.groan);
-registry.registerCommand(emoteCommands.growl);
-registry.registerCommand(emoteCommands.hiccup);
-registry.registerCommand(emoteCommands.grin);
-registry.registerCommand(emoteCommands.kiss);
-registry.registerCommand(emoteCommands.pinch);
-registry.registerCommand(emoteCommands.tip);
-registry.registerCommand(emoteCommands.taunt);
+// Emote commands - load from registry
+const emoteRegistry = require('./commands/emotes/registry');
+emoteRegistry.forEach(descriptor => registry.registerCommand(descriptor));
 
 // All commands are now registered in the registry above.
 // The legacy commands object has been fully migrated.
