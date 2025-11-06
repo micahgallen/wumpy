@@ -1,0 +1,476 @@
+/**
+ * Base Item Class
+ *
+ * Defines the core item interface with lifecycle hooks.
+ * All items in the game are instances of BaseItem or its subclasses.
+ *
+ * Lifecycle hooks:
+ * - onEquip: Called when item is equipped
+ * - onUnequip: Called when item is unequipped
+ * - onUse: Called when item is used/consumed
+ * - onDrop: Called when item is dropped
+ * - onPickup: Called when item is picked up
+ * - onExamine: Called when item is examined
+ * - onIdentify: Called when item is identified
+ * - onAttune: Called when item is attuned
+ * - onUnattune: Called when item is unattuned
+ * - onBind: Called when item becomes bound
+ */
+
+const logger = require('../logger');
+const config = require('../config/itemsConfig');
+const { ItemType, ItemRarity } = require('./schemas/ItemTypes');
+
+class BaseItem {
+  /**
+   * Create a new item instance
+   * @param {Object} definition - Item definition from registry
+   * @param {Object} [options={}] - Instance-specific options
+   */
+  constructor(definition, options = {}) {
+    // Instance identity
+    this.instanceId = options.instanceId || this.generateInstanceId();
+    this.definitionId = definition.id;
+    this.definition = definition;
+
+    // Core properties from definition
+    this.name = definition.name;
+    this.description = definition.description;
+    this.keywords = [...definition.keywords];
+    this.itemType = definition.itemType;
+    this.subType = definition.subType || null;
+    this.weight = definition.weight;
+    this.value = definition.value;
+    this.rarity = definition.rarity || 'common';
+
+    // Flags
+    this.isTakeable = definition.isTakeable !== false;  // Default true
+    this.isDroppable = definition.isDroppable !== false;  // Default true
+    this.isEquippable = definition.isEquippable || false;
+    this.isTradeable = definition.isTradeable !== false;  // Default true
+    this.isQuestItem = definition.isQuestItem || false;
+    this.isStackable = definition.isStackable || false;
+    this.isIdentified = options.isIdentified || false;
+
+    // Location
+    this.location = options.location || { type: 'void' };
+
+    // State
+    this.quantity = options.quantity || 1;
+    this.durability = options.durability || definition.maxDurability || null;
+    this.maxDurability = definition.maxDurability || null;
+    this.isEquipped = options.isEquipped || false;
+    this.equippedSlot = options.equippedSlot || null;
+
+    // Binding and attunement
+    this.boundTo = options.boundTo || null;
+    this.isAttuned = options.isAttuned || false;
+    this.attunedTo = options.attunedTo || null;
+    this.requiresAttunement = definition.requiresAttunement || false;
+    this.bindOnEquip = definition.bindOnEquip || false;
+    this.bindOnPickup = definition.bindOnPickup || false;
+
+    // Equipment properties
+    this.slot = definition.slot || null;
+    this.requiredLevel = definition.requiredLevel || 0;
+    this.requiredClass = definition.requiredClass || null;
+
+    // Stats and properties (copied to avoid mutation)
+    this.statModifiers = definition.statModifiers ? { ...definition.statModifiers } : null;
+    this.weaponProperties = definition.weaponProperties ? { ...definition.weaponProperties } : null;
+    this.armorProperties = definition.armorProperties ? { ...definition.armorProperties } : null;
+    this.consumableProperties = definition.consumableProperties ? { ...definition.consumableProperties } : null;
+
+    // Enchantments and modifications
+    this.enchantments = options.enchantments || [];
+    this.customName = options.customName || null;
+    this.customDescription = options.customDescription || null;
+
+    // Timestamps
+    this.createdAt = options.createdAt || Date.now();
+    this.modifiedAt = options.modifiedAt || Date.now();
+
+    // Metadata
+    this.realm = definition.realm || null;
+    this.domain = definition.domain || 'core';
+  }
+
+  /**
+   * Generate a unique instance ID
+   * Using crypto.randomUUID if available, otherwise fallback
+   * @returns {string} Unique instance ID
+   */
+  generateInstanceId() {
+    try {
+      // Node.js 15.6.0+ has crypto.randomUUID
+      return require('crypto').randomUUID();
+    } catch (e) {
+      // Fallback for older Node versions
+      return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+  }
+
+  // Lifecycle Hooks
+
+  /**
+   * Called when item is equipped
+   * @param {Object} player - Player equipping the item
+   * @returns {boolean} True if equip succeeded, false to prevent
+   */
+  onEquip(player) {
+    // Check if definition has custom onEquip hook
+    if (this.definition.onEquip && typeof this.definition.onEquip === 'function') {
+      return this.definition.onEquip(player, this);
+    }
+
+    // Handle bind-on-equip
+    if (this.bindOnEquip && !this.boundTo) {
+      this.boundTo = player.name;
+      this.modifiedAt = Date.now();
+      logger.log(`Item ${this.name} bound to ${player.name}`);
+    }
+
+    return true;
+  }
+
+  /**
+   * Called when item is unequipped
+   * @param {Object} player - Player unequipping the item
+   * @returns {boolean} True if unequip succeeded, false to prevent
+   */
+  onUnequip(player) {
+    if (this.definition.onUnequip && typeof this.definition.onUnequip === 'function') {
+      return this.definition.onUnequip(player, this);
+    }
+    return true;
+  }
+
+  /**
+   * Called when item is used
+   * @param {Object} player - Player using the item
+   * @param {Object} [context={}] - Additional context (target, location, etc.)
+   * @returns {boolean} True if use succeeded, false otherwise
+   */
+  onUse(player, context = {}) {
+    if (this.definition.onUse && typeof this.definition.onUse === 'function') {
+      return this.definition.onUse(player, this, context);
+    }
+    return false;  // Default: items are not usable
+  }
+
+  /**
+   * Called when item is dropped
+   * @param {Object} player - Player dropping the item
+   * @param {Object} room - Room where item is being dropped
+   * @returns {boolean} True if drop succeeded, false to prevent
+   */
+  onDrop(player, room) {
+    // Check if item is droppable
+    if (!this.isDroppable) {
+      return false;
+    }
+
+    // Check if item is bound
+    if (this.boundTo && this.boundTo !== player.name) {
+      return false;
+    }
+
+    if (this.definition.onDrop && typeof this.definition.onDrop === 'function') {
+      return this.definition.onDrop(player, this, room);
+    }
+
+    return true;
+  }
+
+  /**
+   * Called when item is picked up
+   * @param {Object} player - Player picking up the item
+   * @returns {boolean} True if pickup succeeded, false to prevent
+   */
+  onPickup(player) {
+    // Handle bind-on-pickup
+    if (this.bindOnPickup && !this.boundTo) {
+      this.boundTo = player.name;
+      this.modifiedAt = Date.now();
+      logger.log(`Item ${this.name} bound to ${player.name} on pickup`);
+    }
+
+    if (this.definition.onPickup && typeof this.definition.onPickup === 'function') {
+      return this.definition.onPickup(player, this);
+    }
+
+    return true;
+  }
+
+  /**
+   * Called when item is examined
+   * @param {Object} player - Player examining the item
+   * @returns {string} Description text to show
+   */
+  onExamine(player) {
+    if (this.definition.onExamine && typeof this.definition.onExamine === 'function') {
+      return this.definition.onExamine(player, this);
+    }
+
+    return this.getDescription(player);
+  }
+
+  /**
+   * Called when item is identified
+   * @param {Object} player - Player identifying the item
+   * @returns {boolean} True if identification succeeded
+   */
+  onIdentify(player) {
+    if (this.isIdentified) {
+      return false;  // Already identified
+    }
+
+    this.isIdentified = true;
+    this.modifiedAt = Date.now();
+
+    if (this.definition.onIdentify && typeof this.definition.onIdentify === 'function') {
+      this.definition.onIdentify(player, this);
+    }
+
+    return true;
+  }
+
+  /**
+   * Called when item is attuned
+   * @param {Object} player - Player attuning the item
+   * @returns {boolean} True if attunement succeeded
+   */
+  onAttune(player) {
+    if (!this.requiresAttunement) {
+      return false;  // Item doesn't require attunement
+    }
+
+    if (this.isAttuned && this.attunedTo === player.name) {
+      return false;  // Already attuned to this player
+    }
+
+    this.isAttuned = true;
+    this.attunedTo = player.name;
+    this.modifiedAt = Date.now();
+
+    if (this.definition.onAttune && typeof this.definition.onAttune === 'function') {
+      this.definition.onAttune(player, this);
+    }
+
+    return true;
+  }
+
+  /**
+   * Called when item attunement is broken
+   * @param {Object} player - Player breaking attunement
+   * @returns {boolean} True if unattunement succeeded
+   */
+  onUnattune(player) {
+    if (!this.isAttuned) {
+      return false;
+    }
+
+    this.isAttuned = false;
+    this.attunedTo = null;
+    this.modifiedAt = Date.now();
+
+    if (this.definition.onUnattune && typeof this.definition.onUnattune === 'function') {
+      this.definition.onUnattune(player, this);
+    }
+
+    return true;
+  }
+
+  // Utility Methods
+
+  /**
+   * Get item description based on identification status
+   * @param {Object} player - Player viewing the item
+   * @returns {string} Item description
+   */
+  getDescription(player) {
+    let desc = this.customDescription || this.description;
+
+    // Add durability info if applicable
+    if (this.maxDurability && this.durability !== null) {
+      const durabilityPercent = (this.durability / this.maxDurability) * 100;
+      if (durabilityPercent < 25) {
+        desc += '\nThis item is in poor condition and needs repair.';
+      } else if (durabilityPercent < 50) {
+        desc += '\nThis item shows significant wear.';
+      }
+    }
+
+    // Hide magical properties if not identified
+    if (!this.isIdentified && this.hasHiddenProperties()) {
+      desc += '\nThis item has properties that have not been identified.';
+    }
+
+    return desc;
+  }
+
+  /**
+   * Check if item has properties that should be hidden when unidentified
+   * @returns {boolean} True if item has hidden properties
+   */
+  hasHiddenProperties() {
+    return this.statModifiers !== null ||
+           this.enchantments.length > 0 ||
+           (this.weaponProperties && this.weaponProperties.magicalProperties) ||
+           this.rarity !== 'common';
+  }
+
+  /**
+   * Get display name with custom name override
+   * @returns {string} Display name
+   */
+  getDisplayName() {
+    return this.customName || this.name;
+  }
+
+  /**
+   * Check if item can stack with another item
+   * @param {BaseItem} otherItem - Other item to check
+   * @returns {boolean} True if items can stack
+   */
+  canStackWith(otherItem) {
+    if (!this.isStackable || !otherItem.isStackable) {
+      return false;
+    }
+
+    // Must be same definition
+    if (this.definitionId !== otherItem.definitionId) {
+      return false;
+    }
+
+    // Cannot stack if either is bound
+    if (this.boundTo || otherItem.boundTo) {
+      return false;
+    }
+
+    // Cannot stack if either is equipped
+    if (this.isEquipped || otherItem.isEquipped) {
+      return false;
+    }
+
+    // Cannot stack if they have different enchantments
+    if (this.enchantments.length > 0 || otherItem.enchantments.length > 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Reduce durability (called on death or damage events)
+   * @param {number} amount - Amount to reduce
+   * @returns {boolean} True if item broke
+   */
+  reduceDurability(amount) {
+    if (this.maxDurability === null || this.durability === null) {
+      return false;  // Item has no durability
+    }
+
+    this.durability = Math.max(0, this.durability - amount);
+    this.modifiedAt = Date.now();
+
+    if (this.durability === 0) {
+      logger.log(`Item ${this.name} (${this.instanceId}) broke`);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Repair item durability
+   * @param {number} amount - Amount to repair
+   */
+  repair(amount) {
+    if (this.maxDurability === null || this.durability === null) {
+      return;
+    }
+
+    this.durability = Math.min(this.maxDurability, this.durability + amount);
+    this.modifiedAt = Date.now();
+  }
+
+  /**
+   * Get the loot tables this item can spawn in
+   * Respects type-based override rules from config
+   * @returns {Array<string>} Array of loot table categories, or empty array if not spawnable
+   */
+  getLootTables() {
+    const typeRules = config.lootTables.typeRules;
+
+    // Check if item type is quest - NEVER spawnable
+    if (this.itemType === ItemType.QUEST) {
+      if (typeRules.quest && typeRules.quest.neverSpawnable) {
+        return [];
+      }
+    }
+
+    // Check if item rarity is artifact - NEVER spawnable
+    if (this.rarity === ItemRarity.ARTIFACT) {
+      if (typeRules.artifact && typeRules.artifact.neverSpawnable) {
+        return [];
+      }
+    }
+
+    // Check if item type is currency - ALWAYS spawnable with defaults
+    if (this.itemType === ItemType.CURRENCY) {
+      if (typeRules.currency && typeRules.currency.alwaysSpawnable) {
+        // If currency has explicit lootTables, use those, otherwise use defaults
+        if (this.definition.lootTables && this.definition.lootTables.length > 0) {
+          return [...this.definition.lootTables];
+        }
+        return [...typeRules.currency.defaultTables];
+      }
+    }
+
+    // For all other types, return the defined lootTables or empty array
+    return this.definition.lootTables ? [...this.definition.lootTables] : [];
+  }
+
+  /**
+   * Check if this item can spawn in a specific loot table category
+   * @param {string} tableCategory - Loot table category to check
+   * @returns {boolean} True if item can spawn in this table
+   */
+  isSpawnableIn(tableCategory) {
+    if (!tableCategory || typeof tableCategory !== 'string') {
+      return false;
+    }
+
+    const lootTables = this.getLootTables();
+    return lootTables.includes(tableCategory);
+  }
+
+  /**
+   * Serialize item to JSON for storage
+   * @returns {Object} Serialized item data
+   */
+  toJSON() {
+    return {
+      instanceId: this.instanceId,
+      definitionId: this.definitionId,
+      location: this.location,
+      quantity: this.quantity,
+      durability: this.durability,
+      maxDurability: this.maxDurability,
+      isEquipped: this.isEquipped,
+      equippedSlot: this.equippedSlot,
+      boundTo: this.boundTo,
+      isAttuned: this.isAttuned,
+      attunedTo: this.attunedTo,
+      isIdentified: this.isIdentified,
+      enchantments: this.enchantments,
+      customName: this.customName,
+      customDescription: this.customDescription,
+      createdAt: this.createdAt,
+      modifiedAt: this.modifiedAt
+    };
+  }
+}
+
+module.exports = BaseItem;

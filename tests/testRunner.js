@@ -143,6 +143,10 @@ const assert = {
     if (value === null) {
       throw new Error(message || 'Expected value to not be null');
     }
+  },
+
+  fail(message) {
+    throw new Error(message || 'Test failed');
   }
 };
 
