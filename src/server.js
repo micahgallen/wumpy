@@ -1,4 +1,5 @@
 const net = require('net');
+const path = require('path');
 const PlayerDB = require('./playerdb');
 const World = require('./world');
 const CombatEngine = require('./combat/combatEngine');
@@ -110,7 +111,9 @@ let banEnforcementHook = null;
     playerDB,
     world,
     allPlayers: players,
-    combatEngine
+    combatEngine,
+    // Ensure admin data is stored within the repo's data/admin directory
+    dataDir: path.join(__dirname, '../data/admin')
   });
   banEnforcementHook = createBanEnforcementHook(adminSystem.adminService);
   logger.log('Admin system ready.');
@@ -372,7 +375,7 @@ server.on('error', err => {
 });
 
 // Start the server
-const PORT = 4000;
+const PORT = parseInt(process.env.PORT, 10) || 4000;
 server.listen(PORT, () => {
   logger.log('='.repeat(50));
   logger.log(`The Wumpy and Grift MUD Server`);

@@ -396,31 +396,120 @@ class BaseItem {
   }
 
   /**
+   * Check if this item is spawnable (can appear in random loot)
+   * Respects type-based override rules from config
+   * @returns {boolean} True if item can spawn randomly
+   */
+  isSpawnable() {
+    const typeRules = config.lootTables.typeRules;
+
+    // Quest items are NEVER spawnable
+    if (this.itemType === ItemType.QUEST) {
+      if (typeRules.quest && typeRules.quest.neverSpawnable) {
+        return false;
+      }
+    }
+
+    // Artifact rarity items are NEVER spawnable
+    if (this.rarity === ItemRarity.ARTIFACT) {
+      if (typeRules.artifact && typeRules.artifact.neverSpawnable) {
+        return false;
+      }
+    }
+
+    // Currency is ALWAYS spawnable
+    if (this.itemType === ItemType.CURRENCY) {
+      if (typeRules.currency && typeRules.currency.alwaysSpawnable) {
+        return true;
+      }
+    }
+
+    // Check explicit spawnable flag (defaults to true if not specified)
+    if (this.definition.spawnable !== undefined) {
+      return this.definition.spawnable;
+    }
+
+    // If item has lootTables or spawnTags, it's spawnable by default
+    if (this.definition.lootTables || this.definition.spawnTags) {
+      return true;
+    }
+
+    // Default: not spawnable unless explicitly configured
+    return false;
+  }
+
+  /**
+   * Get all spawn tags for this item
+   * Includes both explicit spawnTags and auto-generated tags
+   * @returns {Array<string>} Array of spawn tags
+   */
+  getSpawnTags() {
+    const tags = [];
+
+    // Add explicit spawn tags from definition
+    if (this.definition.spawnTags && Array.isArray(this.definition.spawnTags)) {
+      tags.push(...this.definition.spawnTags);
+    }
+
+    // Add auto-generated tags if enabled
+    if (config.spawn && config.spawn.autoTagging && config.spawn.autoTagging.enabled) {
+      const autoRules = config.spawn.autoTagging.rules;
+
+      // Auto-tag by item type
+      if (autoRules[this.itemType]) {
+        tags.push(...autoRules[this.itemType]);
+      }
+
+      // Auto-tag by rarity
+      if (this.rarity && autoRules[this.rarity]) {
+        tags.push(...autoRules[this.rarity]);
+      }
+    }
+
+    // Return unique tags
+    return [...new Set(tags)];
+  }
+
+  /**
+   * Get the spawn weight for this item (used in weighted random selection)
+   * Higher weight = more likely to spawn
+   * @returns {number} Spawn weight (0 = never spawns)
+   */
+  getSpawnWeight() {
+    // Non-spawnable items have weight 0
+    if (!this.isSpawnable()) {
+      return 0;
+    }
+
+    // Use explicit weight if defined
+    if (this.definition.spawnWeight !== undefined) {
+      return Math.max(0, this.definition.spawnWeight);
+    }
+
+    // Use rarity-based weight from config
+    if (config.spawn && config.spawn.rarityWeights && this.rarity) {
+      return config.spawn.rarityWeights[this.rarity] || 0;
+    }
+
+    // Default weight
+    return 10;
+  }
+
+  /**
    * Get the loot tables this item can spawn in
    * Respects type-based override rules from config
    * @returns {Array<string>} Array of loot table categories, or empty array if not spawnable
    */
   getLootTables() {
+    if (!this.isSpawnable()) {
+      return [];
+    }
+
     const typeRules = config.lootTables.typeRules;
 
-    // Check if item type is quest - NEVER spawnable
-    if (this.itemType === ItemType.QUEST) {
-      if (typeRules.quest && typeRules.quest.neverSpawnable) {
-        return [];
-      }
-    }
-
-    // Check if item rarity is artifact - NEVER spawnable
-    if (this.rarity === ItemRarity.ARTIFACT) {
-      if (typeRules.artifact && typeRules.artifact.neverSpawnable) {
-        return [];
-      }
-    }
-
-    // Check if item type is currency - ALWAYS spawnable with defaults
+    // Currency gets default tables if not specified
     if (this.itemType === ItemType.CURRENCY) {
       if (typeRules.currency && typeRules.currency.alwaysSpawnable) {
-        // If currency has explicit lootTables, use those, otherwise use defaults
         if (this.definition.lootTables && this.definition.lootTables.length > 0) {
           return [...this.definition.lootTables];
         }
@@ -444,6 +533,29 @@ class BaseItem {
 
     const lootTables = this.getLootTables();
     return lootTables.includes(tableCategory);
+  }
+
+  /**
+   * Check if this item matches a set of spawn tags
+   * Used for filtering items by tags during loot generation
+   * @param {Array<string>} filterTags - Tags to match against
+   * @param {boolean} requireAll - If true, item must have ALL tags; if false, ANY tag matches
+   * @returns {boolean} True if item matches the tag filter
+   */
+  matchesSpawnTags(filterTags, requireAll = false) {
+    if (!filterTags || !Array.isArray(filterTags) || filterTags.length === 0) {
+      return true; // No filter = everything matches
+    }
+
+    const itemTags = this.getSpawnTags();
+
+    if (requireAll) {
+      // Item must have ALL the filter tags
+      return filterTags.every(tag => itemTags.includes(tag));
+    } else {
+      // Item must have AT LEAST ONE of the filter tags
+      return filterTags.some(tag => itemTags.includes(tag));
+    }
   }
 
   /**

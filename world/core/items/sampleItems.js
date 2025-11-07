@@ -1,11 +1,11 @@
 /**
  * Sample Item Definitions
  *
- * Example items demonstrating the item system capabilities.
+ * Example items demonstrating the item system capabilities including spawn tags.
  * These are registered in the core domain for testing.
  */
 
-const { ItemType, ItemRarity, EquipmentSlot, WeaponClass, ArmorClass, DamageType, ConsumableType } = require('../../../src/items/schemas/ItemTypes');
+const { ItemType, ItemRarity, EquipmentSlot, WeaponClass, ArmorClass, DamageType, ConsumableType, SpawnTag } = require('../../../src/items/schemas/ItemTypes');
 
 const sampleItems = [
   // Basic Weapons
@@ -21,7 +21,17 @@ const sampleItems = [
     rarity: ItemRarity.COMMON,
     isEquippable: true,
     slot: EquipmentSlot.MAIN_HAND,
-    lootTables: ['common_loot', 'trash_loot'],  // Common drops from low-level sources
+    spawnable: true,
+    lootTables: ['common_loot', 'trash_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_WEAPON,
+      SpawnTag.WEAPON_MELEE,
+      SpawnTag.WEAPON_SIMPLE,
+      SpawnTag.STARTER_GEAR,
+      SpawnTag.TRASH_MOB,
+      SpawnTag.MUNDANE,
+      SpawnTag.REALM_GENERIC
+    ],
     weaponProperties: {
       damageDice: '1d4',
       damageType: DamageType.PIERCING,
@@ -46,7 +56,15 @@ const sampleItems = [
     isEquippable: true,
     slot: EquipmentSlot.MAIN_HAND,
     maxDurability: 100,
-    lootTables: ['common_loot', 'uncommon_loot', 'vendor_only'],  // Available from vendors and loot
+    spawnable: true,
+    lootTables: ['common_loot', 'uncommon_loot', 'vendor_only'],
+    spawnTags: [
+      SpawnTag.TYPE_WEAPON,
+      SpawnTag.WEAPON_MELEE,
+      SpawnTag.WEAPON_MARTIAL,
+      SpawnTag.MUNDANE,
+      SpawnTag.REALM_GENERIC
+    ],
     weaponProperties: {
       damageDice: '1d8',
       damageType: DamageType.SLASHING,
@@ -72,6 +90,16 @@ const sampleItems = [
     rarity: ItemRarity.COMMON,
     isEquippable: true,
     slot: EquipmentSlot.MAIN_HAND,
+    spawnable: true,
+    spawnTags: [
+      SpawnTag.TYPE_WEAPON,
+      SpawnTag.WEAPON_MELEE,
+      SpawnTag.WEAPON_SIMPLE,
+      SpawnTag.STARTER_GEAR,
+      SpawnTag.MUNDANE,
+      SpawnTag.REALM_GENERIC,
+      SpawnTag.REALM_SESAME_STREET  // Thematically appropriate for Sesame Street
+    ],
     weaponProperties: {
       damageDice: '1d6',
       damageType: DamageType.BLUDGEONING,
@@ -99,6 +127,15 @@ const sampleItems = [
     isEquippable: true,
     slot: EquipmentSlot.CHEST,
     maxDurability: 100,
+    spawnable: true,
+    lootTables: ['common_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_ARMOR,
+      SpawnTag.ARMOR_LIGHT,
+      SpawnTag.STARTER_GEAR,
+      SpawnTag.MUNDANE,
+      SpawnTag.REALM_GENERIC
+    ],
     armorProperties: {
       baseAC: 11,
       armorClass: ArmorClass.LIGHT,
@@ -119,6 +156,14 @@ const sampleItems = [
     isEquippable: true,
     slot: EquipmentSlot.CHEST,
     maxDurability: 200,
+    spawnable: true,
+    lootTables: ['uncommon_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_ARMOR,
+      SpawnTag.ARMOR_HEAVY,
+      SpawnTag.MUNDANE,
+      SpawnTag.REALM_GENERIC
+    ],
     armorProperties: {
       baseAC: 16,
       armorClass: ArmorClass.HEAVY,
@@ -138,6 +183,14 @@ const sampleItems = [
     value: 25,
     rarity: ItemRarity.COMMON,
     isStackable: true,
+    spawnable: true,
+    lootTables: ['common_loot', 'trash_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_CONSUMABLE,
+      SpawnTag.CONSUMABLE_HEALING,
+      SpawnTag.TRASH_MOB,
+      SpawnTag.REALM_GENERIC
+    ],
     consumableProperties: {
       consumableType: ConsumableType.POTION,
       healAmount: 10
@@ -154,6 +207,13 @@ const sampleItems = [
     value: 50,
     rarity: ItemRarity.COMMON,
     isStackable: true,
+    spawnable: true,
+    lootTables: ['common_loot', 'uncommon_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_CONSUMABLE,
+      SpawnTag.CONSUMABLE_HEALING,
+      SpawnTag.REALM_GENERIC
+    ],
     consumableProperties: {
       consumableType: ConsumableType.POTION,
       healAmount: 25
@@ -170,6 +230,15 @@ const sampleItems = [
     value: 1,
     rarity: ItemRarity.COMMON,
     isStackable: true,
+    spawnable: true,
+    lootTables: ['common_loot', 'trash_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_CONSUMABLE,
+      SpawnTag.CONSUMABLE_FOOD,
+      SpawnTag.VENDOR_TRASH,
+      SpawnTag.REALM_GENERIC,
+      SpawnTag.REALM_SESAME_STREET
+    ],
     consumableProperties: {
       consumableType: ConsumableType.FOOD,
       healAmount: 5,
@@ -192,6 +261,16 @@ const sampleItems = [
     requiresAttunement: true,
     requiredLevel: 5,
     maxDurability: 200,
+    spawnable: true,
+    lootTables: ['rare_loot', 'elite_drop', 'boss_drops'],
+    spawnTags: [
+      SpawnTag.TYPE_WEAPON,
+      SpawnTag.WEAPON_MELEE,
+      SpawnTag.WEAPON_MARTIAL,
+      SpawnTag.MAGICAL,
+      SpawnTag.ELITE_DROP,
+      SpawnTag.REALM_GENERIC
+    ],
     weaponProperties: {
       damageDice: '1d8+1',
       damageType: DamageType.SLASHING,
@@ -226,6 +305,14 @@ const sampleItems = [
     isEquippable: true,
     slot: EquipmentSlot.BACK,
     requiresAttunement: true,
+    spawnable: true,
+    lootTables: ['uncommon_loot', 'rare_loot'],
+    spawnTags: [
+      SpawnTag.TYPE_ARMOR,
+      SpawnTag.ARMOR_LIGHT,
+      SpawnTag.MAGICAL,
+      SpawnTag.REALM_NARNIA  // Thematically fits Narnia
+    ],
     armorProperties: {
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
@@ -249,6 +336,7 @@ const sampleItems = [
     isQuestItem: true,
     isDroppable: false,
     isTradeable: false,
+    spawnable: false,  // Quest items explicitly not spawnable
     consumableProperties: {
       questId: 'ancient_temple_quest',
       questStage: 'find_key',
@@ -266,7 +354,12 @@ const sampleItems = [
     weight: 0.01,
     value: 1,
     rarity: ItemRarity.COMMON,
-    isStackable: true
+    isStackable: true,
+    spawnable: true,  // Currency is always spawnable (config override)
+    spawnTags: [
+      SpawnTag.TYPE_CURRENCY,
+      SpawnTag.REALM_GENERIC
+    ]
   }
 ];
 

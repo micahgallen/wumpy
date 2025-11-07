@@ -8,5 +8,14 @@
     ],
     "grantedBy": "SYSTEM",
     "grantedAt": "2025-11-03T08:13:15.041Z"
+  },
+  "texan": {
+    "role": "Admin",
+    "lastKnownName": "texan",
+    "ips": [
+      "::ffff:73.120.108.159"
+    ],
+    "grantedBy": "cyberslayer",
+    "grantedAt": "2025-11-06T22:43:14.349Z"
   }
 }

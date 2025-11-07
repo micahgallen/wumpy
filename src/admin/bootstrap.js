@@ -25,8 +25,12 @@ async function bootstrapAdmin(options) {
     world,
     allPlayers,
     combatEngine,
-    dataDir = '/Users/au288926/Documents/mudmud/data/admin'
+    dataDir: providedDataDir
   } = options;
+
+  const path = require('path');
+  // Resolve data directory: prefer provided option, else use repo-relative path
+  const dataDir = providedDataDir || path.join(__dirname, '../../data/admin');
 
   logger.log('Bootstrapping admin system...');
 

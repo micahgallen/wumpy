@@ -135,6 +135,67 @@ const ConsumableType = {
   TOOL: 'tool'
 };
 
+/**
+ * Spawn Tags for Loot Generation
+ *
+ * Items can be tagged with spawn tags to control where they appear in random loot.
+ * Tags are organized into categories for flexible filtering.
+ */
+const SpawnTag = {
+  // Realm Tags - where the item is thematically appropriate
+  REALM_SESAME_STREET: 'realm:sesame_street',
+  REALM_NARNIA: 'realm:narnia',
+  REALM_FLORIDA: 'realm:florida',
+  REALM_TEXAS: 'realm:texas',
+  REALM_DISNEY: 'realm:disney',
+  REALM_GENERIC: 'realm:generic',         // Fits anywhere
+
+  // Item Type Tags - broad categories
+  TYPE_WEAPON: 'type:weapon',
+  TYPE_ARMOR: 'type:armor',
+  TYPE_JEWELRY: 'type:jewelry',
+  TYPE_CONSUMABLE: 'type:consumable',
+  TYPE_MATERIAL: 'type:material',
+  TYPE_CURRENCY: 'type:currency',
+
+  // Weapon Subcategory Tags
+  WEAPON_MELEE: 'weapon:melee',
+  WEAPON_RANGED: 'weapon:ranged',
+  WEAPON_MAGIC: 'weapon:magic',
+  WEAPON_SIMPLE: 'weapon:simple',
+  WEAPON_MARTIAL: 'weapon:martial',
+  WEAPON_EXOTIC: 'weapon:exotic',
+
+  // Armor Subcategory Tags
+  ARMOR_LIGHT: 'armor:light',
+  ARMOR_MEDIUM: 'armor:medium',
+  ARMOR_HEAVY: 'armor:heavy',
+  ARMOR_SHIELD: 'armor:shield',
+
+  // Consumable Subcategory Tags
+  CONSUMABLE_HEALING: 'consumable:healing',
+  CONSUMABLE_FOOD: 'consumable:food',
+  CONSUMABLE_BUFF: 'consumable:buff',
+  CONSUMABLE_SCROLL: 'consumable:scroll',
+
+  // Rarity-based Tags (for fine-tuned loot tables)
+  RARITY_COMMON: 'rarity:common',
+  RARITY_UNCOMMON: 'rarity:uncommon',
+  RARITY_RARE: 'rarity:rare',
+  RARITY_EPIC: 'rarity:epic',
+  RARITY_LEGENDARY: 'rarity:legendary',
+
+  // Special Purpose Tags
+  STARTER_GEAR: 'starter_gear',           // Good for new players
+  TRASH_MOB: 'trash_mob',                 // Low-value drops from weak enemies
+  ELITE_DROP: 'elite_drop',               // Higher-value drops from elite enemies
+  BOSS_DROP: 'boss_drop',                 // Boss-specific loot
+  CRAFTING_COMPONENT: 'crafting_component', // Used in crafting
+  VENDOR_TRASH: 'vendor_trash',           // Junk items to sell
+  MAGICAL: 'magical',                     // Has magical properties
+  MUNDANE: 'mundane'                      // No magical properties
+};
+
 // Helper functions for validation
 const ItemTypeValidation = {
   isValidItemType(type) {
@@ -167,6 +228,10 @@ const ItemTypeValidation = {
 
   isValidConsumableType(consumableType) {
     return Object.values(ConsumableType).includes(consumableType);
+  },
+
+  isValidSpawnTag(tag) {
+    return Object.values(SpawnTag).includes(tag);
   }
 };
 
@@ -179,5 +244,6 @@ module.exports = {
   DamageType,
   MagicalPropertyType,
   ConsumableType,
+  SpawnTag,
   ItemTypeValidation
 };

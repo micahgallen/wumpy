@@ -85,6 +85,39 @@ function validateItemDefinition(definition) {
     }
   }
 
+  // Spawn tags validation
+  if (definition.spawnTags !== undefined) {
+    if (!Array.isArray(definition.spawnTags)) {
+      errors.push('Item "spawnTags" must be an array if specified');
+    } else {
+      const { ItemTypeValidation: validation } = require('./ItemTypes');
+      for (const tag of definition.spawnTags) {
+        if (typeof tag !== 'string') {
+          errors.push('Each spawn tag must be a string');
+        } else if (!validation.isValidSpawnTag(tag)) {
+          errors.push(`Invalid spawn tag: ${tag}. Check ItemTypes.SpawnTag for valid tags.`);
+        }
+      }
+    }
+  }
+
+  // Spawnable validation - ensure quest items and artifacts can't be spawnable
+  if (definition.spawnable !== undefined) {
+    if (typeof definition.spawnable !== 'boolean') {
+      errors.push('Item "spawnable" property must be a boolean if specified');
+    }
+
+    // Quest items cannot be spawnable
+    if (definition.spawnable && definition.itemType === ItemType.QUEST) {
+      errors.push('Quest items cannot have spawnable: true (use manual placement instead)');
+    }
+
+    // Artifact rarity items cannot be spawnable
+    if (definition.spawnable && definition.rarity === 'artifact') {
+      errors.push('Artifact rarity items cannot have spawnable: true (use manual placement instead)');
+    }
+  }
+
   // Type-specific validations
   if (definition.itemType === ItemType.WEAPON && definition.weaponProperties) {
     const weaponErrors = validateWeaponProperties(definition.weaponProperties);

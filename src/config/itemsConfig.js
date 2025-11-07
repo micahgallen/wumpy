@@ -152,5 +152,101 @@ module.exports = {
         reason: 'Currency is available in most loot sources'
       }
     }
+  },
+
+  // Spawn System Configuration
+  spawn: {
+    // Enable/disable the spawn system globally
+    enabled: true,
+
+    // Rarity-based spawn weights (higher = more common in random loot)
+    // These weights are used when generating random loot from a pool of items
+    rarityWeights: {
+      common: 100,       // Very common
+      uncommon: 40,      // Fairly common
+      rare: 15,          // Uncommon
+      epic: 5,           // Rare
+      legendary: 1,      // Very rare
+      artifact: 0        // Never random (must be placed manually)
+    },
+
+    // Quantity ranges for stackable items when spawned
+    // [min, max] for each rarity level
+    quantityRanges: {
+      common: [1, 10],        // 1-10 common items
+      uncommon: [1, 5],       // 1-5 uncommon items
+      rare: [1, 3],           // 1-3 rare items
+      epic: [1, 2],           // 1-2 epic items
+      legendary: [1, 1],      // Always 1 legendary
+      currency: [1, 100]      // Variable currency amounts
+    },
+
+    // Currency-specific quantity multipliers by type
+    currencyQuantity: {
+      copper: [1, 50],
+      silver: [1, 20],
+      gold: [1, 10],
+      platinum: [1, 3]
+    },
+
+    // Default spawn tags for items that don't specify spawnTags
+    // Items get auto-tagged based on their properties
+    autoTagging: {
+      enabled: true,
+      rules: {
+        // Auto-tag weapons
+        weapon: ['type:weapon'],
+        armor: ['type:armor'],
+        consumable: ['type:consumable'],
+        currency: ['type:currency'],
+        material: ['type:material'],
+
+        // Auto-tag by rarity
+        common: ['rarity:common'],
+        uncommon: ['rarity:uncommon'],
+        rare: ['rarity:rare'],
+        epic: ['rarity:epic'],
+        legendary: ['rarity:legendary']
+      }
+    },
+
+    // Spawn filtering rules
+    // Control what can spawn in different contexts
+    filters: {
+      // Respect lootTables even if item is spawnable
+      requireLootTableMatch: true,
+
+      // Allow spawning items without explicit lootTables if spawnable: true
+      allowUntaggedSpawnable: false,
+
+      // Minimum level requirements for spawning rare items
+      levelGating: {
+        enabled: true,
+        gates: {
+          uncommon: 3,    // Level 3+ areas
+          rare: 5,        // Level 5+ areas
+          epic: 10,       // Level 10+ areas
+          legendary: 15   // Level 15+ areas
+        }
+      }
+    },
+
+    // Loot generation defaults
+    generation: {
+      // Default number of items to generate per loot roll
+      defaultItemCount: 3,
+
+      // Chance for no loot (0-100)
+      emptyLootChance: 10,
+
+      // Chance for bonus item (0-100)
+      bonusItemChance: 15,
+
+      // Currency always drops in addition to items
+      alwaysCurrency: true,
+
+      // Duplicate item policy
+      allowDuplicates: false
+    }
   }
 };

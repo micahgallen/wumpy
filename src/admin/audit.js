@@ -6,7 +6,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = '/Users/au288926/Documents/mudmud/logs/admin.log';
+// Store audit log within repository-relative logs directory for portability
+const LOG_FILE = path.join(__dirname, '../../logs/admin.log');
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**

@@ -33,7 +33,7 @@ class StorageAdapter {
  * Stores admin data in JSON files
  */
 class FileStorageAdapter extends StorageAdapter {
-  constructor(dataDir = '/Users/au288926/Documents/mudmud/data/admin') {
+  constructor(dataDir) {
     super();
     this.dataDir = dataDir;
     this.rolesFile = path.join(dataDir, 'roles.json');
