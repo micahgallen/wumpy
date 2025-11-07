@@ -23,6 +23,9 @@ class World {
       this.loadRealm('sesame_street');
       console.log(`Loaded ${Object.keys(this.rooms).length} rooms, ${Object.keys(this.npcs).length} NPCs, ${Object.keys(this.objects).length} objects.`);
 
+      // Initialize items in all rooms
+      this.initializeRoomItems();
+
       // Store a deep copy of the initial room states for respawning
       this.initialRoomsState = JSON.parse(JSON.stringify(this.rooms));
 
@@ -84,6 +87,55 @@ class World {
           console.error(`Error loading ${filePath}:`, err);
         }
       }
+    }
+  }
+
+  /**
+   * Initialize items in all rooms
+   * Converts item ID strings to item instance objects
+   */
+  initializeRoomItems() {
+    const ItemRegistry = require('./items/ItemRegistry');
+    const ItemFactory = require('./items/ItemFactory');
+
+    for (const roomId in this.rooms) {
+      const room = this.rooms[roomId];
+
+      // Skip if no items defined or already initialized
+      if (!room.items || room.items.length === 0) {
+        continue;
+      }
+
+      // Check if items are already initialized (have definitionId)
+      if (room.items[0] && typeof room.items[0] === 'object' && room.items[0].definitionId) {
+        continue; // Already initialized
+      }
+
+      // Convert string IDs to item instances
+      const initializedItems = [];
+      for (const itemId of room.items) {
+        if (typeof itemId === 'string') {
+          const itemDef = ItemRegistry.getItem(itemId);
+          if (itemDef) {
+            // Create item instance
+            const itemInstance = ItemFactory.createItem(itemDef, {
+              location: { type: 'room', roomId: roomId }
+            });
+            // Store as serialized data
+            initializedItems.push({
+              definitionId: itemInstance.definitionId,
+              instanceId: itemInstance.instanceId,
+              quantity: itemInstance.quantity || 1,
+              durability: itemInstance.durability,
+              maxDurability: itemInstance.maxDurability
+            });
+          } else {
+            console.warn(`Item definition not found for ID: ${itemId} in room ${roomId}`);
+          }
+        }
+      }
+
+      room.items = initializedItems;
     }
   }
 
@@ -189,6 +241,23 @@ class World {
         const obj = this.getObject(objId);
         if (obj) {
           output.push('You see ' + colors.objectName(obj.name) + ' here.');
+        }
+      }
+    }
+
+    // Items (new item system)
+    if (room.items && room.items.length > 0) {
+      const ItemRegistry = require('./items/ItemRegistry');
+      output.push('');
+      for (const itemData of room.items) {
+        const itemDef = ItemRegistry.getItem(itemData.definitionId);
+        if (itemDef) {
+          let itemDisplay = 'You see ' + colors.objectName(itemDef.name);
+          if (itemData.quantity && itemData.quantity > 1) {
+            itemDisplay += colors.dim(` x${itemData.quantity}`);
+          }
+          itemDisplay += ' here.';
+          output.push(itemDisplay);
         }
       }
     }

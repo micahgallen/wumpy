@@ -21,5 +21,6 @@
     }
   ],
   "npcs": ["big_bird"],
-  "objects": ["trashcan", "test_cookie"]
+  "objects": ["trashcan", "test_cookie"],
+  "items": ["chocolate_chip_cookie", "birdseed"]
 }

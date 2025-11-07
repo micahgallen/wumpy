@@ -1,8 +1,8 @@
 {
   "id": "test_cookie",
-  "name": "a chocolate chip cookie",
-  "description": "This is a perfectly round chocolate chip cookie that somehow maintains its temperature despite all known laws of thermodynamics. It smells delicious and promises to taste even better. The chocolate chips arrange themselves in a pattern that suggests either divine intervention or very precise manufacturing.",
-  "keywords": ["cookie", "chocolate", "chip"],
-  "is_takeable": true,
+  "name": "a glass display case",
+  "description": "This pristine glass display case contains a single chocolate chip cookie under protective glass, positioned like a museum artifact. A small brass plaque reads: 'The Original Cookie - Preserved for Posterity (and Health Code Violations)'. You can't help but notice it still looks impossibly fresh. If you want cookies to eat, try looking around - some have been known to appear on the ground or can be purchased at Hooper's Store.",
+  "keywords": ["case", "display", "cookie", "glass", "plaque"],
+  "is_takeable": false,
   "can_be_examined": true
 }

@@ -722,16 +722,114 @@ async function spawnCommand(player, args, context) {
 
   if (args.length === 0) {
     player.send('\n' + colors.error('Usage: @spawn <itemId> [qty]\n'));
+    player.send('\nAvailable items:\n');
+
+    const ItemRegistry = require('../items/ItemRegistry');
+    const items = ItemRegistry.getAllItems();
+    if (items.length > 0) {
+      items.forEach(item => {
+        player.send(`  ${colors.info(item.id)} - ${item.name} (${item.rarity})\n`);
+      });
+    } else {
+      player.send(colors.dim('  No items loaded. Check server startup logs.\n'));
+    }
     return;
   }
 
-  const itemId = args[0];
-  const qty = Math.max(1, parseInt(args[1]) || 1);
+  const itemId = args[0].toLowerCase();
 
-  // Check if item exists
+  // Try new item system first
+  const ItemRegistry = require('../items/ItemRegistry');
+  const ItemFactory = require('../items/ItemFactory');
+  const InventoryManager = require('../systems/inventory/InventoryManager');
+
+  // Parse quantity (no artificial cap - will be broken into max-stack chunks)
+  let qty = Math.max(1, parseInt(args[1]) || 1);
+
+  if (ItemRegistry.hasItem(itemId)) {
+    try {
+      const def = ItemRegistry.getItem(itemId);
+
+      // Determine max stack size for this item
+      const maxStackSize = InventoryManager.getMaxStackSize(def);
+
+      let remainingQty = qty;
+      let totalAdded = 0;
+      let stacksCreated = 0;
+      let failureReason = null;
+
+      // Add items in max-stack-sized chunks
+      while (remainingQty > 0) {
+        const chunkSize = Math.min(remainingQty, maxStackSize);
+        const itemInstance = ItemFactory.createItem(itemId, { quantity: chunkSize });
+
+        const result = InventoryManager.addItem(player, itemInstance);
+
+        if (result.success) {
+          totalAdded += chunkSize;
+          remainingQty -= chunkSize;
+          stacksCreated++;
+        } else {
+          // Failed to add - stop trying
+          failureReason = result.reason;
+          break;
+        }
+      }
+
+      if (totalAdded > 0) {
+        const stackMsg = stacksCreated > 1 ? ` (${stacksCreated} stacks)` : '';
+        player.send('\n' + colors.success(`✓ Spawned ${totalAdded}x ${def.name}${stackMsg}\n`));
+
+        if (remainingQty > 0) {
+          player.send(colors.warning(`  Could not add remaining ${remainingQty}x: ${failureReason}\n`));
+        }
+
+        // Show inventory stats
+        const stats = InventoryManager.getInventoryStats(player);
+        player.send(`  Weight: ${stats.weight.current.toFixed(1)}/${stats.weight.max} lbs\n`);
+        player.send(`  Slots: ${stats.slots.current}/${stats.slots.max}\n`);
+
+        rateLimiter.recordCommand(issuer.id);
+
+        writeAuditLog({
+          issuerID: issuer.id,
+          issuerRank: issuer.role,
+          command: Command.SPAWN,
+          args: [itemId, totalAdded],
+          result: 'success',
+          reason: `Spawned ${totalAdded}x ${itemId} in ${stacksCreated} stacks (requested ${qty})`
+        });
+      } else {
+        player.send('\n' + colors.error(`Failed to spawn item: ${failureReason}\n`));
+        writeAuditLog({
+          issuerID: issuer.id,
+          issuerRank: issuer.role,
+          command: Command.SPAWN,
+          args: args,
+          result: 'failed',
+          reason: failureReason
+        });
+      }
+      return;
+    } catch (error) {
+      player.send('\n' + colors.error(`Error spawning item: ${error.message}\n`));
+      writeAuditLog({
+        issuerID: issuer.id,
+        issuerRank: issuer.role,
+        command: Command.SPAWN,
+        args: args,
+        result: 'failed',
+        reason: `Exception: ${error.message}`
+      });
+      return;
+    }
+  }
+
+  // Fall back to old object system for backward compatibility
   const item = world.getObject(itemId);
   if (!item) {
-    player.send('\n' + colors.error(`Item "${itemId}" not found in world.\n`));
+    player.send('\n' + colors.error(`Item "${itemId}" not found in ItemRegistry or world objects.\n`));
+    player.send(colors.hint('Use @spawn with no arguments to see available items.\n'));
     writeAuditLog({
       issuerID: issuer.id,
       issuerRank: issuer.role,
@@ -743,14 +841,14 @@ async function spawnCommand(player, args, context) {
     return;
   }
 
-  // Add to inventory
+  // Old system: Add to inventory
   for (let i = 0; i < qty; i++) {
     player.inventory.push(itemId);
   }
 
   playerDB.updatePlayerInventory(player.username, player.inventory);
 
-  player.send('\n' + colors.success(`Spawned ${qty}x ${item.name} (${itemId})\n`));
+  player.send('\n' + colors.success(`Spawned ${qty}x ${item.name} (${itemId}) [legacy]\n`));
 
   rateLimiter.recordCommand(issuer.id);
 
@@ -760,7 +858,7 @@ async function spawnCommand(player, args, context) {
     command: Command.SPAWN,
     args: [itemId, qty],
     result: 'success',
-    reason: `Spawned ${qty}x ${itemId}`
+    reason: `Spawned ${qty}x ${itemId} (legacy system)`
   });
 }
 

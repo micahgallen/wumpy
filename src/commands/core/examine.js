@@ -36,12 +36,34 @@ function execute(player, args, context) {
     }
   }
 
+  // Search items in room FIRST (new item system - higher priority than NPCs/objects)
+  if (room.items && room.items.length > 0) {
+    const ItemRegistry = require('../../items/ItemRegistry');
+    for (const itemData of room.items) {
+      const itemDef = ItemRegistry.getItem(itemData.definitionId);
+      if (itemDef && itemDef.keywords) {
+        // Exact match only for items to avoid conflicts
+        if (itemDef.keywords.some(keyword => keyword.toLowerCase() === target)) {
+          const ItemFactory = require('../../items/ItemFactory');
+          const itemInstance = ItemFactory.restoreItem(itemData, itemDef);
+          const examineText = itemInstance.onExamine(player);
+          player.send('\n' + examineText + '\n');
+          return;
+        }
+      }
+    }
+  }
+
   // Search NPCs in current room
   if (room.npcs) {
     for (const npcId of room.npcs) {
       const npc = world.getNPC(npcId);
       if (npc && npc.keywords) {
-        if (npc.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
+        // Use exact match first, then partial match
+        const exactMatch = npc.keywords.some(keyword => keyword.toLowerCase() === target);
+        const partialMatch = npc.keywords.some(keyword => target.includes(keyword.toLowerCase()));
+
+        if (exactMatch || partialMatch) {
           // Found matching NPC
           let output = [];
           output.push(colors.npcName(npc.name) + colors.hint(` (Level ${npc.level})`));
@@ -66,12 +88,49 @@ function execute(player, args, context) {
     }
   }
 
-  // Search objects in current room
+  // Search inventory BEFORE objects (new item system)
+  // This ensures items in inventory have priority over room objects
+  const isNewInventory = player.inventory && player.inventory.length > 0 &&
+                         typeof player.inventory[0] === 'object' && player.inventory[0].instanceId;
+
+  if (isNewInventory) {
+    for (const item of player.inventory) {
+      // Exact match only for items in inventory
+      if (item.keywords && item.keywords.some(keyword => keyword.toLowerCase() === target)) {
+        // Found in inventory - call examine hook
+        const examineText = item.onExamine(player);
+        player.send('\n' + examineText + ' ' + colors.hint('(in your inventory)') + '\n');
+        return;
+      }
+    }
+  } else if (player.inventory && player.inventory.length > 0) {
+    // Legacy inventory system
+    for (const objId of player.inventory) {
+      const obj = world.getObject(objId);
+      if (obj && obj.keywords) {
+        // Exact match for legacy items too
+        if (obj.keywords.some(keyword => keyword.toLowerCase() === target)) {
+          let output = [];
+          output.push(colors.objectName(obj.name) + colors.hint(' (in your inventory)'));
+
+          // Wrap object description
+          const wrappedDesc = colors.wrap(obj.description, 80);
+          output.push(colors.colorize(wrappedDesc, colors.MUD_COLORS.OBJECT));
+
+          player.send('\n' + output.join('\n') + '\n');
+          return;
+        }
+      }
+    }
+  }
+
+  // Search objects in current room (checked AFTER inventory)
   if (room.objects) {
     for (const objId of room.objects) {
       const obj = world.getObject(objId);
       if (obj && obj.keywords) {
-        if (obj.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
+        // Exact match only for objects to avoid conflicts with items
+        if (obj.keywords.some(keyword => keyword.toLowerCase() === target)) {
           // Found matching object
           let output = [];
           output.push(colors.objectName(obj.name));
@@ -102,26 +161,6 @@ function execute(player, args, context) {
           if (obj.can_sleep_in) {
             output.push(colors.hint('This looks like a comfortable place to sleep.'));
           }
-
-          player.send('\n' + output.join('\n') + '\n');
-          return;
-        }
-      }
-    }
-  }
-
-  // Search inventory
-  if (player.inventory && player.inventory.length > 0) {
-    for (const objId of player.inventory) {
-      const obj = world.getObject(objId);
-      if (obj && obj.keywords) {
-        if (obj.keywords.some(keyword => keyword.toLowerCase() === target || target.includes(keyword.toLowerCase()))) {
-          let output = [];
-          output.push(colors.objectName(obj.name) + colors.hint(' (in your inventory)'));
-
-          // Wrap object description
-          const wrappedDesc = colors.wrap(obj.description, 80);
-          output.push(colors.colorize(wrappedDesc, colors.MUD_COLORS.OBJECT));
 
           player.send('\n' + output.join('\n') + '\n');
           return;

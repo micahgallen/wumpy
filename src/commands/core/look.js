@@ -52,13 +52,36 @@ function execute(player, args, context) {
       }
     }
 
-    // Check NPCs - delegate to examine command for consistent behavior
     const room = world.getRoom(player.currentRoom);
+
+    // Check items FIRST (new item system) - higher priority
+    if (room && room.items) {
+      const ItemRegistry = require('../../items/ItemRegistry');
+      for (const itemData of room.items) {
+        const itemDef = ItemRegistry.getItem(itemData.definitionId);
+        if (itemDef && itemDef.keywords) {
+          // Exact match only for items to avoid conflicts
+          if (itemDef.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
+            const examineCommand = registry.getCommand('examine');
+            if (examineCommand) {
+              examineCommand.execute(player, args, context);
+            }
+            return;
+          }
+        }
+      }
+    }
+
+    // Check NPCs - delegate to examine command for consistent behavior
     if (room && room.npcs) {
       for (const npcId of room.npcs) {
         const npc = world.getNPC(npcId);
         if (npc && npc.keywords) {
-          if (npc.keywords.some(keyword => keyword.toLowerCase() === targetName || targetName.includes(keyword.toLowerCase()))) {
+          // Exact match first, then partial
+          const exactMatch = npc.keywords.some(keyword => keyword.toLowerCase() === targetName);
+          const partialMatch = npc.keywords.some(keyword => targetName.includes(keyword.toLowerCase()));
+
+          if (exactMatch || partialMatch) {
             // Found matching NPC - use examine logic
             const examineCommand = registry.getCommand('examine');
             if (examineCommand) {
@@ -70,12 +93,29 @@ function execute(player, args, context) {
       }
     }
 
+    // Check inventory items BEFORE objects (new item system)
+    const isNewInventory = player.inventory && player.inventory.length > 0 &&
+                           typeof player.inventory[0] === 'object' && player.inventory[0].instanceId;
+
+    if (isNewInventory) {
+      for (const item of player.inventory) {
+        if (item.keywords && item.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
+          const examineCommand = registry.getCommand('examine');
+          if (examineCommand) {
+            examineCommand.execute(player, args, context);
+          }
+          return;
+        }
+      }
+    }
+
     // Check objects - delegate to examine command
     if (room && room.objects) {
       for (const objId of room.objects) {
         const obj = world.getObject(objId);
         if (obj && obj.keywords) {
-          if (obj.keywords.some(keyword => keyword.toLowerCase() === targetName || targetName.includes(keyword.toLowerCase()))) {
+          // Exact match only for objects to avoid conflicts with items
+          if (obj.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
             // Found matching object - use examine logic
             const examineCommand = registry.getCommand('examine');
             if (examineCommand) {
@@ -83,6 +123,20 @@ function execute(player, args, context) {
             }
             return;
           }
+        }
+      }
+    }
+
+    // Check legacy inventory
+    if (player.inventory && player.inventory.length > 0 && typeof player.inventory[0] === 'string') {
+      for (const objId of player.inventory) {
+        const obj = world.getObject(objId);
+        if (obj && obj.keywords && obj.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
+          const examineCommand = registry.getCommand('examine');
+          if (examineCommand) {
+            examineCommand.execute(player, args, context);
+          }
+          return;
         }
       }
     }
