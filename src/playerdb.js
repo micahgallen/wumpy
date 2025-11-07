@@ -1,6 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
+const InventorySerializer = require('./systems/inventory/InventorySerializer');
 
 /**
  * PlayerDB - Manages player account persistence
@@ -21,6 +22,15 @@ class PlayerDB {
       if (fs.existsSync(this.filepath)) {
         const data = fs.readFileSync(this.filepath, 'utf8');
         this.players = JSON.parse(data);
+
+        // Migrate inventory format if needed
+        for (const username in this.players) {
+          const player = this.players[username];
+          if (player.inventory) {
+            player.inventory = InventorySerializer.migrateInventory(player.inventory);
+          }
+        }
+
         console.log(`Loaded ${Object.keys(this.players).length} player accounts.`);
       } else {
         console.log('No existing player database found. Starting fresh.');
@@ -172,12 +182,32 @@ class PlayerDB {
   /**
    * Update player's inventory
    * @param {string} username - Player username
-   * @param {Array} inventory - Array of object IDs
+   * @param {Array} inventory - Array of item instances
    */
   updatePlayerInventory(username, inventory) {
     const lowerUsername = username.toLowerCase();
     if (this.players[lowerUsername]) {
-      this.players[lowerUsername].inventory = inventory;
+      // Serialize inventory before saving
+      this.players[lowerUsername].inventory = InventorySerializer.serializeInventory({
+        username,
+        inventory
+      });
+      this.save();
+    }
+  }
+
+  /**
+   * Save a player's inventory (live player object)
+   * @param {Object} player - Player object with inventory
+   */
+  savePlayerInventory(player) {
+    if (!player || !player.username) {
+      return;
+    }
+
+    const lowerUsername = player.username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].inventory = InventorySerializer.serializeInventory(player);
       this.save();
     }
   }
@@ -235,6 +265,26 @@ class PlayerDB {
     const lowerUsername = username.toLowerCase();
     if (this.players[lowerUsername]) {
       this.players[lowerUsername].hp = hp;
+      this.save();
+    }
+  }
+
+  /**
+   * Update player's base stats
+   * @param {string} username - Player username
+   * @param {Object} stats - Stats object {strength, dexterity, constitution, intelligence, wisdom, charisma}
+   */
+  updatePlayerStats(username, stats) {
+    const lowerUsername = username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].stats = {
+        strength: stats.strength ?? 10,
+        dexterity: stats.dexterity ?? 10,
+        constitution: stats.constitution ?? 10,
+        intelligence: stats.intelligence ?? 10,
+        wisdom: stats.wisdom ?? 10,
+        charisma: stats.charisma ?? 10
+      };
       this.save();
     }
   }

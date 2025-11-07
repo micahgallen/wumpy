@@ -268,6 +268,12 @@ function handleLoginPassword(player, password) {
     player.hp = playerData.hp ?? player.maxHp;
     player.hp = Math.min(player.hp, player.maxHp); // Cap at maxHp
 
+    // Recalculate stats based on equipped items
+    // This must happen AFTER inventory deserialization
+    const EquipmentManager = require('./systems/equipment/EquipmentManager');
+    player.baseStats = { ...player.stats }; // Store base stats before equipment bonuses
+    EquipmentManager.recalculatePlayerStats(player);
+
     player.resistances = playerData.resistances ?? {};
     player.isGhost = playerData.isGhost ?? false;
     player.lastDamageTaken = playerData.lastDamageTaken || 0;

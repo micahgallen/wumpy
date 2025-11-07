@@ -6,6 +6,7 @@
 
 const ItemRegistry = require('../../../src/items/ItemRegistry');
 const sampleItems = require('./sampleItems');
+const testEquipmentSet = require('./testEquipmentSet');
 const logger = require('../../../src/logger');
 
 /**
@@ -17,7 +18,19 @@ function loadCoreItems() {
   let successCount = 0;
   let errorCount = 0;
 
+  // Load sample items
   for (const itemDef of sampleItems) {
+    try {
+      ItemRegistry.registerItem(itemDef, 'core');
+      successCount++;
+    } catch (error) {
+      logger.error(`Failed to register item ${itemDef.id}: ${error.message}`);
+      errorCount++;
+    }
+  }
+
+  // Load test equipment set
+  for (const itemDef of testEquipmentSet) {
     try {
       ItemRegistry.registerItem(itemDef, 'core');
       successCount++;

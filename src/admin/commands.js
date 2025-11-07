@@ -689,6 +689,137 @@ async function slayCommand(player, args, context) {
 }
 
 /**
+ * Spawn Full command - Spawn a complete test set of equipment for all slots
+ * Usage: @spawn_full
+ */
+async function spawnFullCommand(player, args, context) {
+  const { adminService, rateLimiter } = context;
+
+  const issuer = {
+    id: player.username.toLowerCase(),
+    role: adminService.getRole(player.username),
+    name: player.username
+  };
+
+  if (!hasPermission(issuer, Command.SPAWN)) {
+    player.send('\n' + colors.error('You do not have permission to use this command.\n'));
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.SPAWN,
+      args: ['spawn_full'],
+      result: 'denied',
+      reason: 'Insufficient permissions'
+    });
+    return;
+  }
+
+  const rateLimit = rateLimiter.checkLimit(issuer.id);
+  if (!rateLimit.allowed) {
+    player.send('\n' + colors.error(`Rate limit exceeded. Try again in ${rateLimit.resetIn} seconds.\n`));
+    return;
+  }
+
+  const ItemRegistry = require('../items/ItemRegistry');
+  const ItemFactory = require('../items/ItemFactory');
+  const InventoryManager = require('../systems/inventory/InventoryManager');
+
+  // Define test equipment set (one item for EVERY equipment slot)
+  const testEquipmentSet = [
+    // Weapons (for dual-wield testing)
+    { id: 'test_iron_dagger', name: 'Iron Dagger (main hand)' },
+    { id: 'test_steel_dagger', name: 'Steel Dagger (off hand)' },
+    // Head slot (with variety)
+    { id: 'test_iron_helmet', name: 'Iron Helmet (medium armor)' },
+    { id: 'test_steel_greathelm', name: 'Steel Greathelm (heavy armor)' },
+    // Armor - ALL slots
+    { id: 'test_amulet_of_health', name: 'Amulet of Health (neck)' },
+    { id: 'test_leather_pauldrons', name: 'Leather Pauldrons (shoulders)' },
+    { id: 'test_chainmail_shirt', name: 'Chainmail Shirt (chest)' },
+    { id: 'test_travelers_cloak', name: 'Traveler\'s Cloak (back)' },
+    { id: 'test_iron_bracers', name: 'Iron Bracers (wrists)' },
+    { id: 'test_leather_gloves', name: 'Leather Gloves (hands)' },
+    { id: 'test_studded_belt', name: 'Studded Belt (waist)' },
+    { id: 'test_iron_greaves', name: 'Iron Greaves (legs)' },
+    { id: 'test_leather_boots', name: 'Leather Boots (feet)' },
+    // Jewelry - ALL slots
+    { id: 'test_silver_ring', name: 'Silver Ring (ring 1)' },
+    { id: 'test_copper_ring', name: 'Copper Ring (ring 2)' },
+    { id: 'test_lucky_charm', name: 'Lucky Charm (trinket 1)' },
+    { id: 'test_pocket_watch', name: 'Pocket Watch (trinket 2)' },
+    // Consumable for testing
+    { id: 'health_potion', name: 'Health Potion' }
+  ];
+
+  player.send('\n' + colors.info('Spawning complete equipment test set...\n'));
+  player.send(colors.line(50, '-') + '\n');
+
+  let successCount = 0;
+  let failCount = 0;
+  const failed = [];
+
+  for (const item of testEquipmentSet) {
+    if (ItemRegistry.hasItem(item.id)) {
+      try {
+        const itemInstance = ItemFactory.createItem(item.id);
+        const result = InventoryManager.addItem(player, itemInstance);
+
+        if (result.success) {
+          player.send(colors.success(`✓ ${item.name}\n`));
+          successCount++;
+        } else {
+          player.send(colors.error(`✗ ${item.name}: ${result.reason}\n`));
+          failCount++;
+          failed.push({ item: item.name, reason: result.reason });
+        }
+      } catch (error) {
+        player.send(colors.error(`✗ ${item.name}: ${error.message}\n`));
+        failCount++;
+        failed.push({ item: item.name, reason: error.message });
+      }
+    } else {
+      player.send(colors.dim(`⊝ ${item.name}: Not found in registry\n`));
+      failCount++;
+      failed.push({ item: item.name, reason: 'Not found in registry' });
+    }
+  }
+
+  player.send(colors.line(50, '-') + '\n');
+  player.send(colors.info(`Spawned ${successCount} items successfully`));
+  if (failCount > 0) {
+    player.send(colors.warning(`, ${failCount} failed`));
+  }
+  player.send('\n\n');
+
+  // Show inventory stats
+  const stats = InventoryManager.getInventoryStats(player);
+  player.send(colors.info(`Weight: ${stats.weight.current.toFixed(1)}/${stats.weight.max} lbs\n`));
+  player.send(colors.info(`Slots: ${stats.slots.current}/${stats.slots.max}\n`));
+
+  if (successCount > 0) {
+    player.send('\n' + colors.hint('Test the equipment system with:\n'));
+    player.send(colors.hint('  examine dagger           - See equipment stats\n'));
+    player.send(colors.hint('  equip dagger main        - Equip in main hand\n'));
+    player.send(colors.hint('  equip dagger offhand     - Equip in off-hand\n'));
+    player.send(colors.hint('  equip helmet             - Auto-equip to head\n'));
+    player.send(colors.hint('  equip ring               - Auto-equip to ring_1\n'));
+    player.send(colors.hint('  equipment                - View all equipped items\n'));
+    player.send(colors.hint('  unequip dagger           - Remove equipped item\n'));
+  }
+
+  rateLimiter.recordCommand(issuer.id);
+
+  writeAuditLog({
+    issuerID: issuer.id,
+    issuerRank: issuer.role,
+    command: Command.SPAWN,
+    args: ['spawn_full'],
+    result: 'success',
+    reason: `Spawned ${successCount}/${testEquipmentSet.length} test items`
+  });
+}
+
+/**
  * Spawn command - Spawn an item in player's inventory
  * Usage: @spawn <itemId> [qty]
  */
@@ -1037,6 +1168,7 @@ async function adminhelpCommand(player, args, context) {
     { cmd: Command.SLAY, usage: '@slay <player|npc>', desc: 'Instantly kill target (room priority)', minRole: Role.CREATOR },
     { cmd: Command.REVIVE, usage: '@revive <player>', desc: 'Revive a dead player', minRole: Role.CREATOR },
     { cmd: Command.SPAWN, usage: '@spawn <itemId> [qty]', desc: 'Spawn items', minRole: Role.CREATOR },
+    { cmd: Command.SPAWN, usage: '@spawn_full', desc: 'Spawn complete equipment test set', minRole: Role.CREATOR },
     { cmd: Command.PROMOTE, usage: '@promote <player> <role>', desc: 'Promote a player', minRole: Role.ADMIN },
     { cmd: Command.DEMOTE, usage: '@demote <player> [role]', desc: 'Demote a player', minRole: Role.ADMIN }
   ];
@@ -1285,6 +1417,7 @@ module.exports = {
   removelevelCommand,
   slayCommand,
   spawnCommand,
+  spawnFullCommand,
   promoteCommand,
   demoteCommand,
   adminhelpCommand,

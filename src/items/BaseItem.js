@@ -31,7 +31,8 @@ class BaseItem {
     // Instance identity
     this.instanceId = options.instanceId || this.generateInstanceId();
     this.definitionId = definition.id;
-    this.definition = definition;
+    // NOTE: We do NOT store the definition reference to avoid circular references
+    // Use getDefinition() method to retrieve it when needed
 
     // Core properties from definition
     this.name = definition.name;
@@ -110,6 +111,16 @@ class BaseItem {
     }
   }
 
+  /**
+   * Get the item definition from the registry
+   * This avoids storing circular references in the item instance
+   * @returns {Object} Item definition
+   */
+  getDefinition() {
+    const ItemRegistry = require('./ItemRegistry');
+    return ItemRegistry.getItem(this.definitionId);
+  }
+
   // Lifecycle Hooks
 
   /**
@@ -119,8 +130,9 @@ class BaseItem {
    */
   onEquip(player) {
     // Check if definition has custom onEquip hook
-    if (this.definition.onEquip && typeof this.definition.onEquip === 'function') {
-      return this.definition.onEquip(player, this);
+    const definition = this.getDefinition();
+    if (definition.onEquip && typeof definition.onEquip === 'function') {
+      return definition.onEquip(player, this);
     }
 
     // Handle bind-on-equip
@@ -139,8 +151,9 @@ class BaseItem {
    * @returns {boolean} True if unequip succeeded, false to prevent
    */
   onUnequip(player) {
-    if (this.definition.onUnequip && typeof this.definition.onUnequip === 'function') {
-      return this.definition.onUnequip(player, this);
+    const definition = this.getDefinition();
+    if (definition.onUnequip && typeof definition.onUnequip === 'function') {
+      return definition.onUnequip(player, this);
     }
     return true;
   }
@@ -152,8 +165,9 @@ class BaseItem {
    * @returns {boolean} True if use succeeded, false otherwise
    */
   onUse(player, context = {}) {
-    if (this.definition.onUse && typeof this.definition.onUse === 'function') {
-      return this.definition.onUse(player, this, context);
+    const definition = this.getDefinition();
+    if (definition.onUse && typeof definition.onUse === 'function') {
+      return definition.onUse(player, this, context);
     }
     return false;  // Default: items are not usable
   }
@@ -175,8 +189,9 @@ class BaseItem {
       return false;
     }
 
-    if (this.definition.onDrop && typeof this.definition.onDrop === 'function') {
-      return this.definition.onDrop(player, this, room);
+    const definition = this.getDefinition();
+    if (definition.onDrop && typeof definition.onDrop === 'function') {
+      return definition.onDrop(player, this, room);
     }
 
     return true;
@@ -195,8 +210,9 @@ class BaseItem {
       logger.log(`Item ${this.name} bound to ${player.name} on pickup`);
     }
 
-    if (this.definition.onPickup && typeof this.definition.onPickup === 'function') {
-      return this.definition.onPickup(player, this);
+    const definition = this.getDefinition();
+    if (definition.onPickup && typeof definition.onPickup === 'function') {
+      return definition.onPickup(player, this);
     }
 
     return true;
@@ -208,8 +224,9 @@ class BaseItem {
    * @returns {string} Description text to show
    */
   onExamine(player) {
-    if (this.definition.onExamine && typeof this.definition.onExamine === 'function') {
-      return this.definition.onExamine(player, this);
+    const definition = this.getDefinition();
+    if (definition.onExamine && typeof definition.onExamine === 'function') {
+      return definition.onExamine(player, this);
     }
 
     return this.getDescription(player);
@@ -228,8 +245,9 @@ class BaseItem {
     this.isIdentified = true;
     this.modifiedAt = Date.now();
 
-    if (this.definition.onIdentify && typeof this.definition.onIdentify === 'function') {
-      this.definition.onIdentify(player, this);
+    const definition = this.getDefinition();
+    if (definition.onIdentify && typeof definition.onIdentify === 'function') {
+      definition.onIdentify(player, this);
     }
 
     return true;
@@ -253,8 +271,9 @@ class BaseItem {
     this.attunedTo = player.name;
     this.modifiedAt = Date.now();
 
-    if (this.definition.onAttune && typeof this.definition.onAttune === 'function') {
-      this.definition.onAttune(player, this);
+    const definition = this.getDefinition();
+    if (definition.onAttune && typeof definition.onAttune === 'function') {
+      definition.onAttune(player, this);
     }
 
     return true;
@@ -274,8 +293,9 @@ class BaseItem {
     this.attunedTo = null;
     this.modifiedAt = Date.now();
 
-    if (this.definition.onUnattune && typeof this.definition.onUnattune === 'function') {
-      this.definition.onUnattune(player, this);
+    const definition = this.getDefinition();
+    if (definition.onUnattune && typeof definition.onUnattune === 'function') {
+      definition.onUnattune(player, this);
     }
 
     return true;
@@ -290,6 +310,108 @@ class BaseItem {
    */
   getDescription(player) {
     let desc = this.customDescription || this.description;
+
+    // Add equipment-specific information
+    const equipInfo = [];
+
+    // Slot information
+    if (this.slot && this.slot !== 'none') {
+      const ItemType = require('./schemas/ItemTypes').ItemType;
+
+      // For weapons, show they can be equipped in either hand
+      if (this.itemType === ItemType.WEAPON) {
+        equipInfo.push('Slot: main hand or off-hand');
+      } else {
+        const slotName = this.slot.replace('_', ' ');
+        equipInfo.push(`Slot: ${slotName}`);
+      }
+    }
+
+    // Weapon information
+    if (this.weaponProperties) {
+      const wp = this.weaponProperties;
+      const weaponDetails = [];
+
+      // Damage
+      if (wp.damageDice) {
+        weaponDetails.push(`Damage: ${wp.damageDice}`);
+      }
+
+      // Weapon type and handedness
+      const typeInfo = [];
+      if (wp.isTwoHanded) {
+        typeInfo.push('two-handed');
+      } else {
+        typeInfo.push('one-handed');
+      }
+      if (wp.isRanged) {
+        typeInfo.push('ranged');
+      } else {
+        typeInfo.push('melee');
+      }
+      weaponDetails.push(`Type: ${typeInfo.join(', ')}`);
+
+      // Light weapon (important for dual wield)
+      if (wp.isLight) {
+        weaponDetails.push('Light weapon (can dual wield)');
+      }
+
+      // Proficiency requirement
+      if (wp.proficiency && wp.proficiency !== 'simple') {
+        weaponDetails.push(`Requires ${wp.proficiency} weapon proficiency`);
+      }
+
+      equipInfo.push(...weaponDetails);
+    }
+
+    // Armor information
+    if (this.armorProperties) {
+      const ap = this.armorProperties;
+      const armorDetails = [];
+
+      // AC
+      if (ap.armorClass !== undefined) {
+        armorDetails.push(`Armor Class: ${ap.armorClass}`);
+      }
+
+      // Armor type and DEX cap
+      if (ap.armorType) {
+        let typeText = `Type: ${ap.armorType} armor`;
+        const dexCap = config.ARMOR_DEX_CAPS[ap.armorType];
+        if (dexCap !== undefined) {
+          if (dexCap === 0) {
+            typeText += ' (no DEX bonus)';
+          } else if (dexCap < 99) {
+            typeText += ` (max +${dexCap} DEX)`;
+          }
+        }
+        armorDetails.push(typeText);
+      }
+
+      // Proficiency requirement
+      if (ap.proficiency && ap.proficiency !== 'light') {
+        armorDetails.push(`Requires ${ap.proficiency} armor proficiency`);
+      }
+
+      equipInfo.push(...armorDetails);
+    }
+
+    // Strength requirement
+    if (this.requiresStrength && this.requiresStrength > 0) {
+      equipInfo.push(`Requires ${this.requiresStrength} STR`);
+    }
+
+    // Attunement requirement
+    if (this.requiresAttunement && !this.isAttuned) {
+      equipInfo.push('Requires attunement');
+    } else if (this.isAttuned && this.attunedTo) {
+      equipInfo.push(`Attuned to ${this.attunedTo}`);
+    }
+
+    // Add equipment info to description
+    if (equipInfo.length > 0) {
+      desc += '\n\n' + equipInfo.join('\n');
+    }
 
     // Add durability info if applicable
     if (this.maxDurability && this.durability !== null) {
@@ -402,6 +524,7 @@ class BaseItem {
    */
   isSpawnable() {
     const typeRules = config.lootTables.typeRules;
+    const definition = this.getDefinition();
 
     // Quest items are NEVER spawnable
     if (this.itemType === ItemType.QUEST) {
@@ -425,12 +548,12 @@ class BaseItem {
     }
 
     // Check explicit spawnable flag (defaults to true if not specified)
-    if (this.definition.spawnable !== undefined) {
-      return this.definition.spawnable;
+    if (definition.spawnable !== undefined) {
+      return definition.spawnable;
     }
 
     // If item has lootTables or spawnTags, it's spawnable by default
-    if (this.definition.lootTables || this.definition.spawnTags) {
+    if (definition.lootTables || definition.spawnTags) {
       return true;
     }
 
@@ -445,10 +568,11 @@ class BaseItem {
    */
   getSpawnTags() {
     const tags = [];
+    const definition = this.getDefinition();
 
     // Add explicit spawn tags from definition
-    if (this.definition.spawnTags && Array.isArray(this.definition.spawnTags)) {
-      tags.push(...this.definition.spawnTags);
+    if (definition.spawnTags && Array.isArray(definition.spawnTags)) {
+      tags.push(...definition.spawnTags);
     }
 
     // Add auto-generated tags if enabled
@@ -481,9 +605,11 @@ class BaseItem {
       return 0;
     }
 
+    const definition = this.getDefinition();
+
     // Use explicit weight if defined
-    if (this.definition.spawnWeight !== undefined) {
-      return Math.max(0, this.definition.spawnWeight);
+    if (definition.spawnWeight !== undefined) {
+      return Math.max(0, definition.spawnWeight);
     }
 
     // Use rarity-based weight from config
@@ -506,19 +632,20 @@ class BaseItem {
     }
 
     const typeRules = config.lootTables.typeRules;
+    const definition = this.getDefinition();
 
     // Currency gets default tables if not specified
     if (this.itemType === ItemType.CURRENCY) {
       if (typeRules.currency && typeRules.currency.alwaysSpawnable) {
-        if (this.definition.lootTables && this.definition.lootTables.length > 0) {
-          return [...this.definition.lootTables];
+        if (definition.lootTables && definition.lootTables.length > 0) {
+          return [...definition.lootTables];
         }
         return [...typeRules.currency.defaultTables];
       }
     }
 
     // For all other types, return the defined lootTables or empty array
-    return this.definition.lootTables ? [...this.definition.lootTables] : [];
+    return definition.lootTables ? [...definition.lootTables] : [];
   }
 
   /**

@@ -36,7 +36,8 @@ const ArmorMixin = {
 
     // Otherwise use config based on armor class
     const armorClass = this.armorProperties.armorClass || ArmorClass.LIGHT;
-    return config.armorDexCaps[armorClass] || Infinity;
+    const configValue = config.armorDexCaps[armorClass];
+    return configValue !== undefined ? configValue : Infinity;
   },
 
   /**

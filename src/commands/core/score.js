@@ -57,8 +57,21 @@ function execute(player, args, context) {
 
     // Stats
     output.push(colors.highlight('Attributes:'));
-    output.push(`  ${colors.dim('STR:')} ${player.strength}  ${colors.dim('DEX:')} ${player.dexterity}  ${colors.dim('CON:')} ${player.constitution}`);
-    output.push(`  ${colors.dim('INT:')} ${player.intelligence}  ${colors.dim('WIS:')} ${player.wisdom}  ${colors.dim('CHA:')} ${player.charisma}`);
+
+    // Helper to format stat with equipment bonus
+    const formatStat = (statName, value, bonuses) => {
+      const bonus = bonuses?.[statName.toLowerCase()] || 0;
+      if (bonus > 0) {
+        return `${value} ${colors.success(`(+${bonus})`)}`;
+      } else if (bonus < 0) {
+        return `${value} ${colors.error(`(${bonus})`)}`;
+      }
+      return `${value}`;
+    };
+
+    const bonuses = player.equipmentBonuses || {};
+    output.push(`  ${colors.dim('STR:')} ${formatStat('strength', player.strength, bonuses)}  ${colors.dim('DEX:')} ${formatStat('dexterity', player.dexterity, bonuses)}  ${colors.dim('CON:')} ${formatStat('constitution', player.constitution, bonuses)}`);
+    output.push(`  ${colors.dim('INT:')} ${formatStat('intelligence', player.intelligence, bonuses)}  ${colors.dim('WIS:')} ${formatStat('wisdom', player.wisdom, bonuses)}  ${colors.dim('CHA:')} ${formatStat('charisma', player.charisma, bonuses)}`);
 
     // Show ghost status prominently if applicable
     if (player.isGhost) {

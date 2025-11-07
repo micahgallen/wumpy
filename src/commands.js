@@ -38,6 +38,11 @@ const getCommand = require('./commands/core/get');
 const dropCommand = require('./commands/core/drop');
 const kickCommand = require('./commands/core/kick');
 const emoteCommand = require('./commands/core/emote');
+const equipCommand = require('./commands/core/equip');
+const unequipCommand = require('./commands/core/unequip');
+const equipmentCommand = require('./commands/core/equipment');
+const equipallCommand = require('./commands/core/equipall');
+const unequipallCommand = require('./commands/core/unequipall');
 registry.registerCommand(quitCommand);
 registry.registerCommand(helpCommand);
 registry.registerCommand(whoCommand);
@@ -52,6 +57,11 @@ registry.registerCommand(getCommand);
 registry.registerCommand(dropCommand);
 registry.registerCommand(kickCommand);
 registry.registerCommand(emoteCommand);
+registry.registerCommand(equipCommand);
+registry.registerCommand(unequipCommand);
+registry.registerCommand(equipmentCommand);
+registry.registerCommand(equipallCommand);
+registry.registerCommand(unequipallCommand);
 
 // Movement commands
 const movementCommands = require('./commands/movement/movement');
