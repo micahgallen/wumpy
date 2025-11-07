@@ -6,8 +6,8 @@
 
 ## Current Status
 
-**Current Phase:** Phase 1 - Core Item Framework
-**Status:** COMPLETED
+**Current Phase:** Phase 2 - Inventory & Encumbrance
+**Status:** COMPLETED ✓ (Including critical bug fix)
 
 ## Session Log
 
@@ -161,6 +161,227 @@ None identified. Spawn system fully functional and tested.
 
 ---
 
+### Session 3 - 2025-11-07 (Later)
+
+**Time Started:** ~18:00 UTC
+**Time Completed:** ~20:30 UTC
+**Duration:** ~150 minutes
+
+#### Completed Tasks
+- **Phase 2 COMPLETED - Inventory & Encumbrance:**
+  - Implemented `InventoryManager.js` (singleton) with hybrid encumbrance
+  - Implemented `InventorySerializer.js` for persistence
+  - Implemented `DeathHandler.js` for death durability
+  - Updated `playerdb.js` with inventory integration
+  - Enhanced inventory commands (inventory, get, drop)
+  - Wrote comprehensive tests (`/tests/inventoryTests.js`) - 23 tests passing
+  - **CRITICAL BUG FIX:** Resolved Bun segmentation fault
+    - Root cause: Circular references in BaseItem (storing `this.definition`)
+    - Solution: Removed definition property, added `getDefinition()` method
+    - Updated all lifecycle hooks and factory methods
+    - Enhanced ItemFactory to accept both definitions and string IDs
+  - **In-Game Testing Setup:**
+    - Updated `@spawn` admin command to use new item system
+    - Added item loading on server startup
+    - Created testing guide (`/INVENTORY_TESTING_GUIDE.md`)
+    - Configured 13 sample items for testing
+
+#### Test Results
+- Inventory tests: 23/23 passing (100%)
+- Previous tests: 52/52 still passing
+- **Total: 75/75 tests passing**
+- No segfaults, no crashes
+
+#### Key Achievements
+- **Hybrid Encumbrance:** 20 base slots + STR bonus, 150 base lbs + STR×15
+- **Intelligent Stacking:** Auto-merges consumables, respects limits
+- **Death Durability:** 10% loss on equipped items only
+- **Full Persistence:** Serialization tested and working
+- **Production Ready:** All features tested in-game
+
+#### Critical Bug Fix Details
+**Issue:** Bun runtime segfault (null pointer dereference at 0x0)
+**Cause:** BaseItem stored full definition object creating circular references
+**Impact:** Server crashed during item cloning/stacking operations
+**Solution:**
+- Removed `this.definition` from BaseItem instances
+- Added `getDefinition()` method using ItemRegistry lookup
+- Updated 8 lifecycle hooks to use dynamic lookup
+- Enhanced ItemFactory.cloneItem() for safe cloning
+**Files Modified:**
+- `/src/items/BaseItem.js`
+- `/src/items/ItemFactory.js`
+- `/src/systems/loot/LootGenerator.js`
+- `/src/admin/commands.js`
+
+#### In-Game Testing
+- `@spawn` command fully functional
+- 13 items load on server startup
+- Beautiful categorized inventory display
+- Color-coded encumbrance warnings
+- Stacking works perfectly
+- All commands operational (inventory, get, drop, examine)
+
+#### Next Steps
+1. Phase 3: Equipment Mechanics (equip/unequip commands, slot validation)
+2. Phase 4: Combat Integration (weapon stats, AC calculation)
+
+#### Blockers
+None. Phase 2 is complete and production-ready.
+
+---
+
+### Session 4 - 2025-11-07 (Evening)
+
+**Time Started:** ~22:00 UTC
+**Time Completed:** ~01:30 UTC
+**Duration:** ~210 minutes
+
+#### Completed Tasks
+- **CRITICAL BUG FIXES - Legacy Item System:**
+  - Fixed inventory crash when legacy items (is_takeable: true) are picked up
+  - Updated inventory command to gracefully handle mixed legacy/new inventories
+  - Set `is_takeable: false` on all 32 Sesame Street objects (trashcan, test_cookie, etc.)
+  - Legacy items now show with warning messages when in inventory
+  - Converted test_cookie object to glass display case
+
+- **Spawn Command Improvements:**
+  - Fixed oversized stacks not splitting (spawning 99999 bread created single 99-stack bug)
+  - Removed artificial quantity caps (99 consumables, 9999 currency)
+  - Spawn now breaks large quantities into max-stack-sized chunks automatically
+  - Properly merges with existing partial stacks
+  - Shows stack count in messages: "✓ Spawned 300x Bread (4 stacks)"
+
+- **Stack Size Validation:**
+  - `InventoryManager.addItem()` now enforces max stack sizes
+  - Auto-splits oversized stacks from rooms when picked up (297 bread → 3x 99 stacks)
+  - Prevents invalid stack sizes from entering inventory system
+  - Recursive splitting for proper merging with existing stacks
+
+- **Command UX Improvements:**
+  - **get/take default:** Changed from "entire stack" to "1 item"
+    - `get cookie` → picks up 1 (was: entire stack)
+    - `get 5 cookie` → picks up 5
+    - `get all cookie` → picks up entire stack
+  - **drop default:** Changed from "entire stack" to "1 item"
+    - `drop cookie` → drops 1 (was: entire stack)
+    - `drop 5 cookie` → drops 5
+    - `drop all cookie` → drops ALL matching stacks (fixed bug)
+  - **look/examine priority:** Items checked BEFORE NPCs and objects
+    - Fixed: `look cookie` now matches chocolate chip cookie (not display case)
+    - Fixed: `look birdseed` now matches birdseed item (not Big Bird)
+    - Exact keyword matching prevents false positives
+
+- **Sesame Street Content:**
+  - Created 6 new consumable items:
+    - `chocolate_chip_cookie` - 5 HP heal, common (converted from test_cookie)
+    - `sardine_can` - 3 HP heal, trash-tier (Oscar themed)
+    - `birdseed` - 2 HP heal, realm-specific (Big Bird themed)
+    - `sugar_cookie` - 4 HP heal, classic
+    - `oatmeal_cookie` - 6 HP heal, "healthy" option
+    - `milk_bottle` - 5 HP heal, beverage
+  - Created item loader: `/world/sesame_street/items/loadItems.js`
+  - Updated server.js to load Sesame Street items on startup
+  - Items now spawn in sesame_street_01 room for testing
+
+- **Room Item System:**
+  - Implemented `World.initializeRoomItems()` to convert item IDs to instances
+  - Items load before world initialization (fixed order dependency)
+  - Room items properly displayed with `formatRoom()`
+  - Items in rooms can be examined and picked up
+
+#### Bug Fixes Detail
+
+**1. Legacy Object Pickup Crash:**
+- **Problem:** Legacy objects without explicit `is_takeable: false` could be picked up
+- **Impact:** Trashcan, containers, scenery picked up and stored as string IDs
+- **Cause:** `get` command fallback checked truthy `is_takeable` (undefined = truthy)
+- **Solution:** All objects now explicitly set `is_takeable: false`
+
+**2. Spawn Stack Overflow:**
+- **Problem:** Spawning 99999 bread created ONE stack of 99, rest lost
+- **Impact:** Could only spawn up to max stack size per command
+- **Cause:** Spawn created single item instance, addItem() only checked first existing stack
+- **Solution:** Spawn breaks into chunks, addItem() recursively splits oversized stacks
+
+**3. Oversized Stack Acceptance:**
+- **Problem:** Dropping 3x 99-bread stacks → room combines to 297 → picking up allows 297-stack in inventory
+- **Impact:** Stack size limits bypassed via room stacking
+- **Cause:** `InventoryManager.addItem()` didn't validate incoming stack quantity
+- **Solution:** Added validation and auto-splitting in addItem()
+
+**4. Drop All Single Stack:**
+- **Problem:** `drop all bread` only dropped first stack, not all stacks
+- **Impact:** Had to drop each stack individually
+- **Cause:** Used `findItemByKeyword()` instead of `findItemsByKeyword()`
+- **Solution:** Find all stacks when `dropAll` is true, iterate through all
+
+**5. Look/Examine Wrong Item:**
+- **Problem:** `look cookie` matched display case, `look birdseed` matched Big Bird
+- **Impact:** Could not examine items in inventory or room
+- **Cause:** Objects checked before items, partial keyword matching
+- **Solution:** Items checked first, exact keyword matching for items/objects
+
+#### Files Modified
+- `/src/admin/commands.js` - Spawn command improvements
+- `/src/commands/core/drop.js` - Default to 1, drop all stacks, better messaging
+- `/src/commands/core/get.js` - Default to 1, "all" keyword support
+- `/src/commands/core/inventory.js` - Handle mixed legacy/new inventories
+- `/src/commands/core/look.js` - Items priority, exact matching, inventory before objects
+- `/src/commands/core/examine.js` - Items priority, exact matching, inventory before objects
+- `/src/systems/inventory/InventoryManager.js` - Enforce max stack sizes, auto-splitting
+- `/src/server.js` - Load items before world, load Sesame Street items
+- `/src/world.js` - Initialize room items on load
+- `/world/sesame_street/objects/test_cookie.js` - Converted to display case
+- `/world/sesame_street/objects/trashcan.js` - Set is_takeable: false
+- `/world/sesame_street/rooms/street.js` - Added items array
+
+#### Files Created
+- `/world/sesame_street/items/loadItems.js` - Sesame Street item loader
+- `/world/sesame_street/items/consumables/chocolate_chip_cookie.js`
+- `/world/sesame_street/items/consumables/sardine_can.js`
+- `/world/sesame_street/items/consumables/birdseed.js`
+- `/world/sesame_street/items/consumables/sugar_cookie.js`
+- `/world/sesame_street/items/consumables/oatmeal_cookie.js`
+- `/world/sesame_street/items/consumables/milk_bottle.js`
+- `/docs/reports/bugs/INVENTORY_BUGFIXES_2025-11-07.md` - Bug fix report
+
+#### Testing Results
+- All 75 existing tests still passing
+- In-game testing validated:
+  - Legacy items show warnings but don't crash
+  - Spawn command properly splits stacks
+  - Get/drop defaults feel intuitive
+  - Drop all drops all matching stacks
+  - Look/examine find correct items
+  - Room items spawn and display correctly
+  - Stack size limits enforced everywhere
+
+#### Impact Assessment
+- **User Experience:** Dramatically improved
+  - Intuitive defaults (pick up 1, not entire stack)
+  - Clear messaging (shows stack counts)
+  - No more accidental pickups
+- **System Stability:** Greatly improved
+  - No crashes from legacy items
+  - Stack sizes always valid
+  - Room items work correctly
+- **Content Creation:** Enabled
+  - Sesame Street items ready for use
+  - Room item system functional
+  - Item loading architecture established
+
+#### Next Steps
+1. Phase 3: Equipment Mechanics (equip/unequip commands, slot validation)
+2. Consider migration tool for players with legacy items in inventory
+3. Create more Sesame Street items (armor, weapons, quest items)
+4. Document item creation workflow for content creators
+
+#### Blockers
+None. Phase 2 is now production-ready with all critical bugs fixed.
+
+---
+
 ## Phase Status
 
 ### Phase 0 - Project Setup & Validation
@@ -195,7 +416,28 @@ None identified. Spawn system fully functional and tested.
 **Exit Criteria:** ✓ Registry loads sample data (12 items), attunement limits enforced via unit tests (52 total tests passing including spawn system).
 
 ### Phase 2 - Inventory & Encumbrance
-**Status:** Ready to start (spawn system hooks in place)
+**Status:** COMPLETED ✓ (Including critical bug fixes and UX improvements)
+**Tasks:**
+- [x] Implement InventoryManager with hybrid encumbrance
+- [x] Implement stacking rules for consumables/currency
+- [x] Implement death durability system
+- [x] Implement persistence (serialization/deserialization)
+- [x] Update player database integration
+- [x] Enhance inventory commands (inventory, get, drop)
+- [x] Write comprehensive test suite (23 tests)
+- [x] **CRITICAL:** Fix circular reference segfault (Session 3)
+- [x] **CRITICAL:** Fix legacy item pickup crashes (Session 4)
+- [x] **CRITICAL:** Fix spawn stack overflow bug (Session 4)
+- [x] **CRITICAL:** Enforce max stack sizes in addItem() (Session 4)
+- [x] Fix drop all to drop all stacks (Session 4)
+- [x] Fix look/examine item priority (Session 4)
+- [x] Improve get/drop UX (default to 1, not entire stack) (Session 4)
+- [x] Create Sesame Street items (6 consumables) (Session 4)
+- [x] Implement room item loading system (Session 4)
+- [x] Setup in-game testing with @spawn command
+- [x] Create testing guide documentation
+
+**Exit Criteria:** ✓ Hybrid encumbrance enforced, stacking works correctly with proper size limits, death durability functional, persistence tested, legacy items handled gracefully, command UX intuitive, room items functional, all critical bugs fixed, 75/75 tests passing, extensive in-game testing validated.
 
 ### Phase 3 - Equipment Mechanics
 **Status:** Not started
