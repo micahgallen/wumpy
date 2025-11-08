@@ -583,13 +583,28 @@ class CurrencyManager {
       ? this.createCurrencyItemsExact(amount)
       : this.createCurrencyItems(amount); // If copper number, auto-convert is ok
 
-    // Add to room
+    // Add to room (stack with existing currency if possible)
     if (!room.items) {
       room.items = [];
     }
 
     for (const item of currencyItems) {
-      room.items.push(item);
+      // Try to find an existing stack of this currency type
+      let stacked = false;
+      for (const roomItem of room.items) {
+        if (roomItem.canStackWith && roomItem.canStackWith(item)) {
+          // Stack with existing item
+          roomItem.quantity = (roomItem.quantity || 1) + (item.quantity || 1);
+          roomItem.modifiedAt = Date.now();
+          stacked = true;
+          break;
+        }
+      }
+
+      // If not stacked, add as new item
+      if (!stacked) {
+        room.items.push(item);
+      }
     }
 
     logger.log(`${player.username} dropped ${this.format(amount)} in room ${room.id}`);
