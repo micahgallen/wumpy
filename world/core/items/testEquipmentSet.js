@@ -116,7 +116,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 2,
+      baseAC: 1,  // Medium head: 12% of AC budget
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
@@ -175,7 +175,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 1,
+      baseAC: 1,  // Light shoulders: 6% of AC budget
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
@@ -207,7 +207,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 5,
+      baseAC: 4,  // Medium chest: 40% of AC budget
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
@@ -239,7 +239,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 1,
+      baseAC: 0,  // Light back: 3% of AC budget (minimal)
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
@@ -271,7 +271,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 1,
+      baseAC: 1,  // Medium wrists: 4% of AC budget
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
@@ -303,7 +303,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 1,
+      baseAC: 1,  // Light hands: 8% of AC budget
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
@@ -335,7 +335,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 1,
+      baseAC: 0,  // Light waist: 4% of AC budget (minimal)
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
@@ -367,7 +367,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 3,
+      baseAC: 2,  // Heavy legs: 15% of AC budget
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
       maxDexBonus: 0,  // Heavy armor: no DEX bonus
@@ -539,7 +539,7 @@ const testEquipmentSet = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 3,
+      baseAC: 2,  // Heavy head: 12% of AC budget
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
       maxDexBonus: 0,  // Heavy armor: no DEX bonus

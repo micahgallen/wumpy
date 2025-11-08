@@ -113,19 +113,28 @@ function execute(player, args, context) {
   }
   output.push('');
 
-  // Stats summary
-  output.push(colors.highlight('Combat Stats:'));
-  output.push(`  ${colors.dim('Armor Class:')} ${colors.success(ac.totalAC.toString())}`);
+  // Stats summary - Wumpy style!
+  output.push(colors.cyan('Combat Stats'));
 
+  // Total AC with fun flavor text
+  const acFlavor = getACFlavorText(ac.totalAC);
+  output.push(`  ${colors.highlight('Armor Class:')} ${colors.success(ac.totalAC.toString())} ${colors.dim(acFlavor)}`);
+
+  // AC breakdown - clean and readable
   if (ac.breakdown && ac.breakdown.length > 0) {
+    output.push('');
+    output.push(colors.dim('  AC Breakdown:'));
+
     for (const line of ac.breakdown) {
-      output.push(`    ${colors.dim('└─')} ${colors.dim(line)}`);
+      // Format each line with a simple ASCII bullet
+      output.push(`    ${colors.cyan('>')} ${colors.dim(line)}`);
     }
   }
 
   // Dual wielding indicator
   if (EquipmentManager.isDualWielding(player)) {
-    output.push(`  ${colors.dim('Combat Style:')} ${colors.info('Dual Wielding')}`);
+    output.push('');
+    output.push(`  ${colors.dim('Combat Style:')} ${colors.info('Dual Wielding')} ${colors.dim('(fancy!)')}`);
   }
 
   output.push('');
@@ -146,6 +155,23 @@ function formatSlotName(slot) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
     .padEnd(12);
+}
+
+/**
+ * Get whimsical flavor text based on AC value
+ * @param {number} ac - Armor class value
+ * @returns {string} Flavor text
+ */
+function getACFlavorText(ac) {
+  if (ac <= 10) return '(birthday suit)';
+  if (ac <= 12) return '(lightly protected)';
+  if (ac <= 14) return '(reasonably safe)';
+  if (ac <= 16) return '(well armored)';
+  if (ac <= 18) return '(quite sturdy!)';
+  if (ac <= 20) return '(very impressive!)';
+  if (ac <= 22) return '(walking fortress!)';
+  if (ac <= 25) return '(practically invincible!)';
+  return '(is that even legal?!)';
 }
 
 module.exports = {

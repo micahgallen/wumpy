@@ -39,14 +39,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 11,
-      magicalACBonus: 1,  // Total AC = 12 + DEX
+      baseAC: 3,  // Light chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     },
-    examineText: 'The leather gleams with magical enhancement. This light armor provides AC 12 + your full Dexterity modifier.',
+    examineText: 'The leather gleams with magical enhancement. This light armor provides +3 AC (+1 magical), plus your full Dexterity modifier.',
     durability: 100,
     maxDurability: 100
   },
@@ -73,14 +73,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 12,
-      magicalACBonus: 1,  // Total AC = 13 + DEX
+      baseAC: 3,  // Light chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     },
-    examineText: 'The studs pulse with protective magic. Provides AC 13 + your full Dexterity modifier. Excellent for agile warriors.',
+    examineText: 'The studs pulse with protective magic. Provides +3 AC (+1 magical), plus your full Dexterity modifier. Excellent for agile warriors.',
     durability: 100,
     maxDurability: 100
   },
@@ -111,14 +111,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 13,
-      magicalACBonus: 1,  // Total AC = 14 + DEX (max 2)
+      baseAC: 4,  // Medium chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: false
     },
-    examineText: 'The chainmail links shimmer with enchantment. Provides AC 14 + Dexterity modifier (maximum +2). No stealth disadvantage.',
+    examineText: 'The chainmail links shimmer with enchantment. Provides +4 AC (+1 magical), plus Dexterity modifier (maximum +2). No stealth disadvantage.',
     durability: 100,
     maxDurability: 100
   },
@@ -145,14 +145,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 14,
-      magicalACBonus: 1,  // Total AC = 15 + DEX (max 2)
+      baseAC: 4,  // Medium chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: true
     },
-    examineText: 'Each scale gleams with protective magic. Provides AC 15 + Dexterity modifier (maximum +2). Imposes disadvantage on Stealth checks.',
+    examineText: 'Each scale gleams with protective magic. Provides +4 AC (+1 magical), plus Dexterity modifier (maximum +2). Imposes disadvantage on Stealth checks.',
     durability: 100,
     maxDurability: 100
   },
@@ -179,14 +179,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 14,
-      magicalACBonus: 1,  // Total AC = 15 + DEX (max 2)
+      baseAC: 4,  // Medium chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
       maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: false
     },
-    examineText: 'The breastplate is a masterwork of both craftsmanship and enchantment. AC 15 + Dexterity modifier (maximum +2). No stealth disadvantage.',
+    examineText: 'The breastplate is a masterwork of both craftsmanship and enchantment. Provides +4 AC (+1 magical), plus Dexterity modifier (maximum +2). No stealth disadvantage.',
     durability: 100,
     maxDurability: 100
   },
@@ -217,15 +217,15 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 16,
-      magicalACBonus: 1,  // Total AC = 17
+      baseAC: 5,  // Heavy chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
       maxDexBonus: 0,  // Heavy armor: no DEX bonus
       stealthDisadvantage: true,
       strengthRequirement: 13
     },
-    examineText: 'The chainmail glows faintly with protective magic. Provides AC 17. Dexterity does not affect AC. Requires Strength 13. Imposes disadvantage on Stealth.',
+    examineText: 'The chainmail glows faintly with protective magic. Provides +5 AC (+1 magical). Dexterity does not affect AC. Requires Strength 13. Imposes disadvantage on Stealth.',
     durability: 100,
     maxDurability: 100
   },
@@ -253,15 +253,15 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 18,
-      magicalACBonus: 1,  // Total AC = 19
+      baseAC: 5,  // Heavy chest: 40% of AC budget
+      magicalACBonus: 1,  // +1 magical enhancement
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
       maxDexBonus: 0,  // Heavy armor: no DEX bonus
       stealthDisadvantage: true,
       strengthRequirement: 15
     },
-    examineText: 'Runes of warding cover every surface. Provides AC 19. Dexterity does not affect AC. Requires Strength 15. Imposes disadvantage on Stealth checks.',
+    examineText: 'Runes of warding cover every surface. Provides +5 AC (+1 magical). Dexterity does not affect AC. Requires Strength 15. Imposes disadvantage on Stealth checks.',
     durability: 100,
     maxDurability: 100
   },
@@ -293,15 +293,15 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 18,
-      magicalACBonus: 2,  // Total AC = 20
+      baseAC: 5,  // Heavy chest: 40% of AC budget
+      magicalACBonus: 2,  // +2 magical enhancement
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
       maxDexBonus: 0,  // Heavy armor: no DEX bonus
       stealthDisadvantage: true,
       strengthRequirement: 15
     },
-    examineText: 'The armor radiates protective magic. Provides AC 20. Dexterity does not affect AC. Requires Strength 15.',
+    examineText: 'The armor radiates protective magic. Provides +5 AC (+2 magical). Dexterity does not affect AC. Requires Strength 15.',
     durability: 100,
     maxDurability: 100
   },
@@ -329,14 +329,14 @@ const magicalArmor = [
       SpawnTag.REALM_GENERIC
     ],
     armorProperties: {
-      baseAC: 12,
-      magicalACBonus: 2,  // Total AC = 14 + DEX
+      baseAC: 3,  // Light chest: 40% of AC budget
+      magicalACBonus: 2,  // +2 magical enhancement
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
       maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     },
-    examineText: 'The mithril studs pulse with power. Provides AC 14 + your full Dexterity modifier. Perfect for agile combatants.',
+    examineText: 'The mithril studs pulse with power. Provides +3 AC (+2 magical), plus your full Dexterity modifier. Perfect for agile combatants.',
     durability: 100,
     maxDurability: 100
   },

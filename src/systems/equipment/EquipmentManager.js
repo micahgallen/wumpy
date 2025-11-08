@@ -456,36 +456,62 @@ class EquipmentManager {
 
   /**
    * Calculate total armor class for player
+   * NEW SYSTEM: Aggregate AC from all equipped armor pieces
    * @param {Object} player - Player object
-   * @returns {Object} {baseAC: number, dexBonus: number, totalAC: number, breakdown: Array}
+   * @returns {Object} {baseAC: number, armorAC: number, dexBonus: number, magicalBonus: number, totalAC: number, breakdown: Array}
    */
   calculateAC(player) {
     if (!player) {
-      return { baseAC: 10, dexBonus: 0, totalAC: 10, breakdown: [] };
+      return { baseAC: 10, armorAC: 0, dexBonus: 0, magicalBonus: 0, totalAC: 10, breakdown: [] };
     }
 
     const breakdown = [];
-    let baseAC = 10; // Default unarmored AC
-    let dexCap = Infinity;
+    const baseAC = 10; // Always 10 for unarmored baseline
+    let armorAC = 0; // Sum of all armor piece AC contributions
     let magicalBonus = 0;
-    let armorPiece = null;
+    let dexCap = Infinity;
 
-    // Find armor (chest slot provides base AC)
-    const chestArmor = this.getEquippedInSlot(player, EquipmentSlot.CHEST);
-    if (chestArmor && chestArmor.armorProperties) {
-      armorPiece = chestArmor;
-      baseAC = chestArmor.armorProperties.baseAC || 10;
-      dexCap = chestArmor.getMaxDexBonus ? chestArmor.getMaxDexBonus() : Infinity;
+    const equippedItems = this.getEquippedItems(player);
+    const armorPieces = [];
 
-      // Check attunement before applying magical bonuses
-      const isAttuned = !chestArmor.requiresAttunement || chestArmor.isAttuned;
-      if (isAttuned && chestArmor.armorProperties.magicalACBonus) {
-        magicalBonus += chestArmor.armorProperties.magicalACBonus;
+    // First pass: Collect all armor pieces and determine strictest DEX cap
+    for (const item of equippedItems) {
+      if (!item.armorProperties) continue;
+
+      armorPieces.push(item);
+
+      // Determine strictest DEX cap from all armor pieces
+      // Heavy armor restricts DEX the most, followed by medium
+      const itemDexCap = item.getMaxDexBonus ? item.getMaxDexBonus() : Infinity;
+      dexCap = Math.min(dexCap, itemDexCap);
+    }
+
+    // Second pass: Sum armor AC bonuses
+    for (const armor of armorPieces) {
+      // Add base AC from armor piece (slotACBonus in new system)
+      const pieceAC = armor.armorProperties.baseAC || 0;
+      if (pieceAC > 0) {
+        armorAC += pieceAC;
+        breakdown.push(`+${pieceAC} AC (${armor.name})`);
       }
 
-      breakdown.push(`Base AC ${baseAC} (${chestArmor.name})`);
-    } else {
-      breakdown.push('Base AC 10 (unarmored)');
+      // Add magical AC bonus if attuned
+      const isAttuned = !armor.requiresAttunement || armor.isAttuned;
+      if (isAttuned && armor.armorProperties.magicalACBonus) {
+        magicalBonus += armor.armorProperties.magicalACBonus;
+        breakdown.push(`+${armor.armorProperties.magicalACBonus} magical (${armor.name})`);
+      }
+    }
+
+    // Add magical AC bonuses from jewelry
+    for (const item of equippedItems) {
+      if (item.itemType === ItemType.JEWELRY && item.bonusAC) {
+        const isAttuned = !item.requiresAttunement || item.isAttuned;
+        if (isAttuned) {
+          magicalBonus += item.bonusAC;
+          breakdown.push(`+${item.bonusAC} AC (${item.name})`);
+        }
+      }
     }
 
     // Calculate DEX bonus (capped by armor)
@@ -493,48 +519,27 @@ class EquipmentManager {
     const dexModifier = Math.floor((playerDex - 10) / 2);
     const cappedDexBonus = Math.max(0, Math.min(dexModifier, dexCap));
 
+    // Build breakdown summary
+    if (armorPieces.length === 0) {
+      breakdown.unshift('Base AC 10 (unarmored)');
+    } else {
+      breakdown.unshift(`Base AC 10 + ${armorAC} armor`);
+    }
+
     if (cappedDexBonus > 0) {
       breakdown.push(`+${cappedDexBonus} DEX bonus`);
-      if (dexCap !== Infinity && dexModifier > dexCap) {
-        breakdown.push(`(capped at +${dexCap} by armor)`);
+      if (dexCap !== Infinity && dexModifier > cappedDexBonus) {
+        breakdown.push(`(DEX capped at +${dexCap} by armor)`);
       }
+    } else if (dexCap === 0 && dexModifier > 0) {
+      breakdown.push(`DEX bonus suppressed by heavy armor`);
     }
 
-    // Add magical bonuses from other armor pieces (shields, jewelry with bonusAC)
-    const equippedItems = this.getEquippedItems(player);
-    for (const item of equippedItems) {
-      if (item.instanceId === armorPiece?.instanceId) {
-        continue; // Already counted
-      }
-
-      // Check attunement requirement before applying bonuses
-      const isAttuned = !item.requiresAttunement || item.isAttuned;
-      if (!isAttuned) {
-        continue;
-      }
-
-      // Armor pieces with magical AC bonus
-      if (item.armorProperties && item.armorProperties.magicalACBonus) {
-        magicalBonus += item.armorProperties.magicalACBonus;
-        breakdown.push(`+${item.armorProperties.magicalACBonus} AC (${item.name})`);
-      }
-
-      // Jewelry with bonus AC (rings of protection)
-      if (item.bonusAC && item.bonusAC > 0) {
-        magicalBonus += item.bonusAC;
-        breakdown.push(`+${item.bonusAC} AC (${item.name})`);
-      }
-    }
-
-    // Add magical AC bonus
-    if (magicalBonus > 0 && !breakdown.some(b => b.includes('magical'))) {
-      breakdown.push(`+${magicalBonus} magical bonus`);
-    }
-
-    const totalAC = baseAC + cappedDexBonus + magicalBonus;
+    const totalAC = baseAC + armorAC + cappedDexBonus + magicalBonus;
 
     return {
       baseAC,
+      armorAC,
       dexBonus: cappedDexBonus,
       magicalBonus,
       totalAC,

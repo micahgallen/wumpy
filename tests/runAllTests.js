@@ -15,7 +15,8 @@ async function runAllTests() {
     require('./combatTests'),
     require('./integrationTest'),
     require('./commands/combat/attackTests'),
-    require('./economyTests') // Phase 5: Economy tests
+    require('./economyTests'), // Phase 5: Economy tests
+    require('./aggregateACTests') // Armor AC Redesign tests
   ];
 
   let totalPassed = 0;
