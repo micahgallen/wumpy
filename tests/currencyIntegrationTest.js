@@ -27,7 +27,8 @@ class MudTestClient {
     // Test sequence
     this.testSteps = [
       { command: 'givemoney 50 copper', description: 'Give self 50 copper', wait: 500 },
-      { command: 'i', description: 'Check inventory (should have 50c)', wait: 500 },
+      { command: 'givemoney 10 platinum', description: 'Give self 10 platinum', wait: 500 },
+      { command: 'i', description: 'Check inventory', wait: 500 },
       { command: 'drop 15 copper', description: 'Drop 15 copper', wait: 500 },
       { command: 'i', description: 'Check inventory (should have 35c)', wait: 500 },
       { command: 'l', description: 'Look at room (should see 15 copper)', wait: 500 },
@@ -35,7 +36,13 @@ class MudTestClient {
       { command: 'i', description: 'Check inventory (should have 36c, NOT 3s 6c)', wait: 500 },
       { command: 'l', description: 'Look at room (should see 14 copper left)', wait: 500 },
       { command: 'take 14 copper', description: 'Pick up remaining 14 copper', wait: 500 },
-      { command: 'i', description: 'Check inventory (should have 50c)', wait: 1000 },
+      { command: 'i', description: 'Check inventory (should have 50c)', wait: 500 },
+      { command: 'drop platinum', description: 'Drop 1 platinum (test stacking #1)', wait: 500 },
+      { command: 'l', description: 'Look (should see 1 platinum)', wait: 500 },
+      { command: 'drop platinum', description: 'Drop 1 platinum again (test stacking #2)', wait: 500 },
+      { command: 'l', description: 'Look (should see x2 platinum, NOT 2 separate stacks)', wait: 500 },
+      { command: 'drop 5 platinum', description: 'Drop 5 platinum (test stacking #3)', wait: 500 },
+      { command: 'l', description: 'Look (should see x7 platinum in ONE stack)', wait: 1000 },
       { command: 'quit', description: 'Quit and end test', wait: 500 }
     ];
   }
@@ -168,7 +175,9 @@ class MudTestClient {
     console.log('  2. After picking up 1 copper, wallet shows 36c');
     console.log('  3. Wallet does NOT auto-convert to "3s 6c"');
     console.log('  4. After picking up remaining 14, wallet shows 50c');
-    console.log('\nIf all denominations stayed as copper (no auto-conversion), test PASSED ✓');
+    console.log('  5. After dropping platinum 3 times, room shows ONE stack "x7"');
+    console.log('  6. Room does NOT show separate platinum stacks');
+    console.log('\nIf all tests show correct behavior, test PASSED ✓');
     console.log('='.repeat(60) + '\n');
   }
 }
