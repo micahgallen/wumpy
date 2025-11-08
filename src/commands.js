@@ -43,6 +43,10 @@ const unequipCommand = require('./commands/core/unequip');
 const equipmentCommand = require('./commands/core/equipment');
 const equipallCommand = require('./commands/core/equipall');
 const unequipallCommand = require('./commands/core/unequipall');
+const moneyCommand = require('./commands/core/money');
+const attuneCommand = require('./commands/core/attune');
+const identifyCommand = require('./commands/core/identify');
+const useCommand = require('./commands/core/use');
 registry.registerCommand(quitCommand);
 registry.registerCommand(helpCommand);
 registry.registerCommand(whoCommand);
@@ -62,6 +66,32 @@ registry.registerCommand(unequipCommand);
 registry.registerCommand(equipmentCommand);
 registry.registerCommand(equipallCommand);
 registry.registerCommand(unequipallCommand);
+registry.registerCommand(moneyCommand);
+registry.registerCommand(attuneCommand);
+registry.registerCommand(identifyCommand);
+registry.registerCommand(useCommand);
+
+// Economy commands
+const listCommand = require('./commands/economy/list');
+const buyCommand = require('./commands/economy/buy');
+const sellCommand = require('./commands/economy/sell');
+const sellallCommand = require('./commands/economy/sellall');
+const valueCommand = require('./commands/economy/value');
+registry.registerCommand(listCommand);
+registry.registerCommand(buyCommand);
+registry.registerCommand(sellCommand);
+registry.registerCommand(sellallCommand);
+registry.registerCommand(valueCommand);
+
+// Container commands
+const openCommand = require('./commands/containers/open');
+const closeCommand = require('./commands/containers/close');
+registry.registerCommand(openCommand);
+registry.registerCommand(closeCommand);
+
+// Admin commands
+const givemoneyCommand = require('./commands/admin/givemoney');
+registry.registerCommand(givemoneyCommand);
 
 // Movement commands
 const movementCommands = require('./commands/movement/movement');
@@ -162,8 +192,16 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
       }
     }
 
-    // Execute the command
-    registeredCommand.execute(player, args, context);
+    // Execute the command (handle both sync and async commands)
+    const result = registeredCommand.execute(player, args, context);
+
+    // If the command returns a Promise, handle it
+    if (result && typeof result.then === 'function') {
+      result.catch(err => {
+        logger.error(`Error in async command '${commandName}':`, err);
+        player.send('\n' + colors.error('An error occurred while processing that command.\n'));
+      });
+    }
   } catch (err) {
     logger.error(`Error executing command '${commandName}':`, err);
     player.send('\n' + colors.error('An error occurred while processing that command.\n'));

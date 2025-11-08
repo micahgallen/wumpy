@@ -5,6 +5,7 @@ const { determineNPCAction } = require('./combatAI');
 const { awardXP, calculateCombatXP } = require('../progression/xpSystem');
 const colors = require('../colors');
 const logger = require('../logger');
+const EquipmentManager = require('../systems/equipment/EquipmentManager');
 
 class CombatEncounter {
     constructor(participants, world, allPlayers, playerDB) {
@@ -67,8 +68,8 @@ class CombatEncounter {
                     this.broadcast(colors.hit(`[Attack of Opportunity] `) + opportunityMessage);
 
                     if (opportunityAttack.hit) {
-                        const damageDice = getDamageDice(player);
-                        const damage = rollDamage(player, damageDice, opportunityAttack.critical);
+                        const damageInfo = getDamageDice(player);
+                        const damage = rollDamage(player, damageInfo, opportunityAttack.critical);
                         const damageResult = applyDamage(attacker, damage, 'physical');
                         const damageMessage = getDamageMessage(damageResult.finalDamage, 'physical', attacker);
                         this.broadcast(damageMessage);
@@ -108,8 +109,8 @@ class CombatEncounter {
             this.broadcast(attackMessage);
 
             if (attackResult.hit) {
-                const damageDice = getDamageDice(attacker);
-                const damage = rollDamage(attacker, damageDice, attackResult.critical);
+                const damageInfo = getDamageDice(attacker);
+                const damage = rollDamage(attacker, damageInfo, attackResult.critical);
                 const damageResult = applyDamage(target, damage, 'physical');
                 const damageMessage = getDamageMessage(damageResult.finalDamage, 'physical', target);
                 this.broadcast(damageMessage);
@@ -133,6 +134,42 @@ class CombatEncounter {
 
                     this.endCombat();
                     return;
+                }
+            }
+
+            // Check for dual wield off-hand attack (if attacker is player with equipment system)
+            if (attacker.inventory && EquipmentManager.isDualWielding(attacker)) {
+                const offHandAttack = rollAttack(attacker, target, 'physical', 'off_hand');
+                const offHandMessage = getAttackMessage(attacker, target, offHandAttack.hit, offHandAttack.critical, 'off_hand');
+                this.broadcast(colors.combat('[Off-Hand] ') + offHandMessage);
+
+                if (offHandAttack.hit) {
+                    const offHandDamageInfo = getDamageDice(attacker, 'off_hand');
+                    const offHandDamage = rollDamage(attacker, offHandDamageInfo, offHandAttack.critical, 'off_hand');
+                    const offHandDamageResult = applyDamage(target, offHandDamage, 'physical');
+                    const offHandDamageMessage = getDamageMessage(offHandDamageResult.finalDamage, 'physical', target);
+                    this.broadcast(offHandDamageMessage);
+
+                    if (offHandDamageResult.dead) {
+                        const deathMessage = getDeathMessage(target);
+                        this.broadcast(deathMessage);
+
+                        if (target.socket && target.username) {
+                            target.isGhost = true;
+                            this.playerDB.updatePlayerGhostStatus(target.username, true);
+                            target.send('\n' + colors.error('======================================'));
+                            target.send('\n' + colors.error('        YOU HAVE DIED!'));
+                            target.send('\n' + colors.error('======================================'));
+                            target.send('\n' + colors.info('You are now a GHOST.'));
+                            target.send('\n' + colors.hint('As a ghost, you cannot attack or be attacked.'));
+                            target.send('\n' + colors.hint('Your form is translucent and ethereal.'));
+                            target.send('\n' + colors.hint('(Respawn mechanics coming soon...)'));
+                            target.send('\n');
+                        }
+
+                        this.endCombat();
+                        return;
+                    }
                 }
             }
         }

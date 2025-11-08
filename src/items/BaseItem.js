@@ -518,6 +518,123 @@ class BaseItem {
   }
 
   /**
+   * Get the base value of this item in copper (before modifiers)
+   * @returns {number} Base value in copper
+   */
+  getBaseValue() {
+    // If item has explicit value defined, use it
+    if (this.value !== undefined && this.value !== null) {
+      return this.value;
+    }
+
+    // Otherwise, calculate from item type
+    const baseValues = config.economy?.baseValues;
+    if (!baseValues) {
+      return 0;
+    }
+
+    return baseValues[this.itemType] || 0;
+  }
+
+  /**
+   * Get the current value of this item in copper (with all modifiers applied)
+   * @param {boolean} [forSale=false] - If true, apply shop buyback percentage
+   * @returns {number} Current value in copper
+   */
+  getValue(forSale = false) {
+    let value = this.getBaseValue();
+
+    // Quest items have no value
+    if (this.isQuestItem) {
+      return 0;
+    }
+
+    // Apply rarity multiplier
+    if (this.rarity && config.economy?.rarityMultipliers) {
+      const multiplier = config.economy.rarityMultipliers[this.rarity] || 1;
+      value *= multiplier;
+    }
+
+    // Apply condition modifier based on durability
+    if (this.maxDurability && this.durability !== null) {
+      const durabilityPercent = (this.durability / this.maxDurability) * 100;
+      const conditionMods = config.economy?.conditionModifiers;
+
+      if (conditionMods) {
+        let conditionMultiplier = 1.0;
+
+        if (this.durability === 0) {
+          conditionMultiplier = conditionMods.broken || 0.10;
+        } else if (durabilityPercent < 25) {
+          conditionMultiplier = conditionMods.poor || 0.50;
+        } else if (durabilityPercent < 50) {
+          conditionMultiplier = conditionMods.fair || 0.75;
+        } else if (durabilityPercent < 75) {
+          conditionMultiplier = conditionMods.good || 0.90;
+        } else {
+          conditionMultiplier = conditionMods.excellent || 1.00;
+        }
+
+        value *= conditionMultiplier;
+      }
+    }
+
+    // Unidentified magical items are worth less (50% penalty)
+    if (this.hasHiddenProperties() && !this.isIdentified) {
+      value *= 0.50;
+    }
+
+    // Apply shop buyback percentage if selling to shop
+    if (forSale && config.economy?.shops?.defaultBuybackPercent) {
+      value *= config.economy.shops.defaultBuybackPercent;
+    }
+
+    return Math.floor(value);
+  }
+
+  /**
+   * Get the identification cost for this item in copper
+   * @returns {number} Identification cost in copper
+   */
+  getIdentificationCost() {
+    if (this.isIdentified) {
+      return 0; // Already identified
+    }
+
+    const identifyPrices = config.economy?.shops?.identifyService;
+    if (!identifyPrices) {
+      return 50; // Default fallback
+    }
+
+    return identifyPrices[this.rarity] || identifyPrices.common || 50;
+  }
+
+  /**
+   * Get the repair cost for this item in copper
+   * @param {number} [targetDurability] - Target durability (defaults to max)
+   * @returns {number} Repair cost in copper
+   */
+  getRepairCost(targetDurability) {
+    if (!this.maxDurability || this.durability === null) {
+      return 0; // Item doesn't have durability
+    }
+
+    const target = targetDurability !== undefined ? targetDurability : this.maxDurability;
+    const durabilityToRestore = Math.max(0, target - this.durability);
+
+    if (durabilityToRestore === 0) {
+      return 0; // No repair needed
+    }
+
+    // Calculate cost as percentage of item value
+    const itemValue = this.getValue(false); // Full value, not buyback
+    const costMultiplier = config.economy?.shops?.repairService?.costMultiplier || 0.25;
+    const percentToRestore = durabilityToRestore / this.maxDurability;
+
+    return Math.floor(itemValue * costMultiplier * percentToRestore);
+  }
+
+  /**
    * Check if this item is spawnable (can appear in random loot)
    * Respects type-based override rules from config
    * @returns {boolean} True if item can spawn randomly

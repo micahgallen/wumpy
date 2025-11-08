@@ -1,5 +1,7 @@
 const colors = require('../colors');
 const { DAMAGE_TYPES } = require('./damageTypes');
+const EquipmentManager = require('../systems/equipment/EquipmentManager');
+const { EquipmentSlot, ItemType } = require('../items/schemas/ItemTypes');
 
 function createHealthBar(currentHp, maxHp, barLength = 20) {
   // Ensure we have valid numbers
@@ -31,26 +33,48 @@ function createHealthBar(currentHp, maxHp, barLength = 20) {
   return coloredBar + hpText;
 }
 
-function getAttackMessage(attacker, defender, hit, critical) {
+/**
+ * Get weapon name for attacker
+ * @param {Object} attacker - Attacker entity
+ * @param {string} hand - 'main_hand' or 'off_hand'
+ * @returns {string} Weapon name or 'fists'
+ */
+function getWeaponName(attacker, hand = 'main_hand') {
+  if (!attacker.inventory) {
+    return 'their weapon';
+  }
+
+  const slot = hand === 'off_hand' ? EquipmentSlot.OFF_HAND : EquipmentSlot.MAIN_HAND;
+  const weapon = EquipmentManager.getEquippedInSlot(attacker, slot);
+
+  if (weapon && weapon.itemType === ItemType.WEAPON) {
+    return weapon.name;
+  }
+
+  return 'their fists';
+}
+
+function getAttackMessage(attacker, defender, hit, critical, hand = 'main_hand') {
   const attackerName = attacker.username || attacker.name;
   const defenderName = defender.username || defender.name;
+  const weaponName = getWeaponName(attacker, hand);
 
   if (critical) {
-    return colors.critical(`${attackerName} lands a CRITICAL HIT on ${defenderName}!`);
+    return colors.critical(`${attackerName} lands a CRITICAL HIT on ${defenderName} with ${weaponName}!`);
   }
 
   if (hit) {
     const messages = [
-      `${attackerName} strikes ${defenderName}!`,
-      `${attackerName} hits ${defenderName} solidly!`,
-      `${attackerName} lands a blow on ${defenderName}!`
+      `${attackerName} strikes ${defenderName} with ${weaponName}!`,
+      `${attackerName} hits ${defenderName} solidly with ${weaponName}!`,
+      `${attackerName} lands a blow on ${defenderName} using ${weaponName}!`
     ];
     return colors.hit(messages[Math.floor(Math.random() * messages.length)]);
   } else {
     const messages = [
-      `${attackerName} swings at ${defenderName} but misses!`,
-      `${defenderName} dodges ${attackerName}\'s attack!`,
-      `${attackerName}\'s attack goes wide!`
+      `${attackerName} swings ${weaponName} at ${defenderName} but misses!`,
+      `${defenderName} dodges ${attackerName}'s attack with ${weaponName}!`,
+      `${attackerName}'s attack with ${weaponName} goes wide!`
     ];
     return colors.miss(messages[Math.floor(Math.random() * messages.length)]);
   }

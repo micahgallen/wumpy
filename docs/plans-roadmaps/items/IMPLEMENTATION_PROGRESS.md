@@ -710,10 +710,27 @@ None. Phase 3 is complete with full equipment stat bonus system.
 **Exit Criteria:** ✓ Equipment manager functional, equip/unequip commands working, equipment display shows all slots, proficiency warnings shown, two-handed and dual wield rules enforced, AC calculation correct with DEX caps, attunement required, equipment state persists, stat bonuses fully functional and persistent, equipall/unequipall convenience commands, complete test equipment set, 81/81 tests passing with no regressions.
 
 ### Phase 4 - Combat Integration
-**Status:** Not started
+**Status:** COMPLETED ✓
+**Tasks:**
+- [x] Weapon damage integration with combat system
+- [x] Proficiency penalty system (weapon -4, armor -2/-4/-6)
+- [x] AC calculation using EquipmentManager.calculateAC()
+- [x] Dual wield combat mechanics (main + off-hand attacks)
+- [x] Attunement checking for magical bonuses
+- [x] Combat messaging with weapon names
+- [x] Comprehensive combat integration tests (19 tests)
+- [x] Fix proficiency system (was hardcoded to true)
+- [x] Standardize player stat access pattern
+- [x] Fix test suite expectations
+- [x] Add end-to-end combat integration test
+- [x] Fix double proficiency penalty bug
+- [x] All tests passing (104/104)
+
+**Exit Criteria:** ✓ Weapon damage used in combat, proficiency penalties applied, AC calculation with DEX caps, dual wield functional, attunement checked, combat commands updated, comprehensive tests passing, all existing tests passing, no regressions, production-ready.
 
 ### Phase 5 - Economy & Loot
 **Status:** Not started
+**Next Session:** See `/docs/plans-roadmaps/items/PHASE_5_SESSION_PROMPT.md`
 
 ### Phase 6 - Content & Domain Integration
 **Status:** Not started

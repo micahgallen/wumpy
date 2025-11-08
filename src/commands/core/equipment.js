@@ -17,9 +17,9 @@ function execute(player, args, context) {
   const ac = EquipmentManager.calculateAC(player);
 
   const output = [];
-  output.push('\n' + colors.highlight('━'.repeat(50)));
-  output.push(colors.highlight('                   EQUIPMENT'));
-  output.push(colors.highlight('━'.repeat(50)));
+  output.push('\n' + colors.highlight('='.repeat(50)));
+  output.push(colors.highlight('  EQUIPMENT'));
+  output.push(colors.highlight('='.repeat(50)));
   output.push('');
 
   // Weapons
@@ -129,7 +129,7 @@ function execute(player, args, context) {
   }
 
   output.push('');
-  output.push(colors.highlight('━'.repeat(50)));
+  output.push(colors.highlight('='.repeat(50)));
   output.push('');
 
   player.send(output.join('\n'));

@@ -9,7 +9,14 @@
       "Bash(node tests/diceTests.js:*)",
       "Bash(timeout 3 node:*)",
       "Bash(mkdir:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(node /home/micah/wumpy/tests/combatIntegrationTests.js:*)",
+      "Bash(node tests/combatIntegrationTests.js:*)",
+      "Bash(node tests/runAllTests.js:*)",
+      "Bash(node:*)",
+      "Bash(npm test:*)",
+      "Bash(test:*)",
+      "Bash(timeout 5 node:*)"
     ],
     "deny": [],
     "ask": []

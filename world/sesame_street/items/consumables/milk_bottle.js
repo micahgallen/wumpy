@@ -14,7 +14,7 @@ module.exports = {
   keywords: ['milk', 'bottle', 'drink', 'beverage'],
   itemType: ItemType.CONSUMABLE,
   weight: 0.5,
-  value: 2,
+  value: 15,
   rarity: ItemRarity.COMMON,
   isStackable: true,
   spawnable: true,

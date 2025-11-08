@@ -15,13 +15,23 @@ const logger = require('../logger');
 
 /**
  * Create an item instance from a definition
- * @param {Object} definition - Item definition from registry
+ * @param {Object|string} definitionOrId - Item definition from registry, or item ID string
  * @param {Object} [options={}] - Instance-specific options
  * @returns {BaseItem} Item instance with appropriate mixins applied
  */
-function createItem(definition, options = {}) {
-  if (!definition) {
+function createItem(definitionOrId, options = {}) {
+  if (!definitionOrId) {
     throw new Error('Cannot create item: definition is required');
+  }
+
+  // If passed a string ID, look up the definition
+  let definition = definitionOrId;
+  if (typeof definitionOrId === 'string') {
+    const ItemRegistry = require('./ItemRegistry');
+    definition = ItemRegistry.getItem(definitionOrId);
+    if (!definition) {
+      throw new Error(`Cannot create item: definition not found for ID "${definitionOrId}"`);
+    }
   }
 
   // Create base item
@@ -153,8 +163,16 @@ function restoreItem(data, definition) {
  * @returns {BaseItem} Cloned item with new instance ID
  */
 function cloneItem(item, overrides = {}) {
-  if (!item || !item.definition) {
+  if (!item || !item.definitionId) {
     throw new Error('Cannot clone item: invalid item instance');
+  }
+
+  // Look up definition from registry (avoids circular reference)
+  const ItemRegistry = require('./ItemRegistry');
+  const definition = ItemRegistry.getItem(item.definitionId);
+
+  if (!definition) {
+    throw new Error(`Cannot clone item: definition not found for ${item.definitionId}`);
   }
 
   const data = item.toJSON();
@@ -165,7 +183,7 @@ function cloneItem(item, overrides = {}) {
   // Apply overrides
   Object.assign(data, overrides);
 
-  return restoreItem(data, item.definition);
+  return restoreItem(data, definition);
 }
 
 module.exports = {

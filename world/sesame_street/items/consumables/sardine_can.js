@@ -14,7 +14,7 @@ module.exports = {
   keywords: ['sardines', 'can', 'tin', 'fish'],
   itemType: ItemType.CONSUMABLE,
   weight: 0.3,
-  value: 1,
+  value: 12,
   rarity: ItemRarity.COMMON,
   isStackable: true,
   spawnable: true,

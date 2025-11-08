@@ -87,6 +87,12 @@ class PlayerDB {
       description: 'A normal-looking person.',
       currentRoom: 'sesame_street_01', // Starting room
       inventory: [], // Empty inventory for new players
+      currency: { // Phase 5: Currency wallet (separate from inventory)
+        platinum: 0,
+        gold: 0,
+        silver: 0,
+        copper: 100 // Start with 100 copper
+      },
       level: 1,
       xp: 0,
       hp: startingHp,
@@ -153,6 +159,15 @@ class PlayerDB {
         };
     }
 
+    // Add default currency if it doesn't exist (Phase 5)
+    if (!playerData.currency) {
+        playerData.currency = {
+            platinum: 0,
+            gold: 0,
+            silver: 0,
+            copper: 100 // Backwards compat: give existing players starting money
+        };
+    }
 
     return playerData;
   }
@@ -284,6 +299,24 @@ class PlayerDB {
         intelligence: stats.intelligence ?? 10,
         wisdom: stats.wisdom ?? 10,
         charisma: stats.charisma ?? 10
+      };
+      this.save();
+    }
+  }
+
+  /**
+   * Update player's currency wallet
+   * @param {string} username - Player username
+   * @param {Object} currency - Currency object {platinum, gold, silver, copper}
+   */
+  updatePlayerCurrency(username, currency) {
+    const lowerUsername = username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].currency = {
+        platinum: currency.platinum ?? 0,
+        gold: currency.gold ?? 0,
+        silver: currency.silver ?? 0,
+        copper: currency.copper ?? 0
       };
       this.save();
     }

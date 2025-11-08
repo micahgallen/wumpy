@@ -14,7 +14,7 @@ module.exports = {
   keywords: ['birdseed', 'seed', 'bag', 'bird', 'food'],
   itemType: ItemType.CONSUMABLE,
   weight: 0.2,
-  value: 1,
+  value: 10,
   rarity: ItemRarity.COMMON,
   isStackable: true,
   spawnable: true,

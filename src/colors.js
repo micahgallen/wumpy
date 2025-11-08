@@ -464,5 +464,11 @@ module.exports = {
   statGain: (text) => colorize(text, ANSI.GREEN),
 
   // Text styles
-  dim: (text) => colorize(text, ANSI.DIM)
+  dim: (text) => colorize(text, ANSI.DIM),
+  subtle: (text) => colorize(text, ANSI.DIM),  // Alias for dim
+  gray: (text) => colorize(text, ANSI.BRIGHT_BLACK),  // Alias for gray text
+  grey: (text) => colorize(text, ANSI.BRIGHT_BLACK),  // British spelling
+  cyan: (text) => colorize(text, ANSI.CYAN),
+  magenta: (text) => colorize(text, ANSI.MAGENTA),
+  green: (text) => colorize(text, ANSI.GREEN)
 };

@@ -64,7 +64,7 @@ const WeaponMixin = {
 
   /**
    * Get attack bonus for this weapon
-   * @param {boolean} isProficient - Whether wielder is proficient
+   * @param {boolean} isProficient - Whether wielder is proficient (DEPRECATED - penalty handled by combatResolver)
    * @returns {number} Attack bonus
    */
   getAttackBonus(isProficient = true) {
@@ -83,11 +83,9 @@ const WeaponMixin = {
       }
     }
 
-    // Apply proficiency penalty if not proficient
-    if (!isProficient) {
-      const config = require('../../config/itemsConfig');
-      bonus += config.proficiency.weaponPenalty;
-    }
+    // NOTE: Proficiency penalty is now handled by combatResolver.js, not here
+    // This method only returns the weapon's intrinsic attack bonus (base + magical)
+    // The isProficient parameter is kept for backward compatibility but not used
 
     return bonus;
   },

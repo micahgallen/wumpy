@@ -5,6 +5,7 @@
 const colors = require('../../colors');
 const InventoryManager = require('../../systems/inventory/InventoryManager');
 const EquipmentManager = require('../../systems/equipment/EquipmentManager');
+const InventorySerializer = require('../../systems/inventory/InventorySerializer');
 
 /**
  * Execute unequip command
@@ -40,6 +41,12 @@ function execute(player, args, context) {
   if (!result.success) {
     player.send(colors.error(result.message));
     return;
+  }
+
+  // Save inventory after unequipping
+  if (context.playerDB) {
+    const serialized = InventorySerializer.serializeInventory(player);
+    context.playerDB.updatePlayerInventory(player.username, serialized);
   }
 
   // Success message

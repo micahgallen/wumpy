@@ -105,6 +105,13 @@ logger.log('Loading Sesame Street items...');
 const sesameItemResult = loadSesameStreetItems();
 logger.log(`Sesame Street items loaded: ${sesameItemResult.successCount} items registered`);
 
+// Load shops (after items are registered)
+const { loadSesameStreetShops } = require('../world/sesame_street/shops/loadShops');
+
+logger.log('Loading Sesame Street shops...');
+const sesameShopResult = loadSesameStreetShops();
+logger.log(`Sesame Street shops loaded: ${sesameShopResult.successCount} shops registered`);
+
 // Initialize server components
 const playerDB = new PlayerDB();
 const world = new World(); // Now items are available for room initialization
@@ -709,6 +716,30 @@ server.listen(PORT, () => {
   logger.log(`Listening on port ${PORT}`);
   logger.log('='.repeat(50));
 });
+
+// Graceful shutdown handling
+function gracefulShutdown(signal) {
+  logger.log(`${signal} received, saving shop state...`);
+
+  try {
+    const ShopManager = require('./systems/economy/ShopManager');
+    // Use async save but don't wait - just log when complete
+    ShopManager.saveAllShops().then(result => {
+      logger.log(`Saved ${result.successCount} shops on shutdown`);
+      logger.log('Graceful shutdown complete');
+      process.exit(0);
+    }).catch(err => {
+      logger.error(`Error saving shops on shutdown: ${err.message}`);
+      process.exit(1);
+    });
+  } catch (err) {
+    logger.error(`Error during shutdown: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Export Player class for testing
 module.exports = { Player };

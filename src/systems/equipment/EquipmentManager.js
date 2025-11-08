@@ -282,13 +282,26 @@ class EquipmentManager {
    * @returns {Object} {isProficient: boolean, penalty?: number, warning?: string}
    */
   checkProficiency(player, item) {
-    // Future: Implement actual proficiency checking based on player class
-    // For now, allow all equipment but warn about penalties
+    // Initialize proficiencies if not present (for backward compatibility)
+    if (!player.proficiencies) {
+      player.proficiencies = this.getDefaultProficiencies(player);
+    }
 
     if (item.itemType === ItemType.WEAPON && item.weaponProperties) {
       // Check weapon proficiency
-      // TODO: Implement player.proficiencies array
-      const isProficient = true; // Placeholder
+      const weaponClass = item.weaponProperties.weaponClass;
+      const weaponProfs = player.proficiencies.weapons || [];
+
+      // Check if player is proficient with this weapon class or 'all_weapons'
+      // Handle category proficiencies (simple_weapons, martial_weapons)
+      const isProficient = weaponProfs.includes(weaponClass) ||
+                          weaponProfs.includes('all_weapons') ||
+                          (weaponProfs.includes('simple_weapons') && weaponClass && weaponClass.includes('simple')) ||
+                          (weaponProfs.includes('martial_weapons') && weaponClass && weaponClass.includes('martial')) ||
+                          (weaponProfs.includes('simple_melee') && weaponClass === 'simple_melee') ||
+                          (weaponProfs.includes('simple_ranged') && weaponClass === 'simple_ranged') ||
+                          (weaponProfs.includes('martial_melee') && weaponClass === 'martial_melee') ||
+                          (weaponProfs.includes('martial_ranged') && weaponClass === 'martial_ranged');
 
       if (!isProficient) {
         const penalty = config.proficiency.weaponPenalty;
@@ -302,10 +315,14 @@ class EquipmentManager {
 
     if (item.itemType === ItemType.ARMOR && item.armorProperties) {
       // Check armor proficiency
-      const isProficient = true; // Placeholder
+      const armorClass = item.armorProperties.armorClass || 'light';
+      const armorProfs = player.proficiencies.armor || [];
+
+      // Check if player is proficient with this armor class or 'all_armor'
+      const isProficient = armorProfs.includes(armorClass) ||
+                          armorProfs.includes('all_armor');
 
       if (!isProficient) {
-        const armorClass = item.armorProperties.armorClass || 'light';
         const penalty = config.proficiency.armorPenalty[armorClass] || 0;
 
         if (penalty !== 0) {
@@ -319,6 +336,65 @@ class EquipmentManager {
     }
 
     return { isProficient: true };
+  }
+
+  /**
+   * Get default proficiencies based on player class
+   * @param {Object} player - Player object
+   * @returns {Object} {weapons: Array<string>, armor: Array<string>}
+   */
+  getDefaultProficiencies(player) {
+    // Martial weapon types (for proficiency checking)
+    const martialWeapons = ['swords', 'axes', 'polearms', 'martial_melee', 'martial_ranged'];
+    const simpleWeapons = ['simple_melee', 'simple_ranged', 'daggers', 'clubs', 'staves'];
+
+    // Default proficiencies by class (D&D 5e-inspired)
+    const proficienciesByClass = {
+      fighter: {
+        weapons: [...simpleWeapons, ...martialWeapons],
+        armor: ['light', 'medium', 'heavy']
+      },
+      warrior: {
+        weapons: [...simpleWeapons, ...martialWeapons],
+        armor: ['light', 'medium', 'heavy']
+      },
+      rogue: {
+        weapons: [...simpleWeapons],
+        armor: ['light']
+      },
+      wizard: {
+        weapons: [], // Wizards have very limited weapon proficiency in D&D 5e (only specific simple weapons like daggers, darts)
+        armor: []
+      },
+      mage: {
+        weapons: [],
+        armor: []
+      },
+      cleric: {
+        weapons: [...simpleWeapons],
+        armor: ['light', 'medium']
+      },
+      ranger: {
+        weapons: [...simpleWeapons, ...martialWeapons],
+        armor: ['light', 'medium']
+      },
+      monk: {
+        weapons: [...simpleWeapons],
+        armor: []
+      },
+      barbarian: {
+        weapons: [...simpleWeapons, ...martialWeapons],
+        armor: ['light', 'medium']
+      }
+    };
+
+    const playerClass = (player.class || 'fighter').toLowerCase();
+    const defaultProfs = proficienciesByClass[playerClass] || proficienciesByClass.fighter;
+
+    return {
+      weapons: [...defaultProfs.weapons],
+      armor: [...defaultProfs.armor]
+    };
   }
 
   /**
@@ -484,9 +560,9 @@ class EquipmentManager {
     const mainHand = this.getEquippedInSlot(player, EquipmentSlot.MAIN_HAND);
     const offHand = this.getEquippedInSlot(player, EquipmentSlot.OFF_HAND);
 
-    return mainHand && offHand &&
-           mainHand.itemType === ItemType.WEAPON &&
-           offHand.itemType === ItemType.WEAPON;
+    return !!(mainHand && offHand &&
+              mainHand.itemType === ItemType.WEAPON &&
+              offHand.itemType === ItemType.WEAPON);
   }
 
   /**

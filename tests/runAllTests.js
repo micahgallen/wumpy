@@ -6,7 +6,7 @@
 
 async function runAllTests() {
   console.log('\n' + '='.repeat(70));
-  console.log('RUNNING ALL COMBAT SYSTEM TESTS');
+  console.log('RUNNING ALL SYSTEM TESTS');
   console.log('='.repeat(70));
 
   const testSuites = [
@@ -14,7 +14,8 @@ async function runAllTests() {
     require('./modifierTests'),
     require('./combatTests'),
     require('./integrationTest'),
-    require('./commands/combat/attackTests')
+    require('./commands/combat/attackTests'),
+    require('./economyTests') // Phase 5: Economy tests
   ];
 
   let totalPassed = 0;

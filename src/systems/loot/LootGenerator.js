@@ -215,7 +215,7 @@ class LootGenerator {
 
     // Currency gets special handling
     if (itemType === 'currency') {
-      const currencyType = itemInstance.definition.subType || 'copper';
+      const currencyType = itemInstance.subType || 'copper';
       const range = config.spawn.currencyQuantity[currencyType] || [1, 10];
       return this.randomRange(range[0], range[1]);
     }
@@ -228,32 +228,54 @@ class LootGenerator {
   }
 
   /**
-   * Generate random currency loot
-   * @returns {Object|null} Currency item instance or null
+   * Generate random currency loot based on NPC challenge rating
+   * @param {number} [challengeRating=1] - NPC challenge rating
+   * @returns {number} Currency amount in copper
    */
-  static generateCurrency() {
-    // Find a currency item in the registry
-    const currencyItems = ItemRegistry.search({ itemType: 'currency' });
+  static generateCurrency(challengeRating = 1) {
+    const config = require('../../config/itemsConfig');
+    const currencyDrops = config.economy?.npcCurrencyDrops;
 
-    if (currencyItems.length === 0) {
-      return null;
+    if (!currencyDrops) {
+      return 0;
     }
 
-    // For now, just use the first currency item (typically gold)
-    // In the future, this could be weighted by currency type
-    const currencyDef = currencyItems[0];
-    const instance = ItemFactory.createItem(currencyDef);
+    // Determine which drop table to use based on CR
+    let dropRange;
+    if (challengeRating <= 0) {
+      dropRange = currencyDrops.cr0 || [1, 5];
+    } else if (challengeRating === 1) {
+      dropRange = currencyDrops.cr1 || [5, 20];
+    } else if (challengeRating === 2) {
+      dropRange = currencyDrops.cr2 || [10, 50];
+    } else if (challengeRating === 3) {
+      dropRange = currencyDrops.cr3 || [25, 100];
+    } else if (challengeRating === 4) {
+      dropRange = currencyDrops.cr4 || [50, 200];
+    } else if (challengeRating >= 5) {
+      dropRange = currencyDrops.cr5 || [100, 1000];
+    }
 
-    // Generate quantity
-    instance.quantity = this.generateQuantity(instance);
+    // Random amount within range
+    const min = dropRange[0];
+    const max = dropRange[1];
+    return this.randomRange(min, max);
+  }
 
-    return instance;
+  /**
+   * Generate boss currency loot
+   * @returns {number} Currency amount in copper
+   */
+  static generateBossCurrency() {
+    const config = require('../../config/itemsConfig');
+    const bossRange = config.economy?.npcCurrencyDrops?.boss || [1000, 10000];
+    return this.randomRange(bossRange[0], bossRange[1]);
   }
 
   /**
    * Generate loot for a specific NPC corpse
    * @param {Object} npc - NPC object
-   * @returns {Array<Object>} Array of item instances
+   * @returns {Object} {items: Array<Object>, currency: number}
    */
   static generateNPCLoot(npc) {
     const level = npc.level || 1;
@@ -266,12 +288,21 @@ class LootGenerator {
       ? config.spawn.generation.defaultItemCount + 2
       : config.spawn.generation.defaultItemCount;
 
-    return this.generateLoot({
+    const items = this.generateLoot({
       lootTables,
       spawnTags,
       level,
-      itemCount
+      itemCount,
+      includeCurrency: false // We'll add currency separately
     });
+
+    // Generate currency based on NPC challenge rating
+    const challengeRating = npc.challengeRating || npc.cr || level;
+    const currency = isBoss
+      ? this.generateBossCurrency()
+      : this.generateCurrency(challengeRating);
+
+    return { items, currency };
   }
 
   /**

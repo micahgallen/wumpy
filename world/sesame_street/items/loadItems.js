@@ -14,6 +14,12 @@ const birdseed = require('./consumables/birdseed');
 const sugarCookie = require('./consumables/sugar_cookie');
 const oatmealCookie = require('./consumables/oatmeal_cookie');
 const milkBottle = require('./consumables/milk_bottle');
+const healthPotion = require('./consumables/health_potion');
+
+// Import equipment
+const woodenPracticeSword = require('./equipment/wooden_practice_sword');
+const mysteriousAmulet = require('./equipment/mysterious_amulet');
+const leatherCap = require('./equipment/leather_cap');
 
 /**
  * Load all Sesame Street items into the registry
@@ -21,12 +27,18 @@ const milkBottle = require('./consumables/milk_bottle');
  */
 function loadSesameStreetItems() {
   const items = [
+    // Consumables
     chocolateChipCookie,
     sardine_can,
     birdseed,
     sugarCookie,
     oatmealCookie,
-    milkBottle
+    milkBottle,
+    healthPotion,
+    // Equipment
+    woodenPracticeSword,
+    mysteriousAmulet,
+    leatherCap
   ];
 
   let successCount = 0;

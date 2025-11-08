@@ -18,9 +18,17 @@ function log(message) {
 }
 
 function error(message) {
+  console.error(`ERROR: ${message}`);
   const timestamp = new Date().toISOString();
   const errorMessage = `[${timestamp}] [ERROR] ${message}\n`;
   fs.appendFileSync(logFilePath, errorMessage);
 }
 
-module.exports = { log, error };
+function warn(message) {
+  console.warn(`WARN: ${message}`);
+  const timestamp = new Date().toISOString();
+  const warnMessage = `[${timestamp}] [WARN] ${message}\n`;
+  fs.appendFileSync(logFilePath, warnMessage);
+}
+
+module.exports = { log, error, warn };

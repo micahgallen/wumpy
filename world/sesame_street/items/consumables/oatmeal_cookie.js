@@ -14,7 +14,7 @@ module.exports = {
   keywords: ['cookie', 'oatmeal', 'oat', 'raisin'],
   itemType: ItemType.CONSUMABLE,
   weight: 0.15,
-  value: 3,
+  value: 30,
   rarity: ItemRarity.COMMON,
   isStackable: true,
   spawnable: true,

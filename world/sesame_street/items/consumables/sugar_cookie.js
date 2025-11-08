@@ -14,7 +14,7 @@ module.exports = {
   keywords: ['cookie', 'sugar', 'sweet'],
   itemType: ItemType.CONSUMABLE,
   weight: 0.1,
-  value: 2,
+  value: 20,
   rarity: ItemRarity.COMMON,
   isStackable: true,
   spawnable: true,

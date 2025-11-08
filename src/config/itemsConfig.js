@@ -79,10 +79,14 @@ module.exports = {
     }
   },
 
-  // Dual Wielding
+  // Dual Wielding (D&D 5e Rules)
   dualWield: {
-    offHandDamageMultiplier: 0.5,  // Off-hand does 50% damage
-    requiresLightWeapons: true,    // Both weapons must be light
+    // NOTE: This multiplier is used as a flag (0.5 = don't add ability mod to off-hand damage)
+    // Following D&D 5e rules: off-hand attacks don't add ability modifier to damage
+    // unless the player has the Two-Weapon Fighting feat (not yet implemented)
+    // The value 0.5 is checked in combatResolver.js to determine if ability mod should be added
+    offHandDamageMultiplier: 0.5,  // Flag: when 0.5, off-hand doesn't add ability mod (D&D 5e)
+    requiresLightWeapons: true,    // Both weapons must be light (D&D 5e)
     autoAttack: true               // Off-hand attacks automatically each round
   },
 
@@ -151,6 +155,80 @@ module.exports = {
         defaultTables: ['common_loot', 'uncommon_loot', 'rare_loot', 'epic_loot', 'legendary_loot', 'boss_drops', 'trash_loot'],
         reason: 'Currency is available in most loot sources'
       }
+    }
+  },
+
+  // Economy System
+  economy: {
+    // Base item values by type (in copper)
+    baseValues: {
+      weapon: 200,        // Base value for weapons (e.g., common dagger)
+      armor: 1000,        // Base value for armor pieces
+      consumable: 50,     // Base value for consumables
+      material: 10,       // Base value for crafting materials
+      jewelry: 500,       // Base value for jewelry
+      container: 100,     // Base value for containers
+      currency: 1,        // Currency has value of 1 copper per copper
+      quest: 0            // Quest items have no shop value
+    },
+
+    // Rarity price multipliers
+    rarityMultipliers: {
+      common: 1,
+      uncommon: 5,
+      rare: 25,
+      epic: 125,
+      legendary: 625,
+      artifact: 3125
+    },
+
+    // Condition modifiers (percentage of full value)
+    conditionModifiers: {
+      broken: 0.10,       // 10% value when broken (0 durability)
+      poor: 0.50,         // 50% value when durability < 25%
+      fair: 0.75,         // 75% value when durability < 50%
+      good: 0.90,         // 90% value when durability < 75%
+      excellent: 1.00     // 100% value when durability >= 75%
+    },
+
+    // Shop settings
+    shops: {
+      defaultBuybackPercent: 0.50,  // Shops buy items at 50% of value
+      identifyService: {
+        common: 50,                  // 50 copper to identify common items
+        uncommon: 500,               // 5 silver for uncommon
+        rare: 5000,                  // 50 silver for rare
+        epic: 50000,                 // 500 silver (5 gold) for epic
+        legendary: 100000            // 1000 silver (10 gold) for legendary
+      },
+      repairService: {
+        costMultiplier: 0.25        // 25% of item value per 100% durability restored
+      }
+    },
+
+    // NPC currency drops (in copper)
+    npcCurrencyDrops: {
+      cr0: [1, 5],         // CR 0 (rats, etc): 1-5 copper
+      cr1: [5, 20],        // CR 1 (goblins): 5-20 copper
+      cr2: [10, 50],       // CR 2 (bandits): 10-50 copper
+      cr3: [25, 100],      // CR 3 (orcs): 25-100 copper (1 silver max)
+      cr4: [50, 200],      // CR 4: 50-200 copper (2 silver max)
+      cr5: [100, 1000],    // CR 5+ (bosses): 1-10 silver (100-1000 copper)
+      boss: [1000, 10000]  // Elite bosses: 10-100 silver (1-10 gold)
+    }
+  },
+
+  // Container System
+  containers: {
+    defaultCapacity: 20,    // Default slot capacity for containers
+    capacityByType: {
+      small_chest: 10,
+      chest: 20,
+      large_chest: 40,
+      crate: 15,
+      barrel: 25,
+      sack: 10,
+      bag: 8
     }
   },
 

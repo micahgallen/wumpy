@@ -9,5 +9,6 @@
     }
   ],
   "npcs": ["shopkeeper"],
-  "objects": ["store_counter", "shelves", "cookie_jar", "penny_candy_display"]
+  "objects": ["store_counter", "shelves", "cookie_jar", "penny_candy_display"],
+  "shop": "hoopers_store"
 }
