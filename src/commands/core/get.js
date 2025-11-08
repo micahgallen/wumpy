@@ -114,6 +114,7 @@ function execute(player, args, context) {
       if (pickupQuantity === (item.quantity || 1)) {
         // Picking up entire stack
         shouldRemoveFromRoom = true;
+        itemToPickup = item; // Keep reference to room item
       } else {
         // Picking up partial stack - leave the rest in the room
         shouldRemoveFromRoom = false;
@@ -128,12 +129,55 @@ function execute(player, args, context) {
       itemInstance.location = { type: 'inventory', owner: player.username };
 
       // Call onPickup hook
-      if (!itemInstance.onPickup(player)) {
-        player.send('\n' + colors.error(`You can't pick up ${itemInstance.name} right now.\n`));
+      const pickupResult = itemInstance.onPickup(player, room);
+
+      // Handle both old boolean return and new object return
+      if (pickupResult === false || (typeof pickupResult === 'object' && !pickupResult.success)) {
+        const errorMsg = (typeof pickupResult === 'object' && pickupResult.message)
+          ? pickupResult.message
+          : `You can't pick up ${itemInstance.name} right now.`;
+        player.send('\n' + colors.error(errorMsg + '\n'));
         return;
       }
 
-      // Check encumbrance
+      // Check if item has custom pickup behavior (like currency auto-conversion)
+      const preventAddToInventory = (typeof pickupResult === 'object' && pickupResult.preventAddToInventory) || false;
+      const customMessage = (typeof pickupResult === 'object' && pickupResult.message) || null;
+
+      if (preventAddToInventory) {
+        // Item handled its own pickup logic (e.g., currency converted to wallet)
+        // Remove from room
+        if (shouldRemoveFromRoom) {
+          room.items.splice(index, 1);
+        }
+
+        // Display custom message
+        if (customMessage) {
+          player.send('\n' + colors.success(customMessage + '\n'));
+        }
+
+        // Show wallet for currency
+        const { ItemType } = require('../../items/schemas/ItemTypes');
+        if (itemInstance.itemType === ItemType.CURRENCY) {
+          const CurrencyManager = require('../../systems/economy/CurrencyManager');
+          const wallet = CurrencyManager.getWallet(player);
+          player.send(colors.info(`Wallet: ${CurrencyManager.format(wallet)}\n`));
+        }
+
+        // Announce to room
+        if (context.allPlayers) {
+          const roomMessage = colors.info(`${player.username} picks up ${itemInstance.getDisplayName()}.\n`);
+          for (const p of context.allPlayers) {
+            if (p !== player && p.currentRoom === player.currentRoom && p.send) {
+              p.send(roomMessage);
+            }
+          }
+        }
+
+        return;
+      }
+
+      // Normal item pickup - check encumbrance
       const addResult = InventoryManager.addItem(player, itemInstance);
       if (!addResult.success) {
         const stats = InventoryManager.getInventoryStats(player);

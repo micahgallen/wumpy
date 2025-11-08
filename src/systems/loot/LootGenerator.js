@@ -298,11 +298,21 @@ class LootGenerator {
 
     // Generate currency based on NPC challenge rating
     const challengeRating = npc.challengeRating || npc.cr || level;
-    const currency = isBoss
+    const currencyAmount = isBoss
       ? this.generateBossCurrency()
       : this.generateCurrency(challengeRating);
 
-    return { items, currency };
+    // Convert currency amount to currency items
+    const CurrencyManager = require('../economy/CurrencyManager');
+    const currencyItems = CurrencyManager.createCurrencyItems(currencyAmount);
+
+    // Merge currency items with regular loot
+    const allItems = [...items, ...currencyItems];
+
+    return {
+      items: allItems,
+      currency: currencyAmount // Keep the number for logging/stats
+    };
   }
 
   /**

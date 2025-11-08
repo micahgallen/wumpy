@@ -204,6 +204,7 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
     }
   } catch (err) {
     logger.error(`Error executing command '${commandName}':`, err);
+    logger.error(`Stack trace:`, err.stack);
     player.send('\n' + colors.error('An error occurred while processing that command.\n'));
   }
 }

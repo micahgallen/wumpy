@@ -229,6 +229,10 @@ function handleLoginPassword(player, password) {
     player.description = playerData.description || 'A normal-looking person.';
     player.currentRoom = playerData.currentRoom;
 
+    // Load currency from playerData
+    const CurrencyManager = require('./systems/economy/CurrencyManager');
+    player.currency = playerData.currency || CurrencyManager.createWallet();
+
     // Deserialize inventory from JSON to BaseItem instances
     const InventorySerializer = require('./systems/inventory/InventorySerializer');
     player.inventory = InventorySerializer.deserializeInventory(player, playerData.inventory || []);
@@ -587,6 +591,10 @@ function finalizeNewLogin(player) {
     player.username = playerData.username;
     player.description = playerData.description || 'A normal-looking person.';
     player.currentRoom = playerData.currentRoom;
+
+    // Load currency from playerData
+    const CurrencyManager = require('./systems/economy/CurrencyManager');
+    player.currency = playerData.currency || CurrencyManager.createWallet();
 
     // Deserialize inventory from JSON to BaseItem instances
     const InventorySerializer = require('./systems/inventory/InventorySerializer');

@@ -14,9 +14,84 @@ const InventorySerializer = require('../../systems/inventory/InventorySerializer
  */
 function execute(player, args, context) {
   const { world, playerDB } = context;
+  const CurrencyManager = require('../../systems/economy/CurrencyManager');
 
   if (args.length === 0) {
     player.send('\n' + colors.error('Drop what? Try "drop [item]", "drop [qty] [item]", or "drop all [item]"\n'));
+    return;
+  }
+
+  const room = world.getRoom(player.currentRoom);
+
+  if (!room) {
+    player.send('\n' + colors.error('You seem to be nowhere. This is a problem.\n'));
+    return;
+  }
+
+  // Check for currency drop patterns (e.g., "drop 50 copper", "drop 5g", "drop 2 gold 50 silver")
+  const fullInput = args.join(' ');
+  let currencyAmount = null;
+
+  // Check for "drop all <currency>" (drops all of that type)
+  const dropAllCurrencyMatch = fullInput.match(/^all\s+(platinum|gold|silver|copper|p|g|s|c)$/i);
+  if (dropAllCurrencyMatch) {
+    const currencyType = dropAllCurrencyMatch[1].toLowerCase();
+    const wallet = CurrencyManager.getWallet(player);
+
+    // Map short forms to full names
+    const typeMap = { p: 'platinum', g: 'gold', s: 'silver', c: 'copper' };
+    const fullType = typeMap[currencyType] || currencyType;
+
+    const amount = wallet[fullType] || 0;
+    if (amount > 0) {
+      currencyAmount = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+      currencyAmount[fullType] = amount;
+    }
+  }
+  // Check for "drop <currency>" without number (drops 1)
+  else if (fullInput.match(/^(platinum|gold|silver|copper|p|g|s|c)$/i)) {
+    const currencyType = fullInput.toLowerCase();
+    const typeMap = { p: 'platinum', g: 'gold', s: 'silver', c: 'copper' };
+    const fullType = typeMap[currencyType] || currencyType;
+
+    currencyAmount = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+    currencyAmount[fullType] = 1; // Drop 1 of this type
+  }
+  // Otherwise try parsing as currency with amounts
+  else {
+    // Try parsing as currency with full names first
+    currencyAmount = CurrencyManager.parseCurrencyStringLong(fullInput);
+
+    // If not successful, try short format
+    if (!currencyAmount) {
+      currencyAmount = CurrencyManager.parseCurrencyString(fullInput);
+    }
+  }
+
+  // Check if we actually have a valid currency amount (not just zero values from word matching)
+  const hasValidCurrencyAmount = currencyAmount &&
+    (currencyAmount.platinum > 0 || currencyAmount.gold > 0 ||
+     currencyAmount.silver > 0 || currencyAmount.copper > 0);
+
+  if (hasValidCurrencyAmount) {
+    // This is a currency drop
+    const dropResult = CurrencyManager.dropCurrency(player, room, currencyAmount);
+
+    if (dropResult.success) {
+      player.send('\n' + colors.success(dropResult.message + '\n'));
+
+      // Announce to room
+      if (context.allPlayers) {
+        const roomMessage = colors.info(`${player.username} drops some currency.\n`);
+        for (const p of context.allPlayers) {
+          if (p !== player && p.currentRoom === player.currentRoom && p.send) {
+            p.send(roomMessage);
+          }
+        }
+      }
+    } else {
+      player.send('\n' + colors.error(dropResult.message + '\n'));
+    }
     return;
   }
 
@@ -53,12 +128,6 @@ function execute(player, args, context) {
   }
 
   const target = targetArgs.join(' ').toLowerCase();
-  const room = world.getRoom(player.currentRoom);
-
-  if (!room) {
-    player.send('\n' + colors.error('You seem to be nowhere. This is a problem.\n'));
-    return;
-  }
 
   // Initialize room.items if it doesn't exist
   if (!room.items) {
