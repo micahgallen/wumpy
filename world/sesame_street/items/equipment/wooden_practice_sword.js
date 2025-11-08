@@ -36,7 +36,12 @@ module.exports = {
     isTwoHanded: false,
     isRanged: false,
     isLight: true,
-    isFinesse: false
+    isFinesse: false,
+
+    // Non-magical weapon bonuses
+    magicalAttackBonus: 0,
+    magicalDamageBonus: 0,
+    versatileDamageDice: null
   },
   durability: 75,
   maxDurability: 100

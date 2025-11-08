@@ -496,6 +496,9 @@ function handleReconnect(newPlayer) {
     if (existingPlayer.username) {
       logger.log(`Player ${existingPlayer.username} disconnected.`);
 
+      // CRITICAL FIX: Save player state on disconnect
+      playerDB.savePlayer(existingPlayer);
+
       // Remove from active sessions map
       if (activeSessions.get(existingPlayer.username.toLowerCase()) === existingPlayer) {
         activeSessions.delete(existingPlayer.username.toLowerCase());
@@ -679,6 +682,10 @@ const server = net.createServer(socket => {
   socket.on('end', () => {
     if (player.username) {
       logger.log(`Player ${player.username} disconnected.`);
+
+      // CRITICAL FIX: Save player state to database on logout
+      // This ensures all stats, equipment, inventory, and progression persist
+      playerDB.savePlayer(player);
 
       // Remove from active sessions map (only if THIS player object is the current active session)
       if (activeSessions.get(player.username.toLowerCase()) === player) {

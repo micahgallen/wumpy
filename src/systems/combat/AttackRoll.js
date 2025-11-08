@@ -14,6 +14,8 @@ const {
   isHit
 } = require('../../utils/modifiers');
 const { createAttackResult } = require('../../data/Combat');
+const EquipmentManager = require('../equipment/EquipmentManager');
+const { ItemType } = require('../../items/schemas/ItemTypes');
 
 /**
  * Resolve a complete attack roll
@@ -34,9 +36,39 @@ function resolveAttackRoll(attacker, defender, attackerParticipant, defenderPart
   const attackRoll = rollAttack(advantageType);
   const naturalRoll = attackRoll.natural;
 
-  // 3. Calculate attack bonus (STR mod + proficiency)
-  // For melee attacks, use STR. For ranged, would use DEX (Phase 2 feature)
-  const attackBonus = getModifier(attacker.str) + attacker.proficiency;
+  // 3. Get equipped weapon and calculate attack bonus
+  const weapon = EquipmentManager.getEquippedInSlot(attacker, 'main_hand');
+
+  // Determine ability modifier (finesse weapons can use DEX or STR)
+  let abilityModifier;
+  if (weapon?.weaponProperties?.isFinesse) {
+    // Finesse: use higher of STR or DEX
+    const strMod = getModifier(attacker.str);
+    const dexMod = getModifier(attacker.dex);
+    abilityModifier = Math.max(strMod, dexMod);
+  } else if (weapon?.weaponProperties?.isRanged) {
+    // Ranged: always DEX
+    abilityModifier = getModifier(attacker.dex);
+  } else {
+    // Melee or unarmed: STR
+    abilityModifier = getModifier(attacker.str);
+  }
+
+  // Check weapon proficiency and apply penalty if not proficient
+  const profCheck = weapon
+    ? EquipmentManager.checkProficiency(attacker, weapon)
+    : { isProficient: true, penalty: 0 };
+
+  let proficiencyBonus = attacker.proficiency;
+  if (!profCheck.isProficient) {
+    proficiencyBonus += profCheck.penalty; // penalty is negative (e.g., -4)
+  }
+
+  // Get weapon magical attack bonus
+  const weaponAttackBonus = weapon?.weaponProperties?.magicalAttackBonus || 0;
+
+  // Total attack bonus: ability modifier + proficiency (with penalty if not proficient) + weapon bonus
+  const attackBonus = abilityModifier + proficiencyBonus + weaponAttackBonus;
   const totalAttack = naturalRoll + attackBonus;
 
   // 4. Check for critical miss (natural 1)

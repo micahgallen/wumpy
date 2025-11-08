@@ -42,6 +42,8 @@ function calculateStatGains(player) {
 
 /**
  * Apply stat gains to a player
+ * CRITICAL FIX: Updates baseStats (not equipment-modified stats) for persistence
+ *
  * @param {Object} player - Player object
  * @param {Object} gains - Stat gains from calculateStatGains
  */
@@ -50,12 +52,50 @@ function applyStatGains(player, gains) {
     player.maxHp += gains.hp;
     player.hp += gains.hp; // Heal when leveling up
   }
-  if (gains.strength) player.strength += gains.strength;
-  if (gains.dexterity) player.dexterity += gains.dexterity;
-  if (gains.constitution) player.constitution += gains.constitution;
-  if (gains.intelligence) player.intelligence += gains.intelligence;
-  if (gains.wisdom) player.wisdom += gains.wisdom;
-  if (gains.charisma) player.charisma += gains.charisma;
+
+  // CRITICAL FIX: Initialize baseStats if not present (migration)
+  if (!player.baseStats) {
+    player.baseStats = {
+      strength: player.strength || 10,
+      dexterity: player.dexterity || 10,
+      constitution: player.constitution || 10,
+      intelligence: player.intelligence || 10,
+      wisdom: player.wisdom || 10,
+      charisma: player.charisma || 10
+    };
+  }
+
+  // CRITICAL FIX: Update baseStats (these persist to DB)
+  // Also update long-name properties for backwards compatibility with old systems
+  if (gains.strength) {
+    player.baseStats.strength += gains.strength;
+    player.strength += gains.strength;
+  }
+  if (gains.dexterity) {
+    player.baseStats.dexterity += gains.dexterity;
+    player.dexterity += gains.dexterity;
+  }
+  if (gains.constitution) {
+    player.baseStats.constitution += gains.constitution;
+    player.constitution += gains.constitution;
+  }
+  if (gains.intelligence) {
+    player.baseStats.intelligence += gains.intelligence;
+    player.intelligence += gains.intelligence;
+  }
+  if (gains.wisdom) {
+    player.baseStats.wisdom += gains.wisdom;
+    player.wisdom += gains.wisdom;
+  }
+  if (gains.charisma) {
+    player.baseStats.charisma += gains.charisma;
+    player.charisma += gains.charisma;
+  }
+
+  // After updating base stats, recalculate effective stats (base + equipment)
+  // This ensures short-name properties (str, dex, con) are updated properly
+  const EquipmentManager = require('../systems/equipment/EquipmentManager');
+  EquipmentManager.recalculatePlayerStats(player);
 }
 
 module.exports = { getModifier, getProficiencyBonus, calculateStatGains, applyStatGains };

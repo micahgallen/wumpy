@@ -46,7 +46,12 @@ const testEquipmentSet = [
       isTwoHanded: false,
       isRanged: false,
       isLight: true,
-      isFinesse: true
+      isFinesse: true,
+
+      // Non-magical weapon bonuses
+      magicalAttackBonus: 0,
+      magicalDamageBonus: 0,
+      versatileDamageDice: null
     }
   },
 
@@ -78,7 +83,12 @@ const testEquipmentSet = [
       isTwoHanded: false,
       isRanged: false,
       isLight: true,
-      isFinesse: true
+      isFinesse: true,
+
+      // Non-magical weapon bonuses
+      magicalAttackBonus: 0,
+      magicalDamageBonus: 0,
+      versatileDamageDice: null
     }
   },
 
@@ -109,6 +119,7 @@ const testEquipmentSet = [
       baseAC: 2,
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
+      maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: false
     }
   },
@@ -167,6 +178,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
+      maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     }
   },
@@ -198,6 +210,7 @@ const testEquipmentSet = [
       baseAC: 5,
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
+      maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: false
     }
   },
@@ -229,6 +242,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
+      maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     }
   },
@@ -260,6 +274,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.MEDIUM,
       armorType: 'medium',
+      maxDexBonus: 2,  // Medium armor: max +2 DEX bonus
       stealthDisadvantage: false
     }
   },
@@ -291,6 +306,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
+      maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     }
   },
@@ -322,6 +338,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
+      maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     }
   },
@@ -353,7 +370,9 @@ const testEquipmentSet = [
       baseAC: 3,
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
-      stealthDisadvantage: true
+      maxDexBonus: 0,  // Heavy armor: no DEX bonus
+      stealthDisadvantage: true,
+      strengthRequirement: 13
     }
   },
 
@@ -384,6 +403,7 @@ const testEquipmentSet = [
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
       armorType: 'light',
+      maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
       stealthDisadvantage: false
     }
   },
@@ -522,7 +542,9 @@ const testEquipmentSet = [
       baseAC: 3,
       armorClass: ArmorClass.HEAVY,
       armorType: 'heavy',
-      stealthDisadvantage: true
+      maxDexBonus: 0,  // Heavy armor: no DEX bonus
+      stealthDisadvantage: true,
+      strengthRequirement: 15
     }
   }
 ];

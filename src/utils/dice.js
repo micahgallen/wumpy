@@ -89,6 +89,7 @@ function rollDice(diceString) {
 
 /**
  * Roll damage dice with optional critical hit (doubles dice count)
+ * D&D 5e: Critical hits double the DICE rolled, NOT the modifiers
  * @param {string} damageDice - Damage dice notation (e.g., "1d6")
  * @param {boolean} isCritical - Whether this is a critical hit
  * @returns {number} Total damage (minimum 1)
@@ -101,12 +102,20 @@ function rollDamage(damageDice, isCritical = false) {
   }
 
   let total = 0;
-  const rollCount = isCritical ? parsed.count * 2 : parsed.count;
 
-  for (let i = 0; i < rollCount; i++) {
+  // Normal dice roll
+  for (let i = 0; i < parsed.count; i++) {
     total += rollDie(parsed.sides);
   }
 
+  // Critical: roll dice AGAIN (not the modifier)
+  if (isCritical) {
+    for (let i = 0; i < parsed.count; i++) {
+      total += rollDie(parsed.sides);
+    }
+  }
+
+  // Add modifier ONCE (not doubled on crit)
   total += parsed.modifier;
 
   // Minimum 1 damage (D&D 5e rule)

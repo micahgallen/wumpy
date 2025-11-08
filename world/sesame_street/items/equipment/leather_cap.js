@@ -32,6 +32,7 @@ module.exports = {
     baseAC: 1,
     armorClass: ArmorClass.LIGHT,
     armorType: 'light',
+    maxDexBonus: 999,  // Light armor: unlimited DEX bonus (999 = effectively no cap)
     stealthDisadvantage: false
   },
   durability: 100,

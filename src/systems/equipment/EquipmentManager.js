@@ -145,7 +145,7 @@ class EquipmentManager {
 
     logger.log(`Player ${player.username} equipped ${item.name} to ${targetSlot}`);
 
-    // Recalculate player stats with new equipment
+    // Recalculate player stats with new equipment (includes AC and HP)
     this.recalculatePlayerStats(player);
 
     // Collect warnings
@@ -159,7 +159,7 @@ class EquipmentManager {
 
     // Check armor strength requirement
     if (item.armorProperties && item.armorProperties.strengthRequirement) {
-      const playerStr = player.stats.strength || 10;
+      const playerStr = player.str || 10;
       if (playerStr < item.armorProperties.strengthRequirement) {
         warnings.push(`You struggle under the weight (requires ${item.armorProperties.strengthRequirement} STR, you have ${playerStr}).`);
       }
@@ -477,7 +477,9 @@ class EquipmentManager {
       baseAC = chestArmor.armorProperties.baseAC || 10;
       dexCap = chestArmor.getMaxDexBonus ? chestArmor.getMaxDexBonus() : Infinity;
 
-      if (chestArmor.isIdentified && chestArmor.armorProperties.magicalACBonus) {
+      // Check attunement before applying magical bonuses
+      const isAttuned = !chestArmor.requiresAttunement || chestArmor.isAttuned;
+      if (isAttuned && chestArmor.armorProperties.magicalACBonus) {
         magicalBonus += chestArmor.armorProperties.magicalACBonus;
       }
 
@@ -487,7 +489,7 @@ class EquipmentManager {
     }
 
     // Calculate DEX bonus (capped by armor)
-    const playerDex = player.stats.dexterity || 10;
+    const playerDex = player.dex || 10;
     const dexModifier = Math.floor((playerDex - 10) / 2);
     const cappedDexBonus = Math.max(0, Math.min(dexModifier, dexCap));
 
@@ -498,16 +500,29 @@ class EquipmentManager {
       }
     }
 
-    // Add magical bonuses from other armor pieces
+    // Add magical bonuses from other armor pieces (shields, jewelry with bonusAC)
     const equippedItems = this.getEquippedItems(player);
     for (const item of equippedItems) {
       if (item.instanceId === armorPiece?.instanceId) {
         continue; // Already counted
       }
 
-      if (item.armorProperties && item.isIdentified && item.armorProperties.magicalACBonus) {
+      // Check attunement requirement before applying bonuses
+      const isAttuned = !item.requiresAttunement || item.isAttuned;
+      if (!isAttuned) {
+        continue;
+      }
+
+      // Armor pieces with magical AC bonus
+      if (item.armorProperties && item.armorProperties.magicalACBonus) {
         magicalBonus += item.armorProperties.magicalACBonus;
         breakdown.push(`+${item.armorProperties.magicalACBonus} AC (${item.name})`);
+      }
+
+      // Jewelry with bonus AC (rings of protection)
+      if (item.bonusAC && item.bonusAC > 0) {
+        magicalBonus += item.bonusAC;
+        breakdown.push(`+${item.bonusAC} AC (${item.name})`);
       }
     }
 
@@ -675,7 +690,16 @@ class EquipmentManager {
 
     // Sum up stat bonuses from all equipped items
     for (const item of player.inventory) {
-      if (item.isEquipped && item.statModifiers) {
+      if (!item.isEquipped) continue;
+
+      // Check attunement requirement
+      // Items requiring attunement only provide bonuses when attuned
+      if (item.requiresAttunement && !item.isAttuned) {
+        continue;
+      }
+
+      // Apply stat bonuses
+      if (item.statModifiers) {
         for (const [stat, value] of Object.entries(item.statModifiers)) {
           if (bonuses.hasOwnProperty(stat)) {
             bonuses[stat] += value;
@@ -718,18 +742,76 @@ class EquipmentManager {
       charisma: player.baseStats.charisma + equipmentBonuses.charisma
     };
 
-    // Update individual properties for backward compatibility
-    player.strength = player.stats.strength;
-    player.dexterity = player.stats.dexterity;
-    player.constitution = player.stats.constitution;
-    player.intelligence = player.stats.intelligence;
-    player.wisdom = player.stats.wisdom;
-    player.charisma = player.stats.charisma;
+    // Update individual properties (using short names for combat system compatibility)
+    // Combat system uses: str, dex, con, int, wis, cha (see CombatStats.js:25-30)
+    player.str = player.stats.strength;
+    player.dex = player.stats.dexterity;
+    player.con = player.stats.constitution;
+    player.int = player.stats.intelligence;
+    player.wis = player.stats.wisdom;
+    player.cha = player.stats.charisma;
 
     // Store equipment bonuses for display
     player.equipmentBonuses = equipmentBonuses;
 
-    logger.log(`Recalculated ${player.username} stats: STR ${player.strength} (${equipmentBonuses.strength >= 0 ? '+' : ''}${equipmentBonuses.strength}), DEX ${player.dexterity} (${equipmentBonuses.dexterity >= 0 ? '+' : ''}${equipmentBonuses.dexterity}), CON ${player.constitution} (${equipmentBonuses.constitution >= 0 ? '+' : ''}${equipmentBonuses.constitution})`);
+    // Recalculate and update armor class
+    const acResult = this.calculateAC(player);
+    player.armorClass = acResult.totalAC;
+
+    // Update max HP based on CON modifier
+    const conModifier = Math.floor((player.con - 10) / 2);
+    const baseHp = 10 + (player.level - 1) * 5;
+    const newMaxHp = baseHp + (conModifier * player.level);
+
+    // Update max HP, but don't exceed current if it changed
+    if (newMaxHp !== player.maxHp) {
+      const hpPercent = player.currentHp / player.maxHp;
+      player.maxHp = newMaxHp;
+      player.currentHp = Math.min(Math.floor(newMaxHp * hpPercent), newMaxHp);
+    }
+
+    // Aggregate resistances from all equipped items
+    // D&D 5e: Resistances stack multiplicatively (e.g., 0.8 * 0.8 = 0.64 = 36% reduction)
+    // Cap at 75% resistance (0.25 multiplier minimum) per D&D 5e rules
+    const resistances = {
+      physical: 1.0,
+      fire: 1.0,
+      ice: 1.0,
+      lightning: 1.0,
+      poison: 1.0,
+      necrotic: 1.0,
+      radiant: 1.0,
+      psychic: 1.0
+    };
+
+    for (const item of player.inventory) {
+      if (item.isEquipped && item.resistances) {
+        for (const [dmgType, multiplier] of Object.entries(item.resistances)) {
+          if (resistances.hasOwnProperty(dmgType)) {
+            // Stack multiplicatively (e.g., two 20% resist items = 0.8 * 0.8 = 0.64 = 36% resist)
+            resistances[dmgType] *= multiplier;
+
+            // Cap at 75% resistance (0.25 multiplier) per D&D 5e balance
+            resistances[dmgType] = Math.max(0.25, resistances[dmgType]);
+          }
+        }
+      }
+    }
+
+    player.resistances = resistances;
+
+    // Log resistance changes for debugging
+    const activeResistances = Object.entries(resistances)
+      .filter(([type, mult]) => mult < 1.0)
+      .map(([type, mult]) => `${type}: ${Math.round((1-mult)*100)}%`);
+
+    logger.log(`Recalculated ${player.username} stats: STR ${player.str} (${equipmentBonuses.strength >= 0 ? '+' : ''}${equipmentBonuses.strength}), DEX ${player.dex} (${equipmentBonuses.dexterity >= 0 ? '+' : ''}${equipmentBonuses.dexterity}), CON ${player.con} (${equipmentBonuses.constitution >= 0 ? '+' : ''}${equipmentBonuses.constitution}), AC ${player.armorClass}, MaxHP ${player.maxHp}${activeResistances.length > 0 ? `, Resist: ${activeResistances.join(', ')}` : ''}`);
+
+    // CRITICAL FIX: Save player state to database after stat changes
+    // This ensures equipment bonuses and stat changes persist across server restarts
+    if (playerDB && typeof playerDB.savePlayer === 'function') {
+      playerDB.savePlayer(player);
+    }
   }
 }
 

@@ -407,6 +407,10 @@ async function addlevelCommand(player, args, context) {
         levelUp(targetPlayer, playerDB);
       }
 
+      // CRITICAL FIX: Ensure final state is saved after all level-ups
+      // levelUp() calls updatePlayerLevel but not savePlayer (which saves stats)
+      playerDB.savePlayer(targetPlayer);
+
       targetPlayer.send('\n' + colors.success(`\n=== Your level has been increased ===\n`));
       targetPlayer.send(colors.success(`Old level: ${oldLevel}\n`));
       targetPlayer.send(colors.success(`New level: ${newLevel}\n`));
@@ -433,9 +437,8 @@ async function addlevelCommand(player, args, context) {
       // Update proficiency
       targetPlayer.proficiency = getProficiencyBonus(newLevel);
 
-      // Update database
-      playerDB.updatePlayerLevel(targetPlayer.username, newLevel, targetPlayer.maxHp, targetPlayer.hp);
-      playerDB.updatePlayerXP(targetPlayer.username, targetPlayer.xp);
+      // Update database (use savePlayer for comprehensive save)
+      playerDB.savePlayer(targetPlayer);
 
       targetPlayer.send('\n' + colors.warning(`\n=== Your level has been reduced ===\n`));
       targetPlayer.send(colors.warning(`Old level: ${oldLevel}\n`));

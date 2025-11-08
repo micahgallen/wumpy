@@ -55,6 +55,97 @@ class PlayerDB {
   }
 
   /**
+   * Save a single player's current state to database
+   * CRITICAL: This method ensures stat persistence across server restarts
+   *
+   * @param {Object} player - Player object from active session
+   *
+   * How stat persistence works:
+   * - baseStats: Stored in DB (long names: strength, dexterity, etc.)
+   * - Runtime stats: Calculated from baseStats + equipment bonuses
+   * - Short names (str, dex, con): Runtime only, NOT saved to DB
+   *
+   * When saving:
+   * 1. Update stats (long names) from baseStats for persistence
+   * 2. Update baseStats separately for new system compatibility
+   * 3. Save to disk
+   *
+   * When loading (see authenticate()):
+   * 1. Load stats (long names) from DB
+   * 2. Initialize baseStats from stats if missing
+   * 3. Initialize short names (str, dex, con) from stats
+   * 4. Recalculate with equipment bonuses
+   */
+  savePlayer(player) {
+    if (!player || !player.username) {
+      console.error('savePlayer: Invalid player object');
+      return;
+    }
+
+    const lowerUsername = player.username.toLowerCase();
+
+    if (!this.players[lowerUsername]) {
+      console.error(`savePlayer: Player ${player.username} not found in database`);
+      return;
+    }
+
+    // Update the stored player data with current session values
+    const stored = this.players[lowerUsername];
+
+    // Save core progression data
+    stored.level = player.level;
+    stored.xp = player.xp || player.currentXp || 0; // Support both property names
+    stored.hp = player.currentHp || player.hp;
+    stored.maxHp = player.maxHp;
+
+    // Save location and state
+    stored.currentRoom = player.currentRoom;
+    stored.description = player.description;
+    stored.isGhost = player.isGhost || false;
+
+    // Save inventory (already handled by separate method, but ensure it's set)
+    if (player.inventory) {
+      stored.inventory = player.inventory;
+    }
+
+    // Save currency wallet
+    if (player.currency) {
+      stored.currency = { ...player.currency };
+    }
+
+    // CRITICAL: Save base stats (not equipment-modified stats)
+    // Save to BOTH formats for backwards compatibility and new system
+
+    // 1. Save to long-name format (for persistence)
+    stored.stats = {
+      strength: player.baseStats?.strength || player.str || 10,
+      dexterity: player.baseStats?.dexterity || player.dex || 10,
+      constitution: player.baseStats?.constitution || player.con || 10,
+      intelligence: player.baseStats?.intelligence || player.int || 10,
+      wisdom: player.baseStats?.wisdom || player.wis || 10,
+      charisma: player.baseStats?.charisma || player.cha || 10
+    };
+
+    // 2. Save baseStats explicitly (new system)
+    if (player.baseStats) {
+      stored.baseStats = { ...player.baseStats };
+    } else {
+      // Migration: If baseStats doesn't exist, create it from stats
+      stored.baseStats = { ...stored.stats };
+    }
+
+    // Save resistances (already aggregated from equipment by EquipmentManager)
+    if (player.resistances) {
+      stored.resistances = { ...player.resistances };
+    }
+
+    // Save to disk
+    this.save();
+
+    console.log(`Saved player state: ${player.username} (Level ${player.level}, HP ${stored.hp}/${stored.maxHp}, STR ${stored.stats.strength})`);
+  }
+
+  /**
    * Hash a password using SHA-256
    * @param {string} password - Plain text password
    * @returns {string} Hexadecimal hash
@@ -168,6 +259,29 @@ class PlayerDB {
             copper: 100 // Backwards compat: give existing players starting money
         };
     }
+
+    // CRITICAL FIX: Initialize baseStats if not present (new system for equipment bonuses)
+    // This ensures base stats are tracked separately from equipment-modified stats
+    if (!playerData.baseStats) {
+        playerData.baseStats = {
+            strength: playerData.stats?.strength || 10,
+            dexterity: playerData.stats?.dexterity || 10,
+            constitution: playerData.stats?.constitution || 10,
+            intelligence: playerData.stats?.intelligence || 10,
+            wisdom: playerData.stats?.wisdom || 10,
+            charisma: playerData.stats?.charisma || 10
+        };
+    }
+
+    // CRITICAL FIX: Initialize short-name properties for combat system compatibility
+    // Combat system uses: str, dex, con, int, wis, cha (see CombatStats.js and EquipmentManager.js)
+    // These will be recalculated with equipment bonuses during session initialization
+    playerData.str = playerData.stats?.strength || 10;
+    playerData.dex = playerData.stats?.dexterity || 10;
+    playerData.con = playerData.stats?.constitution || 10;
+    playerData.int = playerData.stats?.intelligence || 10;
+    playerData.wis = playerData.stats?.wisdom || 10;
+    playerData.cha = playerData.stats?.charisma || 10;
 
     return playerData;
   }

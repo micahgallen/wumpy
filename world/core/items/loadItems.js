@@ -7,6 +7,8 @@
 const ItemRegistry = require('../../../src/items/ItemRegistry');
 const sampleItems = require('./sampleItems');
 const testEquipmentSet = require('./testEquipmentSet');
+const magicalWeapons = require('./magicalWeapons');
+const magicalArmor = require('./magicalArmor');
 const logger = require('../../../src/logger');
 
 /**
@@ -36,6 +38,28 @@ function loadCoreItems() {
       successCount++;
     } catch (error) {
       logger.error(`Failed to register item ${itemDef.id}: ${error.message}`);
+      errorCount++;
+    }
+  }
+
+  // Load magical weapons
+  for (const itemDef of magicalWeapons) {
+    try {
+      ItemRegistry.registerItem(itemDef, 'core');
+      successCount++;
+    } catch (error) {
+      logger.error(`Failed to register magical weapon ${itemDef.id}: ${error.message}`);
+      errorCount++;
+    }
+  }
+
+  // Load magical armor
+  for (const itemDef of magicalArmor) {
+    try {
+      ItemRegistry.registerItem(itemDef, 'core');
+      successCount++;
+    } catch (error) {
+      logger.error(`Failed to register magical armor ${itemDef.id}: ${error.message}`);
       errorCount++;
     }
   }

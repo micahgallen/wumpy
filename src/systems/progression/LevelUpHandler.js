@@ -22,7 +22,8 @@ function checkAndApplyLevelUp(player, options = {}) {
   const {
     guildHook = null,        // Guild level-up hook (optional)
     messageFn = null,        // Function to send messages to player
-    broadcastFn = null       // Function to broadcast to room
+    broadcastFn = null,      // Function to broadcast to room
+    playerDB = null          // PlayerDB instance for persistence
   } = options;
 
   const results = {
@@ -80,6 +81,11 @@ function checkAndApplyLevelUp(player, options = {}) {
     }
   }
 
+  // CRITICAL FIX: Save player state after all level-ups complete
+  if (results.leveledUp && playerDB && typeof playerDB.savePlayer === 'function') {
+    playerDB.savePlayer(player);
+  }
+
   return results;
 }
 
@@ -103,8 +109,15 @@ function applyLevelUp(player, guildHook = null) {
   // 1. Increment level
   player.level++;
 
-  // 2. Increase Max HP by 5
-  player.maxHp += 5;
+  // 2. Increase Max HP based on CON modifier (D&D 5e: Hit Die avg + CON mod per level)
+  // Note: EquipmentManager.recalculatePlayerStats() will be called after to ensure
+  // retroactive HP calculation if CON changes from equipment bonuses
+  const conModifier = Math.floor((player.con - 10) / 2);
+  const hpGain = 5 + conModifier;  // 5 (hit die average) + CON modifier
+  player.maxHp += hpGain;
+
+  // Store HP gain for logging
+  result.hpGain = hpGain;
 
   // 3. Full heal
   player.currentHp = player.maxHp;
@@ -112,7 +125,12 @@ function applyLevelUp(player, guildHook = null) {
   // 4. Update proficiency bonus
   player.proficiency = calculateProficiency(player.level);
 
-  // 5. Check for stat choice (every 4th level)
+  // 5. Recalculate all equipment-dependent stats after proficiency changes
+  // This ensures AC, HP (retroactive CON calc), and attack bonuses are current
+  const EquipmentManager = require('../equipment/EquipmentManager');
+  EquipmentManager.recalculatePlayerStats(player);
+
+  // 6. Check for stat choice (every 4th level)
   if (player.level % 4 === 0) {
     result.needsStatChoice = true;
 
@@ -127,7 +145,7 @@ function applyLevelUp(player, guildHook = null) {
     }
   }
 
-  // 6. Apply guild-specific bonuses
+  // 7. Apply guild-specific bonuses
   if (guildHook && typeof guildHook.applyLevelUpBonuses === 'function') {
     const bonuses = guildHook.applyLevelUpBonuses(player);
     if (bonuses && bonuses.length > 0) {
@@ -135,10 +153,16 @@ function applyLevelUp(player, guildHook = null) {
     }
   }
 
-  // 7. Grant guild abilities at specific levels
+  // 8. Grant guild abilities at specific levels
   if (guildHook && typeof guildHook.grantAbilities === 'function') {
     guildHook.grantAbilities(player);
   }
+
+  // 9. CRITICAL FIX: Save player state to database after level-up
+  // This ensures level, HP, stats, and proficiency changes persist
+  // Note: playerDB must be passed via options or available in scope
+  // For now, we'll handle this in the calling code (admin commands, XP handlers)
+  // See checkAndApplyLevelUp for playerDB integration
 
   return result;
 }
@@ -161,22 +185,53 @@ function applyStatIncrease(player, statName) {
     };
   }
 
-  const oldValue = player[statName];
-  player[statName]++;
+  // Map short names to baseStats properties
+  const statMap = {
+    str: 'strength',
+    dex: 'dexterity',
+    con: 'constitution',
+    int: 'intelligence',
+    wis: 'wisdom',
+    cha: 'charisma'
+  };
 
-  // Recalculate AC if DEX was increased
-  if (statName === 'dex') {
-    const { calculateArmorClass, getModifier } = require('../../utils/modifiers');
-    const armorBonus = player.equippedArmor ? player.equippedArmor.armorBonus : 0;
-    player.armorClass = calculateArmorClass(player.dex, armorBonus);
+  const fullStatName = statMap[statName];
+  if (!fullStatName) {
+    return {
+      success: false,
+      error: `Invalid stat name: ${statName}`
+    };
   }
+
+  // Initialize baseStats if not present (backward compatibility)
+  if (!player.baseStats) {
+    const EquipmentManager = require('../equipment/EquipmentManager');
+    EquipmentManager.recalculatePlayerStats(player);
+  }
+
+  const oldBaseValue = player.baseStats[fullStatName];
+  const oldEffectiveValue = player[statName];
+
+  // Increase the BASE stat (not the effective stat)
+  player.baseStats[fullStatName]++;
+
+  // Recalculate ALL stats (including equipment bonuses, AC, HP)
+  const EquipmentManager = require('../equipment/EquipmentManager');
+  EquipmentManager.recalculatePlayerStats(player);
+
+  const newBaseValue = player.baseStats[fullStatName];
+  const newEffectiveValue = player[statName];
 
   return {
     success: true,
-    statName,
-    oldValue,
-    newValue: player[statName],
-    message: `${statName.toUpperCase()} increased: ${oldValue} -> ${player[statName]}`
+    statName: fullStatName,
+    shortName: statName,
+    oldBaseValue,
+    newBaseValue,
+    oldEffectiveValue,
+    newEffectiveValue,
+    equipmentBonus: newEffectiveValue - newBaseValue,
+    message: `${statName.toUpperCase()} increased: ${oldBaseValue} -> ${newBaseValue} (${newEffectiveValue} with equipment)`
   };
 }
 

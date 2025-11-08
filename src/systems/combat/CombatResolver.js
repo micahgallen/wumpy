@@ -8,10 +8,13 @@
 
 const CombatRegistry = require('./CombatRegistry');
 const { resolveAttackRoll, formatAttackMessage, tickStatusEffects } = require('./AttackRoll');
-const { resolveAttackDamage, formatDamageMessage } = require('./DamageCalculator');
+const { resolveAttackDamage, resolveOffHandDamage, formatDamageMessage } = require('./DamageCalculator');
 const { isAlive } = require('../../data/CombatStats');
 const { rollD20 } = require('../../utils/dice');
 const { getModifier } = require('../../utils/modifiers');
+const EquipmentManager = require('../equipment/EquipmentManager');
+const MagicEffectProcessor = require('../equipment/MagicEffectProcessor');
+const { ItemType } = require('../../items/schemas/ItemTypes');
 
 // Phase 2: XP and Leveling imports
 const { recordDamageDealt, initializeDamageTracking } = require('../progression/XpDistribution');
@@ -22,6 +25,7 @@ const { getPlayerGuildHook } = require('../progression/GuildHooks');
 /**
  * Resolve a complete attack from attacker to defender
  * Phase 2: Now records damage dealt for XP distribution
+ * Phase 4: Now processes magical effects (on_hit triggers)
  *
  * @param {Object} attacker - Attacking entity
  * @param {Object} defender - Defending entity
@@ -40,10 +44,44 @@ function resolveAttack(attacker, defender, combat) {
   // 1. Roll attack
   const attackResult = resolveAttackRoll(attacker, defender, attackerParticipant, defenderParticipant);
 
-  // 2. Calculate and apply damage
+  // 2. Calculate and apply base damage
   const fullResult = resolveAttackDamage(attacker, defender, attackResult);
 
-  // 3. Record damage dealt for XP distribution (Phase 2)
+  // 3. Process magical on-hit effects (Phase 4)
+  if (fullResult.hit && attacker.inventory) {
+    const magicEffects = MagicEffectProcessor.processOnHitEffects(
+      attacker,
+      defender,
+      attackResult,
+      combat
+    );
+
+    // Add magical extra damage to total
+    if (magicEffects.totalExtraDamage > 0) {
+      fullResult.damage += magicEffects.totalExtraDamage;
+
+      // Apply extra damage to target
+      const previousHp = defender.currentHp;
+      defender.currentHp = Math.max(0, defender.currentHp - magicEffects.totalExtraDamage);
+
+      // Update damage breakdown
+      if (fullResult.damageBreakdown) {
+        fullResult.damageBreakdown.magicEffectDamage = magicEffects.totalExtraDamage;
+        fullResult.damageBreakdown.finalDamage = fullResult.damage;
+      }
+
+      // Check if magical damage killed target
+      if (defender.currentHp <= 0 && previousHp > 0) {
+        fullResult.targetDied = true;
+      }
+    }
+
+    // Store magic effects in result (includes messages to broadcast later)
+    fullResult.magicEffects = magicEffects.effects;
+    fullResult.magicEffectMessages = magicEffects.messages;
+  }
+
+  // 4. Record total damage dealt for XP distribution (Phase 2)
   if (fullResult.hit && fullResult.damage > 0) {
     recordDamageDealt(combat, attacker.id, fullResult.damage);
   }
@@ -115,6 +153,15 @@ function processCombatRound(combat, getEntityFn, messageFn) {
       continue; // Skip dead or missing entities
     }
 
+    // Process start-of-turn magical effects (Phase 4)
+    if (attacker.inventory) {
+      const startEffects = MagicEffectProcessor.processStartOfTurnEffects(attacker, combat);
+      // Broadcast start-of-turn effect messages
+      for (const message of startEffects.messages) {
+        broadcastToCombat(combat, message, messageFn, getEntityFn);
+      }
+    }
+
     // Find a valid target (first alive opponent)
     const target = findTarget(participant, combat.participants, getEntityFn);
 
@@ -122,7 +169,7 @@ function processCombatRound(combat, getEntityFn, messageFn) {
       continue; // No valid targets
     }
 
-    // Execute attack
+    // Execute main hand attack
     const attackResult = resolveAttack(attacker, target, combat);
 
     if (attackResult) {
@@ -142,11 +189,75 @@ function processCombatRound(combat, getEntityFn, messageFn) {
         broadcastToCombat(combat, damageMsg, messageFn, getEntityFn);
       }
 
+      // Broadcast magic effect messages (Phase 4)
+      if (attackResult.magicEffectMessages) {
+        for (const message of attackResult.magicEffectMessages) {
+          broadcastToCombat(combat, message, messageFn, getEntityFn);
+        }
+      }
+
       // Check for death
       if (attackResult.targetDied) {
         results.deaths.push(target.id);
         const deathMsg = `${target.username || target.name} has been defeated!`;
         broadcastToCombat(combat, deathMsg, messageFn, getEntityFn);
+      }
+    }
+
+    // D&D 5e: Dual-Wielding - Check for off-hand attack
+    // Both weapons must be light, attack uses bonus action
+    if (isAlive(target)) {
+      const mainWeapon = EquipmentManager.getEquippedInSlot(attacker, 'main_hand');
+      const offHandWeapon = EquipmentManager.getEquippedInSlot(attacker, 'off_hand');
+
+      // Check if dual-wielding light weapons
+      if (offHandWeapon &&
+          offHandWeapon.itemType === ItemType.WEAPON &&
+          mainWeapon?.weaponProperties?.isLight &&
+          offHandWeapon.weaponProperties.isLight) {
+
+        // Broadcast off-hand attack
+        const attackerName = attacker.username || attacker.name;
+        const weaponName = offHandWeapon.name || 'weapon';
+        broadcastToCombat(combat, `${attackerName} strikes with their off-hand ${weaponName}!`, messageFn, getEntityFn);
+
+        // Roll off-hand attack (uses same attack bonus as main hand)
+        const attackerParticipant = CombatRegistry.getParticipant(combat.id, attacker.id);
+        const defenderParticipant = CombatRegistry.getParticipant(combat.id, target.id);
+
+        const offHandAttackRoll = resolveAttackRoll(attacker, target, attackerParticipant, defenderParticipant);
+
+        // Resolve off-hand damage (no ability modifier per D&D 5e)
+        const offHandResult = resolveOffHandDamage(attacker, target, offHandAttackRoll, offHandWeapon);
+
+        if (offHandResult) {
+          results.actions.push({
+            attackerId: attacker.id,
+            targetId: target.id,
+            result: offHandResult,
+            isOffHand: true
+          });
+
+          // Send off-hand attack message
+          const offHandAttackMsg = formatAttackMessage(attacker, target, offHandResult);
+          broadcastToCombat(combat, offHandAttackMsg, messageFn, getEntityFn);
+
+          // Send damage message if hit
+          if (offHandResult.hit && offHandResult.damage > 0) {
+            const damageMsg = formatDamageMessage(target, offHandResult.damageBreakdown);
+            broadcastToCombat(combat, damageMsg, messageFn, getEntityFn);
+
+            // Record off-hand damage for XP
+            recordDamageDealt(combat, attacker.id, offHandResult.damage);
+          }
+
+          // Check for death from off-hand attack
+          if (offHandResult.targetDied) {
+            results.deaths.push(target.id);
+            const deathMsg = `${target.username || target.name} has been defeated!`;
+            broadcastToCombat(combat, deathMsg, messageFn, getEntityFn);
+          }
+        }
       }
     }
   }

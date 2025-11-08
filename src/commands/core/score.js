@@ -70,8 +70,8 @@ function execute(player, args, context) {
     };
 
     const bonuses = player.equipmentBonuses || {};
-    output.push(`  ${colors.dim('STR:')} ${formatStat('strength', player.strength, bonuses)}  ${colors.dim('DEX:')} ${formatStat('dexterity', player.dexterity, bonuses)}  ${colors.dim('CON:')} ${formatStat('constitution', player.constitution, bonuses)}`);
-    output.push(`  ${colors.dim('INT:')} ${formatStat('intelligence', player.intelligence, bonuses)}  ${colors.dim('WIS:')} ${formatStat('wisdom', player.wisdom, bonuses)}  ${colors.dim('CHA:')} ${formatStat('charisma', player.charisma, bonuses)}`);
+    output.push(`  ${colors.dim('STR:')} ${formatStat('strength', player.str, bonuses)}  ${colors.dim('DEX:')} ${formatStat('dexterity', player.dex, bonuses)}  ${colors.dim('CON:')} ${formatStat('constitution', player.con, bonuses)}`);
+    output.push(`  ${colors.dim('INT:')} ${formatStat('intelligence', player.int, bonuses)}  ${colors.dim('WIS:')} ${formatStat('wisdom', player.wis, bonuses)}  ${colors.dim('CHA:')} ${formatStat('charisma', player.cha, bonuses)}`);
 
     // Show ghost status prominently if applicable
     if (player.isGhost) {

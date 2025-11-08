@@ -6,9 +6,11 @@
  */
 
 const { rollDamage } = require('../../utils/dice');
-const { applyDamageMultiplier } = require('../../utils/modifiers');
+const { applyDamageMultiplier, getModifier } = require('../../utils/modifiers');
 const { applyDamage: applyDamageToStats } = require('../../data/CombatStats');
 const { getResistanceMultiplier } = require('../../data/CombatStats');
+const EquipmentManager = require('../equipment/EquipmentManager');
+const { ItemType, DamageType } = require('../../items/schemas/ItemTypes');
 
 /**
  * Calculate damage for an attack
@@ -62,6 +64,68 @@ function applyDamageToTarget(target, damage, damageType) {
 }
 
 /**
+ * Resolve off-hand attack damage (D&D 5e: no ability modifier)
+ * @param {Object} attacker - Attacking entity
+ * @param {Object} target - Target entity
+ * @param {Object} attackResult - Result from resolveAttackRoll
+ * @param {Object} offHandWeapon - Off-hand weapon
+ * @returns {Object} Complete attack result with damage
+ */
+function resolveOffHandDamage(attacker, target, attackResult, offHandWeapon) {
+  // If attack missed or fumbled, no damage
+  if (!attackResult.hit || attackResult.fumble) {
+    return {
+      ...attackResult,
+      damage: 0,
+      damageBreakdown: null
+    };
+  }
+
+  // Get weapon properties
+  const weaponProps = offHandWeapon.weaponProperties;
+  const damageDice = weaponProps.damageDice;
+  const damageType = weaponProps.damageType;
+  const weaponBonus = weaponProps.magicalDamageBonus || 0;
+
+  // D&D 5e: Off-hand attack does NOT add ability modifier to damage
+  // (unless character has Two-Weapon Fighting feature, which we don't implement yet)
+  const abilityModifier = 0;
+
+  // Calculate damage (dice + weapon bonus only, no ability modifier)
+  const damageResult = calculateDamage(
+    damageDice,
+    attackResult.critical,
+    damageType,
+    target
+  );
+
+  // Add weapon bonus only (no ability modifier per D&D 5e)
+  // Minimum 1 damage if attack hits (per D&D 5e rules)
+  const totalDamage = Math.max(1, damageResult.finalDamage + weaponBonus);
+
+  // Apply damage to target
+  const applicationResult = applyDamageToTarget(
+    target,
+    totalDamage,
+    damageType
+  );
+
+  // Return complete result
+  return {
+    ...attackResult,
+    damage: totalDamage,
+    damageBreakdown: {
+      ...damageResult,
+      abilityModifier: 0, // Off-hand gets no ability modifier per D&D 5e
+      weaponBonus,
+      finalDamage: totalDamage
+    },
+    hpChange: applicationResult,
+    targetDied: applicationResult.died
+  };
+}
+
+/**
  * Resolve a complete attack with damage
  * @param {Object} attacker - Attacking entity
  * @param {Object} target - Target entity
@@ -78,32 +142,76 @@ function resolveAttackDamage(attacker, target, attackResult) {
     };
   }
 
-  // Get weapon damage
-  const weapon = attacker.currentWeapon || {
-    damageDice: '1d4',
-    damageType: 'physical'
-  };
+  // Get equipped weapon from EquipmentManager (replaces legacy currentWeapon)
+  const weapon = EquipmentManager.getEquippedInSlot(attacker, 'main_hand');
+  const offHand = EquipmentManager.getEquippedInSlot(attacker, 'off_hand');
+
+  let damageDice, damageType, weaponBonus;
+
+  if (!weapon || weapon.itemType !== ItemType.WEAPON) {
+    // Unarmed strike (D&D 5e: 1 + STR modifier bludgeoning damage)
+    damageDice = '1d4';
+    damageType = DamageType.BLUDGEONING;
+    weaponBonus = 0;
+  } else {
+    // Get weapon properties
+    const weaponProps = weapon.weaponProperties;
+
+    // Check for versatile weapon wielded two-handed
+    if (weaponProps.versatileDamageDice && !offHand) {
+      damageDice = weaponProps.versatileDamageDice;
+    } else {
+      damageDice = weaponProps.damageDice;
+    }
+
+    damageType = weaponProps.damageType;
+    weaponBonus = weaponProps.magicalDamageBonus || 0;
+  }
+
+  // Calculate ability modifier for damage
+  let abilityModifier;
+  if (weapon?.weaponProperties?.isFinesse) {
+    // Finesse: use higher of STR or DEX
+    const strMod = getModifier(attacker.str);
+    const dexMod = getModifier(attacker.dex);
+    abilityModifier = Math.max(strMod, dexMod);
+  } else if (weapon?.weaponProperties?.isRanged) {
+    // Ranged: always DEX
+    abilityModifier = getModifier(attacker.dex);
+  } else {
+    // Melee: STR
+    abilityModifier = getModifier(attacker.str);
+  }
 
   // Calculate damage
   const damageResult = calculateDamage(
-    weapon.damageDice,
+    damageDice,
     attackResult.critical,
-    weapon.damageType,
+    damageType,
     target
   );
+
+  // Add ability modifier and weapon bonus (D&D 5e: added once, not doubled on crit)
+  // Minimum 1 damage if attack hits (negative modifiers can't reduce to 0)
+  const totalDamage = Math.max(1, damageResult.finalDamage + abilityModifier + weaponBonus);
 
   // Apply damage to target
   const applicationResult = applyDamageToTarget(
     target,
-    damageResult.finalDamage,
-    weapon.damageType
+    totalDamage,
+    damageType
   );
 
   // Return complete result
   return {
     ...attackResult,
-    damage: damageResult.finalDamage,
-    damageBreakdown: damageResult,
+    damage: totalDamage,
+    damageBreakdown: {
+      ...damageResult,
+      abilityModifier,
+      weaponBonus,
+      finalDamage: totalDamage
+    },
     hpChange: applicationResult,
     targetDied: applicationResult.died
   };
@@ -167,6 +275,7 @@ module.exports = {
   calculateDamage,
   applyDamageToTarget,
   resolveAttackDamage,
+  resolveOffHandDamage,
   formatDamageMessage,
   sumDamage,
   getDamageEffectiveness
