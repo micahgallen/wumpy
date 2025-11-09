@@ -121,9 +121,9 @@ function getDamageDice(attacker, hand = 'main_hand') {
     };
   }
 
-  // Unarmed damage: 1d1 (always rolls 1, per design doc)
+  // Unarmed damage: 1d3 + STR modifier
   return {
-    damageDice: '1d1',
+    damageDice: '1d3',
     weapon: null,
     isVersatile: false
   };
