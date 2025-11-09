@@ -274,7 +274,7 @@ class CorpseManager {
       }
 
       // Clear player currency
-      const CurrencyManager = require('../currency/CurrencyManager');
+      const CurrencyManager = require('../economy/CurrencyManager');
       player.currency = CurrencyManager.createWallet();
 
       // Add to room.items
