@@ -327,6 +327,9 @@ class CorpseManager {
       if (remaining <= 0) {
         logger.log(`Corpse ${corpseData.id} expired during downtime, decaying immediately`);
 
+        // Remove from room if it still exists there
+        this.removeCorpseFromRoom(corpseData.id, corpseData.spawnLocation, world);
+
         // Emit decay event for respawn system
         this.emit('corpseDecayed', {
           npcId: corpseData.npcId,
@@ -335,7 +338,7 @@ class CorpseManager {
           corpseId: corpseData.id
         });
 
-        // Don't restore expired corpses
+        // Don't restore expired corpses to memory
         continue;
       }
 
