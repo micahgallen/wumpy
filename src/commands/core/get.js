@@ -139,7 +139,6 @@ function executeGetFromContainer(player, args, context, fromIndex) {
   itemInstance.location = { type: 'inventory', owner: player.username };
 
   // Call onPickup hook (handles currency conversion, etc.)
-  const room = world.getRoom(player.currentRoom);
   const pickupResult = itemInstance.onPickup(player, room);
 
   // Handle both old boolean return and new object return
