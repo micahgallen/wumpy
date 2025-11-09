@@ -48,19 +48,16 @@ function execute(player, args, context) {
     return;
   }
 
-  // Additional validation for consumables
-  if (item.itemType === 'consumable') {
-    // Can't consume while dead
-    if (player.hp <= 0 || player.isGhost) {
-      player.send('\n' + colors.error('You cannot consume items while dead.\n'));
-      return;
-    }
+  // Can't consume while dead
+  if (player.hp <= 0 || player.isGhost) {
+    player.send('\n' + colors.error('You cannot consume items while dead.\n'));
+    return;
+  }
 
-    // Optional: Warn if healing at full health
-    if (item.consumableProperties?.healAmount && player.hp >= player.maxHp) {
-      player.send('\n' + colors.warning('You are already at full health, but you consume it anyway.\n'));
-      // Don't return - allow consumption, just warn
-    }
+  // Warn if healing at full health
+  if (item.consumableProperties?.healAmount && player.hp >= player.maxHp) {
+    player.send('\n' + colors.warning('You are already at full health, but you consume it anyway.\n'));
+    // Don't return - allow consumption, just warn
   }
 
   // Build context for the use action
@@ -80,7 +77,7 @@ function execute(player, args, context) {
   }
 
   // Notify others in the room about the consumption
-  if (success && context.world && context.allPlayers && player.currentRoom && item.itemType === 'consumable') {
+  if (success && context.world && context.allPlayers && player.currentRoom) {
     const consumableType = item.consumableProperties?.consumableType;
     let action = 'uses';
 
@@ -111,7 +108,7 @@ function execute(player, args, context) {
 
   // Check if item was fully consumed (quantity reached 0)
   // Note: ConsumableMixin.consume() already reduced the quantity
-  if (item.itemType === 'consumable' && item.quantity <= 0) {
+  if (item.quantity <= 0) {
     // Remove the item from inventory since it's fully consumed
     const removedItem = InventoryManager.removeItem(player, item.instanceId);
 
@@ -122,7 +119,7 @@ function execute(player, args, context) {
   }
 
   // Save inventory after consuming item (quantity changed or item removed)
-  if (item.itemType === 'consumable' && context.playerDB) {
+  if (context.playerDB) {
     const serialized = InventorySerializer.serializeInventory(player);
     context.playerDB.updatePlayerInventory(player.username, serialized);
   }
