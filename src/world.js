@@ -334,6 +334,28 @@ class World {
     const exit = room.exits.find(e => e.direction.toLowerCase() === direction.toLowerCase());
     return exit ? exit.room : null;
   }
+
+  /**
+   * Send a message to all players in a room
+   * @param {string} roomId - Room ID to send message to
+   * @param {string} message - Message to send
+   * @param {Array<string>} excludeUsernames - Array of usernames to exclude (optional)
+   * @param {Set} allPlayers - Set of all connected players
+   */
+  sendToRoom(roomId, message, excludeUsernames = [], allPlayers) {
+    if (!allPlayers || !roomId) {
+      return;
+    }
+
+    for (const player of allPlayers) {
+      if (player.currentRoom === roomId && !excludeUsernames.includes(player.username)) {
+        player.send(message);
+        if (player.sendPrompt) {
+          player.sendPrompt();
+        }
+      }
+    }
+  }
 }
 
 module.exports = World;

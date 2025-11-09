@@ -80,7 +80,7 @@ function execute(player, args, context) {
   }
 
   // Notify others in the room about the consumption
-  if (success && context.allPlayers && player.currentRoom && item.itemType === 'consumable') {
+  if (success && context.world && context.allPlayers && player.currentRoom && item.itemType === 'consumable') {
     const consumableType = item.consumableProperties?.consumableType;
     let action = 'uses';
 
@@ -97,13 +97,13 @@ function execute(player, args, context) {
         break;
     }
 
-    // Broadcast to others in the room
-    for (const p of context.allPlayers) {
-      if (p.currentRoom === player.currentRoom && p.username !== player.username) {
-        p.send(`\n${player.username} ${action} ${item.name}.\n`);
-        p.sendPrompt();
-      }
-    }
+    // Broadcast to others in the room using sendToRoom for consistency and efficiency
+    context.world.sendToRoom(
+      player.currentRoom,
+      `\n${player.username} ${action} ${item.name}.\n`,
+      [player.username],
+      context.allPlayers
+    );
   }
 
   // Log the use

@@ -35,8 +35,8 @@ function createMockPlayer(name = 'TestPlayer') {
 function createMockContext() {
   return {
     world: {
-      sendToRoom: function(room, message, excludePlayer) {
-        console.log(`[ROOM ${room}] (excluding ${excludePlayer}):`, message.replace(/\n/g, ' ').trim());
+      sendToRoom: function(room, message, excludePlayers = [], allPlayers) {
+        console.log(`[ROOM ${room}] (excluding [${excludePlayers.join(', ')}]):`, message.replace(/\n/g, ' ').trim());
       }
     },
     playerDB: null,
