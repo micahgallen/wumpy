@@ -68,7 +68,8 @@ const MUD_COLORS = {
   COMMAND: ANSI.BRIGHT_WHITE,
   HINT: ANSI.DIM + ANSI.CYAN,
   HIGHLIGHT: ANSI.BOLD + ANSI.BRIGHT_WHITE,
-  WUMPCOM: ANSI.BRIGHT_YELLOW
+  WUMPCOM: ANSI.BRIGHT_YELLOW,
+  ADMIN_ROLE: ANSI.BRIGHT_YELLOW // New color for admin roles
 };
 
 /**
@@ -413,6 +414,15 @@ function wumpcom(text) {
   return colorize(text, MUD_COLORS.WUMPCOM);
 }
 
+/**
+ * Colorize admin role text
+ * @param {string} text - Admin role text
+ * @returns {string} Colorized admin role
+ */
+function adminRole(text) {
+  return colorize(text, MUD_COLORS.ADMIN_ROLE);
+}
+
 module.exports = {
   // Raw ANSI codes
   ANSI,
@@ -451,6 +461,7 @@ module.exports = {
   action,
   npcSay,
   wumpcom,
+  adminRole, // Export the new adminRole function
 
   // Combat colors
   combat: (text) => colorize(text, ANSI.BRIGHT_YELLOW),

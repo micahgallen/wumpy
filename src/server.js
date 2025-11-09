@@ -182,19 +182,6 @@ logger.log(`Startup respawn check: ${respawnedCount} NPCs respawned`);
 let adminSystem = null;
 let banEnforcementHook = null;
 
-(async () => {
-  adminSystem = await bootstrapAdmin({
-    playerDB,
-    world,
-    allPlayers: players,
-    combatEngine,
-    // Ensure admin data is stored within the repo's data/admin directory
-    dataDir: path.join(__dirname, '../data/admin')
-  });
-  banEnforcementHook = createBanEnforcementHook(adminSystem.adminService);
-  logger.log('Admin system ready.');
-})();
-
 /**
  * Handle player input based on their current state
  * @param {Player} player - Player object
@@ -777,13 +764,30 @@ server.on('error', err => {
   logger.error('Server error:', err);
 });
 
-// Start the server
-const PORT = parseInt(process.env.PORT, 10) || 4000;
-server.listen(PORT, () => {
-  logger.log('='.repeat(50));
-  logger.log(`The Wumpy and Grift MUD Server`);
-  logger.log(`Listening on port ${PORT}`);
-  logger.log('='.repeat(50));
+async function main() {
+  logger.log('Initializing admin system...');
+  adminSystem = await bootstrapAdmin({
+    playerDB,
+    world,
+    allPlayers: players,
+    combatEngine,
+    dataDir: path.join(__dirname, '../data/admin')
+  });
+  banEnforcementHook = createBanEnforcementHook(adminSystem.adminService);
+  logger.log('Admin system ready.');
+
+  const PORT = parseInt(process.env.PORT, 10) || 4000;
+  server.listen(PORT, () => {
+    logger.log('='.repeat(50));
+    logger.log(`The Wumpy and Grift MUD Server`);
+    logger.log(`Listening on port ${PORT}`);
+    logger.log('='.repeat(50));
+  });
+}
+
+main().catch(err => {
+  logger.error('Failed to start server:', err);
+  process.exit(1);
 });
 
 // Graceful shutdown handling

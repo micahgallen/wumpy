@@ -3,6 +3,7 @@
  */
 
 const colors = require('../../colors');
+const { Role } = require('../../admin/permissions');
 
 /**
  * Execute who command
@@ -11,7 +12,8 @@ const colors = require('../../colors');
  * @param {Object} context - Command context
  */
 function execute(player, args, context) {
-  const { world, allPlayers } = context;
+  const { world, allPlayers, adminSystem } = context;
+  const adminService = adminSystem?.adminService;
 
   if (!allPlayers || allPlayers.size === 0) {
     player.send('\n' + colors.info('No players are currently online.\n'));
@@ -19,12 +21,20 @@ function execute(player, args, context) {
   }
 
   let output = [];
+  const totalWidth = 95;
   output.push(colors.info('Online Players:'));
-  output.push(colors.line(85, '-'));
+  output.push(colors.line(totalWidth, '-'));
   output.push(
-    colors.highlight('Username'.padEnd(20) + 'Realm'.padEnd(25) + 'Level'.padEnd(8) + 'Status'.padEnd(12) + 'Idle'.padEnd(10))
+    colors.highlight(
+      'Username'.padEnd(20) +
+      'Role'.padEnd(12) +
+      'Realm'.padEnd(25) +
+      'Level'.padEnd(8) +
+      'Status'.padEnd(12) +
+      'Idle'.padEnd(10)
+    )
   );
-  output.push(colors.line(85, '-'));
+  output.push(colors.line(totalWidth, '-'));
 
   for (const p of allPlayers) {
     if (p.username && p.state === 'playing') {
@@ -32,6 +42,10 @@ function execute(player, args, context) {
       const realm = room ? room.realm : 'Unknown';
       const idleTime = Math.floor((Date.now() - p.lastActivity) / 1000);
       const idleString = idleTime > 60 ? `${Math.floor(idleTime / 60)}m` : `${idleTime}s`;
+
+      // Get player's role
+      const playerRole = adminService ? adminService.getRole(p.username) : Role.PLAYER;
+      const roleDisplay = playerRole !== Role.PLAYER ? colors.adminRole(playerRole) : '---';
 
       // Build status string with ghost indicator
       const statusText = p.isGhost ? 'Ghost' : 'Active';
@@ -42,8 +56,12 @@ function execute(player, args, context) {
         colors.hint(paddedStatus) :
         colors.colorize(paddedStatus, colors.MUD_COLORS.SUCCESS);
 
+      const rolePadding = 12 - colors.visibleLength(roleDisplay);
+      const paddedRole = roleDisplay + ' '.repeat(Math.max(0, rolePadding));
+
       output.push(
         colors.playerName(p.username.padEnd(20)) +
+        paddedRole +
         colors.colorize(realm.padEnd(25), colors.MUD_COLORS.ROOM_NAME) +
         colors.colorize((p.level || 1).toString().padEnd(8), colors.MUD_COLORS.INFO) +
         coloredStatus +
@@ -52,7 +70,7 @@ function execute(player, args, context) {
     }
   }
 
-  output.push(colors.line(85, '-'));
+  output.push(colors.line(totalWidth, '-'));
   output.push(colors.hint(`Total: ${allPlayers.size} player(s)`));
 
   player.send('\n' + output.join('\n') + '\n');
