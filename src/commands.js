@@ -181,7 +181,8 @@ function parseCommand(input, player, world, playerDB, allPlayers = null, activeI
     playerDB,
     allPlayers,
     activeInteractions,
-    combatEngine
+    combatEngine,
+    adminSystem
   };
 
   // Look up command in registry
