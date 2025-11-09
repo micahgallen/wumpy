@@ -662,9 +662,17 @@ async function slayCommand(player, args, context) {
   // Try to find NPC (prioritizes current room)
   const targetNPC = findNPCInRoom(targetName, player, world);
   if (targetNPC) {
-    targetNPC.hp = 0;
+    // Set HP to 0 and trigger proper death processing (creates corpse)
+    targetNPC.currentHP = 0;
 
-    player.send('\n' + colors.success(`Slain ${targetNPC.name}\n`));
+    // Get the room the NPC is in
+    const npcRoom = world.getRoom(player.currentRoom);
+
+    // Trigger combat death processing to create corpse and handle respawn
+    const CombatEngine = require('../systems/combat/CombatEngine');
+    CombatEngine.processNPCDeath(targetNPC, player, npcRoom, world);
+
+    player.send('\n' + colors.success(`Slain ${targetNPC.name} (corpse created, will respawn)\n`));
 
     rateLimiter.recordCommand(issuer.id);
 
@@ -674,7 +682,7 @@ async function slayCommand(player, args, context) {
       command: Command.SLAY,
       args: [targetNPC.name],
       result: 'success',
-      reason: 'NPC slain'
+      reason: 'NPC slain with corpse generation'
     });
 
     return;
@@ -1412,6 +1420,183 @@ module.exports = createEmote({
   }
 }
 
+/**
+ * Destroy command - Remove NPC or item without corpse or respawn
+ * Usage: @destroy <target>
+ */
+async function destroyCommand(player, args, context) {
+  const { adminService, world, rateLimiter } = context;
+
+  const issuer = {
+    id: player.username.toLowerCase(),
+    role: adminService.getRole(player.username),
+    name: player.username
+  };
+
+  if (!hasPermission(issuer, Command.SLAY)) {
+    player.send('\n' + colors.error('You do not have permission to use this command.\n'));
+    return;
+  }
+
+  const rateLimit = rateLimiter.checkLimit(issuer.id);
+  if (!rateLimit.allowed) {
+    player.send('\n' + colors.error(`Rate limit exceeded. Try again in ${rateLimit.resetIn} seconds.\n`));
+    return;
+  }
+
+  if (args.length === 0) {
+    player.send('\n' + colors.error('Usage: @destroy <target>\n'));
+    return;
+  }
+
+  const targetName = args.join(' ').toLowerCase();
+  const room = world.getRoom(player.currentRoom);
+
+  // Try to find and destroy NPC first
+  const npcIndex = room.npcs?.findIndex(n =>
+    n.name.toLowerCase().includes(targetName) ||
+    n.id.toLowerCase().includes(targetName)
+  );
+
+  if (npcIndex !== -1 && npcIndex !== undefined && room.npcs) {
+    const npc = room.npcs[npcIndex];
+    const npcName = npc.name;
+
+    // Remove from room
+    room.npcs.splice(npcIndex, 1);
+
+    // End combat if in combat
+    const CombatEngine = require('../systems/combat/CombatEngine');
+    if (CombatEngine.isInCombat(npc.id)) {
+      CombatEngine.endCombat(npc.id);
+    }
+
+    player.send('\n' + colors.success(`Destroyed ${npcName} (no corpse, no respawn)\n`));
+
+    world.sendToRoom(
+      player.currentRoom,
+      colors.dim(`${npcName} vanishes in a puff of admin magic.`),
+      [player.username]
+    );
+
+    rateLimiter.recordCommand(issuer.id);
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: 'DESTROY',
+      args: [npcName],
+      result: 'success',
+      reason: 'NPC destroyed without corpse'
+    });
+    return;
+  }
+
+  // Try to find and destroy item
+  const itemIndex = room.items?.findIndex(item =>
+    item.name?.toLowerCase().includes(targetName) ||
+    item.id?.toLowerCase().includes(targetName)
+  );
+
+  if (itemIndex !== -1 && itemIndex !== undefined && room.items) {
+    const item = room.items[itemIndex];
+    const itemName = item.name || item.id;
+
+    // Remove from room
+    room.items.splice(itemIndex, 1);
+
+    player.send('\n' + colors.success(`Destroyed item: ${itemName}\n`));
+
+    world.sendToRoom(
+      player.currentRoom,
+      colors.dim(`${itemName} vanishes in a puff of admin magic.`),
+      [player.username]
+    );
+
+    rateLimiter.recordCommand(issuer.id);
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: 'DESTROY',
+      args: [itemName],
+      result: 'success',
+      reason: 'Item destroyed'
+    });
+    return;
+  }
+
+  player.send('\n' + colors.error(`Target "${args.join(' ')}" not found (neither NPC nor item).\n`));
+}
+
+/**
+ * Respawn command - Force NPC to respawn immediately
+ * Usage: @respawn <npc_id> [here]
+ */
+async function respawnCommand(player, args, context) {
+  const { adminService, world, rateLimiter } = context;
+
+  const issuer = {
+    id: player.username.toLowerCase(),
+    role: adminService.getRole(player.username),
+    name: player.username
+  };
+
+  if (!hasPermission(issuer, Command.SPAWN)) {
+    player.send('\n' + colors.error('You do not have permission to use this command.\n'));
+    return;
+  }
+
+  const rateLimit = rateLimiter.checkLimit(issuer.id);
+  if (!rateLimit.allowed) {
+    player.send('\n' + colors.error(`Rate limit exceeded. Try again in ${rateLimit.resetIn} seconds.\n`));
+    return;
+  }
+
+  if (args.length === 0) {
+    player.send('\n' + colors.error('Usage: @respawn <npc_id> [here]\n'));
+    player.send(colors.hint('Examples: @respawn purple_wumpy, @respawn big_bird here\n'));
+    return;
+  }
+
+  const npcId = args[0].toLowerCase();
+  const spawnHere = args.length > 1 && args[1].toLowerCase() === 'here';
+
+  const RespawnManager = require('../systems/corpses/RespawnManager');
+  const CorpseManager = require('../systems/corpses/CorpseManager');
+
+  // Check for active corpse and decay it
+  if (CorpseManager.hasActiveCorpse(npcId)) {
+    const corpse = CorpseManager.getCorpseByNPC(npcId);
+    player.send('\n' + colors.info(`Decaying active corpse first...\n`));
+    CorpseManager.destroyCorpse(corpse.id, world);
+  }
+
+  // Determine spawn location
+  const spawnRoomId = spawnHere ? player.currentRoom : null;
+
+  try {
+    const spawned = RespawnManager.respawnNPC(npcId, spawnRoomId, world);
+
+    if (spawned) {
+      const location = spawnRoomId || 'home room';
+      player.send('\n' + colors.success(`Respawned ${npcId} in ${location}\n`));
+
+      rateLimiter.recordCommand(issuer.id);
+      writeAuditLog({
+        issuerID: issuer.id,
+        issuerRank: issuer.role,
+        command: 'RESPAWN',
+        args: [npcId, location],
+        result: 'success',
+        reason: `Forced respawn in ${location}`
+      });
+    } else {
+      player.send('\n' + colors.error(`Failed to respawn ${npcId}. Check logs.\n`));
+    }
+  } catch (error) {
+    player.send('\n' + colors.error(`Error: ${error.message}\n`));
+  }
+}
+
 module.exports = {
   kickCommand,
   banCommand,
@@ -1426,6 +1611,8 @@ module.exports = {
   adminhelpCommand,
   reviveCommand,
   createemoteCommand,
+  destroyCommand,
+  respawnCommand,
   findPlayer,
   findNPC,
   findNPCInRoom

@@ -93,17 +93,11 @@ registry.registerCommand(closeCommand);
 
 // Admin commands
 const givemoneyCommand = require('./commands/admin/givemoney');
-const slayCommand = require('./commands/admin/slay');
-const destroyCommand = require('./commands/admin/destroy');
-const respawnCommand = require('./commands/admin/respawn');
 const corpseinfoCommand = require('./commands/admin/corpseinfo');
 const clearcorpsesCommand = require('./commands/admin/clearcorpses');
 const timerinfoCommand = require('./commands/admin/timerinfo');
 
 registry.registerCommand(givemoneyCommand);
-registry.registerCommand(slayCommand);
-registry.registerCommand(destroyCommand);
-registry.registerCommand(respawnCommand);
 registry.registerCommand(corpseinfoCommand);
 registry.registerCommand(clearcorpsesCommand);
 registry.registerCommand(timerinfoCommand);
