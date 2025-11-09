@@ -274,6 +274,40 @@ class TimerManager {
 
     return info;
   }
+
+  /**
+   * Get timer statistics for admin commands
+   * @returns {object} Timer statistics
+   */
+  getStats() {
+    const now = Date.now();
+    const stats = {
+      totalTimers: this.timers.size,
+      byType: {},
+      dueSoon: []
+    };
+
+    // Count by type and find timers due soon (next 60s)
+    for (const [id, timer] of this.timers) {
+      const type = timer.data.type || 'unknown';
+      stats.byType[type] = (stats.byType[type] || 0) + 1;
+
+      const remaining = timer.expiresAt - now;
+      if (remaining <= 60000) { // 60 seconds
+        stats.dueSoon.push({
+          id,
+          fireTime: timer.expiresAt,
+          remaining,
+          type
+        });
+      }
+    }
+
+    // Sort dueSoon by fire time
+    stats.dueSoon.sort((a, b) => a.fireTime - b.fireTime);
+
+    return stats;
+  }
 }
 
 // Export singleton instance

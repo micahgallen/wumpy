@@ -29,7 +29,7 @@ function loadSesameStreetShops() {
       const result = ShopManager.registerShop(shopDef);
       if (result) {
         successCount++;
-        logger.log(`Registered Sesame Street shop: ${shopDef.name} (${shopDef.id})`);
+        logger.debug(`Registered Sesame Street shop: ${shopDef.name} (${shopDef.id})`);
       } else {
         errorCount++;
         errors.push({ shopId: shopDef.id, error: 'Registration returned false' });

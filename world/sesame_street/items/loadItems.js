@@ -49,7 +49,7 @@ function loadSesameStreetItems() {
     try {
       ItemRegistry.registerItem(itemDef, 'sesame_street');
       successCount++;
-      logger.log(`Registered Sesame Street item: ${itemDef.id}`);
+      logger.debug(`Registered Sesame Street item: ${itemDef.id}`);
     } catch (error) {
       errorCount++;
       errors.push({ itemId: itemDef.id, error: error.message });

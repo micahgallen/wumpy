@@ -76,7 +76,7 @@ class ShopManager {
     };
 
     this.shops.set(shop.id, shop);
-    logger.log(`Registered shop: ${shop.name} (${shop.id})`);
+    logger.debug(`Registered shop: ${shop.name} (${shop.id})`);
     return true;
   }
 

@@ -32,7 +32,7 @@ async function bootstrapAdmin(options) {
   // Resolve data directory: prefer provided option, else use repo-relative path
   const dataDir = providedDataDir || path.join(__dirname, '../../data/admin');
 
-  logger.log('Bootstrapping admin system...');
+  logger.debug('Bootstrapping admin system...');
 
   // Initialize storage
   const storage = new FileStorageAdapter(dataDir);

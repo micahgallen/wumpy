@@ -8,7 +8,7 @@
 const { ItemType, ItemRarity, ConsumableType, SpawnTag } = require('../../../../src/items/schemas/ItemTypes');
 
 module.exports = {
-  id: 'health_potion',
+  id: 'sesame_health_potion',
   name: 'a health potion',
   description: 'This small glass vial contains a liquid of aggressive redness. The potion swirls with inner light suggesting powerful magic or questionable additives. It smells of raspberries, mint, and wellness. The cork is sealed with red wax bearing an apothecary mark.',
   keywords: ['potion', 'health', 'healing', 'red', 'vial'],

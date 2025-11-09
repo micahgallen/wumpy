@@ -75,7 +75,7 @@ function registerCommand(descriptor) {
     }
   }
 
-  logger.log(`Registered command: ${name}` + (descriptor.aliases && descriptor.aliases.length > 0 ? ` (aliases: ${descriptor.aliases.join(', ')})` : ''));
+  logger.debug(`Registered command: ${name}` + (descriptor.aliases && descriptor.aliases.length > 0 ? ` (aliases: ${descriptor.aliases.join(', ')})` : ''));
 }
 
 /**

@@ -39,7 +39,8 @@ const sampleItems = [
       isTwoHanded: false,
       isRanged: false,
       isLight: true,
-      isFinesse: true
+      isFinesse: true,
+      versatileDamageDice: null  // Not a versatile weapon
     }
   },
 
@@ -139,6 +140,7 @@ const sampleItems = [
     armorProperties: {
       baseAC: 11,
       armorClass: ArmorClass.LIGHT,
+      // Light armor: unlimited DEX bonus (no maxDexBonus restriction)
       stealthDisadvantage: false
     }
   },
@@ -167,6 +169,7 @@ const sampleItems = [
     armorProperties: {
       baseAC: 16,
       armorClass: ArmorClass.HEAVY,
+      maxDexBonus: 0,  // Heavy armor: no DEX bonus
       stealthDisadvantage: true,
       strengthRequirement: 13
     }
@@ -262,7 +265,7 @@ const sampleItems = [
     requiredLevel: 5,
     maxDurability: 200,
     spawnable: true,
-    lootTables: ['rare_loot', 'elite_drop', 'boss_drops'],
+    lootTables: ['rare_loot', 'boss_drops'],
     spawnTags: [
       SpawnTag.TYPE_WEAPON,
       SpawnTag.WEAPON_MELEE,
@@ -278,6 +281,7 @@ const sampleItems = [
       isTwoHanded: false,
       isRanged: false,
       attackBonus: 1,
+      versatileDamageDice: null,  // Not a versatile weapon
       magicalProperties: [
         {
           type: 'extra_damage',
@@ -316,6 +320,7 @@ const sampleItems = [
     armorProperties: {
       baseAC: 1,
       armorClass: ArmorClass.LIGHT,
+      // Light armor: unlimited DEX bonus (no maxDexBonus restriction)
       magicalACBonus: 1
     },
     statModifiers: {

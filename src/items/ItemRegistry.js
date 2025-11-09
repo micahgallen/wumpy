@@ -72,7 +72,7 @@ function registerItem(definition, domain = 'core') {
     }
   }
 
-  logger.log(`Registered item: ${id} (domain: ${domain}, type: ${definition.itemType})`);
+  logger.debug(`Registered item: ${id} (domain: ${domain}, type: ${definition.itemType})`);
 }
 
 /**
