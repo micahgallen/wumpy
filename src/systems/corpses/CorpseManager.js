@@ -147,6 +147,22 @@ class CorpseManager {
    */
   createPlayerCorpse(player, roomId, killer, world) {
     try {
+      // Validate inputs
+      if (!player || !player.username) {
+        logger.error('createPlayerCorpse: Invalid player object (missing username)');
+        return null;
+      }
+
+      if (!roomId) {
+        logger.error(`createPlayerCorpse: Invalid roomId for player ${player.username}`);
+        return null;
+      }
+
+      if (!world) {
+        logger.error(`createPlayerCorpse: World instance is null for player ${player.username}`);
+        return null;
+      }
+
       // Get corpse configuration
       const config = require('../../config/itemsConfig');
       const corpseConfig = config.corpses || {};
@@ -189,8 +205,13 @@ class CorpseManager {
         }
       }
 
-      // Get player's currency
-      const playerCurrency = player.currency || {};
+      // Get player's currency (deep copy to avoid reference issues)
+      const playerCurrency = {
+        platinum: (player.currency?.platinum || 0),
+        gold: (player.currency?.gold || 0),
+        silver: (player.currency?.silver || 0),
+        copper: (player.currency?.copper || 0)
+      };
 
       // Get room information for deathLocation
       const room = world.getRoom(roomId);
@@ -263,7 +284,8 @@ class CorpseManager {
 
       return corpse;
     } catch (error) {
-      logger.error(`Failed to create player corpse for ${player.username}:`, error);
+      logger.error(`Failed to create player corpse for ${player?.username || 'unknown'}:`, error);
+      logger.error(`Error stack: ${error.stack}`);
       return null;
     }
   }
