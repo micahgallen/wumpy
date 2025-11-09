@@ -20,7 +20,8 @@
       "Bash(npm start)",
       "Bash(node_modules/.bin/mocha:*)",
       "Bash(pkill:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
