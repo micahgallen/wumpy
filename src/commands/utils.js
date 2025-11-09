@@ -114,9 +114,54 @@ function movePlayer(player, direction, world, playerDB, allPlayers, combatEngine
   checkAggressiveNPCs(player, world, combatEngine);
 }
 
+/**
+ * Find an item in player's inventory by keyword
+ * Uses smart matching: exact matches take priority, then partial matches
+ * Prevents false positives from single-letter keywords
+ *
+ * @param {Object} player - Player object with inventory
+ * @param {string} keyword - Search keyword (already lowercased)
+ * @returns {Object|null} Found item or null
+ */
+function findItemInInventory(player, keyword) {
+  let item = null;
+  let exactMatchItem = null;
+
+  if (player.inventory && player.inventory.length > 0) {
+    for (const invItem of player.inventory) {
+      if (invItem && typeof invItem === 'object' && invItem.keywords) {
+        // Check for exact matches first (highest priority)
+        const exactMatch = invItem.keywords.some(kw => kw.toLowerCase() === keyword);
+        if (exactMatch) {
+          exactMatchItem = invItem;
+          break; // Exact match found, stop searching
+        }
+
+        // Check for partial matches (only if keyword is 3+ chars to avoid false positives)
+        if (!item && keyword.length >= 3) {
+          const partialMatch = invItem.keywords.some(kw => {
+            const kwLower = kw.toLowerCase();
+            // Avoid matching single-letter keywords in partial searches
+            if (kwLower.length < 2) return false;
+            return kwLower.includes(keyword) || keyword.includes(kwLower);
+          });
+
+          if (partialMatch) {
+            item = invItem; // Keep searching for exact match
+          }
+        }
+      }
+    }
+  }
+
+  // Use exact match if found, otherwise use partial match
+  return exactMatchItem || item;
+}
+
 module.exports = {
   oppositeDirection,
   findPlayerInRoom,
   checkAggressiveNPCs,
-  movePlayer
+  movePlayer,
+  findItemInInventory
 };
