@@ -7,6 +7,7 @@ const { parseCommand } = require('./commands');
 const colors = require('./colors');
 const { getBanner } = require('./banner');
 const RespawnService = require('./respawnService');
+const RespawnManager = require('./systems/corpses/RespawnManager');
 const logger = require('./logger');
 const { bootstrapAdmin, createBanEnforcementHook, updatePlayerInfoOnLogin } = require('./admin/bootstrap');
 
@@ -121,8 +122,31 @@ const activeInteractions = new Map();
 
 const combatEngine = new CombatEngine(world, players, playerDB);
 
-const respawnService = new RespawnService(world);
-respawnService.start();
+// Initialize event-driven respawn system
+// This replaces the old polling-based RespawnService for NPCs
+RespawnManager.initialize(world);
+
+// Listen for room messages from RespawnManager and broadcast to players
+RespawnManager.on('roomMessage', ({ roomId, message }) => {
+  // Broadcast message to all players in the specified room
+  for (const player of players) {
+    if (player.currentRoom === roomId && player.state === 'playing') {
+      player.send('\n' + message + '\n');
+      player.sendPrompt();
+    }
+  }
+});
+
+// Perform one-time manual respawn check on startup
+// This catches any NPCs that should exist but don't (e.g., after server restart)
+const respawnedCount = RespawnManager.checkAndRespawnMissing();
+logger.log(`Startup respawn check: ${respawnedCount} NPCs respawned`);
+
+// OLD POLLING-BASED RESPAWN SERVICE (DEPRECATED)
+// The new RespawnManager handles all NPC respawning via events from CorpseManager
+// Keeping this commented out for now in case we need to rollback
+// const respawnService = new RespawnService(world);
+// respawnService.start();
 
 // Initialize admin system
 let adminSystem = null;

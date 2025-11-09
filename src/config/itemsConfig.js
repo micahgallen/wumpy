@@ -232,6 +232,24 @@ module.exports = {
     }
   },
 
+  // Corpse System Configuration
+  corpses: {
+    npc: {
+      decayTime: 300000,        // 5 minutes (300,000 ms)
+      baseWeight: 100,          // Base weight in pounds
+      capacity: 20,             // Number of item slots
+      isPickupable: true        // Can be picked up by strong players
+    },
+    sizeWeights: {
+      tiny: 10,
+      small: 50,
+      medium: 100,
+      large: 200,
+      huge: 500,
+      gargantuan: 1000
+    }
+  },
+
   // Spawn System Configuration
   spawn: {
     // Enable/disable the spawn system globally

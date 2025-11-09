@@ -50,6 +50,67 @@ function execute(player, args, context) {
           player.send('\n' + examineText + '\n');
           return;
         }
+      } else if (itemData.keywords && itemData.name) {
+        // Dynamic item (like corpse) not in registry - check keywords directly
+        if (itemData.keywords.some(keyword => keyword.toLowerCase() === target)) {
+          let output = [];
+          output.push(colors.objectName(itemData.name));
+
+          // Show description
+          if (itemData.description) {
+            const wrappedDesc = colors.wrap(itemData.description, 80);
+            output.push(colors.colorize(wrappedDesc, colors.MUD_COLORS.OBJECT));
+          }
+
+          // For corpses, show decay state
+          if (itemData.containerType === 'npc_corpse' && itemData.decayTime) {
+            const now = Date.now();
+            const totalDecayTime = itemData.decayTime - itemData.createdAt;
+            const elapsed = now - itemData.createdAt;
+            const percentRemaining = Math.max(0, ((totalDecayTime - elapsed) / totalDecayTime) * 100);
+
+            let decayState = '';
+            if (percentRemaining > 75) {
+              decayState = colors.hint('The corpse is still fresh.');
+            } else if (percentRemaining > 50) {
+              decayState = colors.hint('The corpse shows signs of decay.');
+            } else if (percentRemaining > 25) {
+              decayState = colors.hint('The corpse is rotting and beginning to smell.');
+            } else {
+              decayState = colors.hint('The corpse is putrid and will soon decay completely.');
+            }
+
+            output.push('');
+            output.push(decayState);
+
+            // Show contents if corpse has items
+            if (itemData.inventory && itemData.inventory.length > 0) {
+              output.push('');
+              output.push(colors.hint('The corpse contains:'));
+              const ItemRegistry = require('../../items/ItemRegistry');
+              for (const item of itemData.inventory) {
+                const itemDef = ItemRegistry.getItem(item.definitionId);
+                if (itemDef) {
+                  let itemLine = '  - ' + colors.objectName(itemDef.name);
+                  if (item.quantity && item.quantity > 1) {
+                    itemLine += colors.dim(` x${item.quantity}`);
+                  }
+                  output.push(itemLine);
+                } else if (item.name) {
+                  // Dynamic item not in registry
+                  let itemLine = '  - ' + colors.objectName(item.name);
+                  if (item.quantity && item.quantity > 1) {
+                    itemLine += colors.dim(` x${item.quantity}`);
+                  }
+                  output.push(itemLine);
+                }
+              }
+            }
+          }
+
+          player.send('\n' + output.join('\n') + '\n');
+          return;
+        }
       }
     }
   }

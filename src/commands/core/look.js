@@ -68,6 +68,15 @@ function execute(player, args, context) {
             }
             return;
           }
+        } else if (itemData.keywords && itemData.name) {
+          // Dynamic item (like corpse) not in registry - check keywords directly
+          if (itemData.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
+            const examineCommand = registry.getCommand('examine');
+            if (examineCommand) {
+              examineCommand.execute(player, args, context);
+            }
+            return;
+          }
         }
       }
     }

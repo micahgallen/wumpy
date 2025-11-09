@@ -6,6 +6,7 @@ const { awardXP, calculateCombatXP } = require('../progression/xpSystem');
 const colors = require('../colors');
 const logger = require('../logger');
 const EquipmentManager = require('../systems/equipment/EquipmentManager');
+const CorpseManager = require('../systems/corpses/CorpseManager');
 
 class CombatEncounter {
     constructor(participants, world, allPlayers, playerDB) {
@@ -84,7 +85,7 @@ class CombatEncounter {
                                 const xp = calculateCombatXP(attacker, player.level);
                                 awardXP(player, xp, 'combat', this.playerDB);
                             }
-                            this.removeNPCFromRoom(attacker);
+                            this.removeNPCFromRoom(attacker, player);
                             this.endCombat(true); // Skip XP award in endCombat (already awarded)
                             return;
                         }
@@ -186,21 +187,22 @@ class CombatEncounter {
             const xp = calculateCombatXP(loser, winner.level);
             awardXP(winner, xp, 'combat', this.playerDB);
 
-            // Remove dead NPC from room so it can respawn properly
-            this.removeNPCFromRoom(loser);
+            // Create corpse and remove dead NPC from room
+            this.removeNPCFromRoom(loser, winner);
         } else if (loser && !loser.socket && skipXpAward) {
             // XP was already awarded (e.g., during flee), just remove the NPC
-            this.removeNPCFromRoom(loser);
+            this.removeNPCFromRoom(loser, winner);
         }
 
         this.broadcast(colors.combat('Combat has ended!'));
     }
 
     /**
-     * Remove an NPC from its current room
+     * Remove an NPC from its current room and create a corpse
      * @param {Object} npc - The NPC to remove
+     * @param {Object} killer - The player or NPC that killed this NPC (optional)
      */
-    removeNPCFromRoom(npc) {
+    removeNPCFromRoom(npc, killer = null) {
         if (!npc || npc.socket) return; // Only remove NPCs, not players
 
         const room = this.world.getRoom(this.roomId);
@@ -209,11 +211,35 @@ class CombatEncounter {
             const npcId = Object.keys(this.world.npcs).find(id => this.world.npcs[id] === npc);
 
             if (npcId) {
+                // Check if NPC is actually in the room (prevent duplicate corpse creation)
                 const index = room.npcs.indexOf(npcId);
-                if (index > -1) {
-                    room.npcs.splice(index, 1);
-                    logger.log(`Removed NPC ${npc.name} (${npcId}) from room ${room.id}`);
+                if (index === -1) {
+                    logger.log(`NPC ${npc.name} (${npcId}) already removed from room ${room.id}, skipping corpse creation`);
+                    return;
                 }
+
+                // Get killer name (prioritize username, fall back to name, default to "unknown")
+                const killerName = killer?.username || killer?.name || 'unknown';
+
+                // Create corpse BEFORE removing NPC from room
+                try {
+                    const corpse = CorpseManager.createNPCCorpse(npc, this.roomId, killerName, this.world);
+
+                    if (corpse) {
+                        // Broadcast corpse creation message to all players in room
+                        this.broadcast(colors.combat(`A corpse falls to the ground.`));
+                        logger.log(`Created corpse for ${npc.name} killed by ${killerName}`);
+                    } else {
+                        logger.warn(`Failed to create corpse for ${npc.name}`);
+                    }
+                } catch (error) {
+                    logger.error(`Error creating corpse for ${npc.name}:`, error);
+                    // Continue with NPC removal even if corpse creation fails
+                }
+
+                // Remove NPC from room
+                room.npcs.splice(index, 1);
+                logger.log(`Removed NPC ${npc.name} (${npcId}) from room ${room.id}`);
             }
         }
     }

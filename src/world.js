@@ -26,6 +26,9 @@ class World {
       // Initialize items in all rooms
       this.initializeRoomItems();
 
+      // Set home room for each NPC (for respawning)
+      this.initializeNPCHomeRooms();
+
       // Store a deep copy of the initial room states for respawning
       this.initialRoomsState = JSON.parse(JSON.stringify(this.rooms));
 
@@ -140,6 +143,28 @@ class World {
   }
 
   /**
+   * Set home room for each NPC based on their initial room assignment
+   * This allows NPCs to respawn in their original room even if they die elsewhere
+   */
+  initializeNPCHomeRooms() {
+    // Iterate through all rooms to find which NPCs belong where
+    for (const roomId in this.rooms) {
+      const room = this.rooms[roomId];
+
+      if (room.npcs && Array.isArray(room.npcs)) {
+        for (const npcId of room.npcs) {
+          const npc = this.npcs[npcId];
+          if (npc && !npc.homeRoom) {
+            // Set the NPC's home room to this room
+            npc.homeRoom = roomId;
+            console.log(`Set home room for ${npc.name || npcId}: ${roomId}`);
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Get a room by ID
    * @param {string} roomId - Room ID
    * @returns {Object} Room data or null
@@ -250,9 +275,20 @@ class World {
       const ItemRegistry = require('./items/ItemRegistry');
       output.push('');
       for (const itemData of room.items) {
+        // Check if item is in registry (normal items) or is a dynamic item like corpses
         const itemDef = ItemRegistry.getItem(itemData.definitionId);
+
         if (itemDef) {
+          // Item found in registry - use registry definition
           let itemDisplay = 'You see ' + colors.objectName(itemDef.name);
+          if (itemData.quantity && itemData.quantity > 1) {
+            itemDisplay += colors.dim(` x${itemData.quantity}`);
+          }
+          itemDisplay += ' here.';
+          output.push(itemDisplay);
+        } else if (itemData.name) {
+          // Dynamic item (like corpse) with name property - use directly
+          let itemDisplay = 'You see ' + colors.objectName(itemData.name);
           if (itemData.quantity && itemData.quantity > 1) {
             itemDisplay += colors.dim(` x${itemData.quantity}`);
           }
