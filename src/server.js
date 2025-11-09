@@ -137,8 +137,38 @@ RespawnManager.on('roomMessage', ({ roomId, message }) => {
   }
 });
 
+// PHASE 4: Restore corpse and timer state from previous session
+const TimerManager = require('./systems/corpses/TimerManager');
+const CorpseManager = require('./systems/corpses/CorpseManager');
+const fs = require('fs');
+
+const dataDir = path.join(__dirname, '../data');
+const corpsesPath = path.join(dataDir, 'corpses.json');
+
+logger.log('Restoring corpse and timer state...');
+
+// Load corpse state first
+try {
+  if (fs.existsSync(corpsesPath)) {
+    const rawData = fs.readFileSync(corpsesPath, 'utf8');
+    const corpseState = JSON.parse(rawData);
+    const downtime = Date.now() - corpseState.savedAt;
+
+    logger.log(`Loading corpse state (server was down for ${Math.floor(downtime / 1000)}s)`);
+
+    // Restore corpses (this will also emit decay events for expired corpses)
+    CorpseManager.restoreState(corpseState.corpses, world);
+  } else {
+    logger.log('No corpse state file found, starting fresh');
+  }
+} catch (err) {
+  logger.error(`Failed to restore corpse state: ${err.message}`);
+  logger.log('Starting with fresh corpse state');
+}
+
 // Perform one-time manual respawn check on startup
 // This catches any NPCs that should exist but don't (e.g., after server restart)
+// This runs AFTER corpse restoration to respect active corpses
 const respawnedCount = RespawnManager.checkAndRespawnMissing();
 logger.log(`Startup respawn check: ${respawnedCount} NPCs respawned`);
 
@@ -758,11 +788,45 @@ server.listen(PORT, () => {
 
 // Graceful shutdown handling
 function gracefulShutdown(signal) {
-  logger.log(`${signal} received, saving shop state...`);
+  logger.log(`${signal} received, saving state...`);
 
   try {
     const ShopManager = require('./systems/economy/ShopManager');
-    // Use async save but don't wait - just log when complete
+    const TimerManager = require('./systems/corpses/TimerManager');
+    const CorpseManager = require('./systems/corpses/CorpseManager');
+    const path = require('path');
+
+    // Save corpse and timer state synchronously (critical for shutdown)
+    const dataDir = path.join(__dirname, '../data');
+    const timersPath = path.join(dataDir, 'timers.json');
+    const corpsesPath = path.join(dataDir, 'corpses.json');
+
+    // Save timers
+    const timersSaved = TimerManager.saveState(timersPath);
+    if (timersSaved) {
+      logger.log('Saved timer state');
+    }
+
+    // Save corpses
+    try {
+      const fs = require('fs');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      const corpseState = {
+        corpses: CorpseManager.exportState(),
+        savedAt: Date.now(),
+        version: '1.0'
+      };
+
+      fs.writeFileSync(corpsesPath, JSON.stringify(corpseState, null, 2));
+      logger.log(`Saved ${corpseState.corpses.length} corpses to ${corpsesPath}`);
+    } catch (err) {
+      logger.error(`Failed to save corpse state: ${err.message}`);
+    }
+
+    // Use async save for shops but don't wait - just log when complete
     ShopManager.saveAllShops().then(result => {
       logger.log(`Saved ${result.successCount} shops on shutdown`);
       logger.log('Graceful shutdown complete');

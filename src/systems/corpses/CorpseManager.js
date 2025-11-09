@@ -318,8 +318,27 @@ class CorpseManager {
    */
   restoreState(state, world) {
     let restoredCount = 0;
+    const now = Date.now();
 
     for (const corpseData of state) {
+      const remaining = corpseData.decayTime - now;
+
+      // Check if corpse expired while server was down
+      if (remaining <= 0) {
+        logger.log(`Corpse ${corpseData.id} expired during downtime, decaying immediately`);
+
+        // Emit decay event for respawn system
+        this.emit('corpseDecayed', {
+          npcId: corpseData.npcId,
+          npcType: corpseData.npcType,
+          roomId: corpseData.spawnLocation,
+          corpseId: corpseData.id
+        });
+
+        // Don't restore expired corpses
+        continue;
+      }
+
       // Recreate corpse in memory
       this.corpses.set(corpseData.id, corpseData);
       this.npcCorpseMap.set(corpseData.npcId, corpseData.id);
@@ -327,10 +346,23 @@ class CorpseManager {
       // Add back to room
       this.addCorpseToRoom(corpseData, corpseData.spawnLocation, world);
 
+      // Reschedule decay timer with remaining time
+      TimerManager.schedule(
+        `corpse_decay_${corpseData.id}`,
+        remaining,
+        (data) => this.onCorpseDecay(data.corpseId, world),
+        {
+          type: 'corpse_decay',
+          corpseId: corpseData.id,
+          npcId: corpseData.npcId,
+          roomId: corpseData.spawnLocation
+        }
+      );
+
       restoredCount++;
     }
 
-    logger.log(`Restored ${restoredCount} corpses`);
+    logger.log(`Restored ${restoredCount} corpses with decay timers`);
   }
 
   /**
