@@ -52,7 +52,14 @@ function execute(player, args, context) {
   }
 
   if (!container.inventory || container.inventory.length === 0) {
-    player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    // Check if this is an already-looted player corpse that should be destroyed
+    if (container.containerType === 'player_corpse' && container.isLooted) {
+      const CorpseManager = require('../../systems/corpses/CorpseManager');
+      CorpseManager.destroyPlayerCorpse(container.id, world);
+      player.send('\n' + colors.dim(`The ${container.name} crumbles to dust.\n`));
+    } else {
+      player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    }
     return;
   }
 
