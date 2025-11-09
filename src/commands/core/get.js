@@ -279,12 +279,8 @@ function executeGetFromContainer(player, args, context, fromIndex) {
   }
 
   // Check if container is now empty and destroy player corpses immediately
-  const isCorpseEmpty = container.inventory.length === 0 &&
-    (!container.currency ||
-     (container.currency.platinum === 0 &&
-      container.currency.gold === 0 &&
-      container.currency.silver === 0 &&
-      container.currency.copper === 0));
+  const CurrencyManager = require('../../systems/economy/CurrencyManager');
+  const isCorpseEmpty = container.inventory.length === 0 && CurrencyManager.isEmpty(container.currency);
 
   if (isCorpseEmpty) {
     if (container.containerType === 'player_corpse') {
@@ -430,12 +426,8 @@ function getAllFromContainer(player, containerArgs, context) {
   }
 
   // Check if container is now empty and destroy player corpses immediately
-  const isCorpseEmpty = container.inventory.length === 0 &&
-    (!container.currency ||
-     (container.currency.platinum === 0 &&
-      container.currency.gold === 0 &&
-      container.currency.silver === 0 &&
-      container.currency.copper === 0));
+  const CurrencyManager = require('../../systems/economy/CurrencyManager');
+  const isCorpseEmpty = container.inventory.length === 0 && CurrencyManager.isEmpty(container.currency);
 
   if (isCorpseEmpty) {
     if (container.containerType === 'player_corpse') {

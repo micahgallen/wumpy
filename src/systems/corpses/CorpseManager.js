@@ -20,6 +20,8 @@
 const logger = require('../../logger');
 const TimerManager = require('./TimerManager');
 const { ItemType } = require('../../items/schemas/ItemTypes');
+const itemsConfig = require('../../config/itemsConfig');
+const CurrencyManager = require('../economy/CurrencyManager');
 
 class CorpseManager {
   constructor() {
@@ -52,8 +54,7 @@ class CorpseManager {
       }
 
       // Get corpse configuration
-      const config = require('../../config/itemsConfig');
-      const corpseConfig = config.corpses || {};
+      const corpseConfig = itemsConfig.corpses || {};
       const npcConfig = corpseConfig.npc || {};
 
       // Calculate weight based on NPC size
@@ -164,8 +165,7 @@ class CorpseManager {
       }
 
       // Get corpse configuration
-      const config = require('../../config/itemsConfig');
-      const corpseConfig = config.corpses || {};
+      const corpseConfig = itemsConfig.corpses || {};
       const playerConfig = corpseConfig.player || {};
 
       // Create corpse ID
@@ -197,7 +197,7 @@ class CorpseManager {
       }
 
       // Apply durability damage to ALL items (death penalty)
-      const deathDurabilityLoss = config.durability?.lossOnDeath || 10;
+      const deathDurabilityLoss = itemsConfig.durability?.lossOnDeath || 10;
       for (const item of allItems) {
         if (item.durability !== undefined && item.maxDurability !== undefined) {
           const loss = Math.floor(item.maxDurability * (deathDurabilityLoss / 100));
@@ -274,7 +274,6 @@ class CorpseManager {
       }
 
       // Clear player currency
-      const CurrencyManager = require('../economy/CurrencyManager');
       player.currency = CurrencyManager.createWallet();
 
       // Add to room.items
@@ -446,8 +445,7 @@ class CorpseManager {
     logger.log(`Player corpse ${corpseId} marked as looted by ${player.username}`);
 
     // Schedule cleanup timer (grace period before removal)
-    const config = require('../../config/itemsConfig');
-    const playerConfig = config.corpses?.player || {};
+    const playerConfig = itemsConfig.corpses?.player || {};
     const gracePeriod = playerConfig.lootedGracePeriod || 300000; // 5 minutes default
 
     TimerManager.schedule(
@@ -550,8 +548,7 @@ class CorpseManager {
    * @returns {number} Number of corpses cleaned up
    */
   cleanupAbandonedCorpses(world, playerDB) {
-    const config = require('../../config/itemsConfig');
-    const playerConfig = config.corpses?.player || {};
+    const playerConfig = itemsConfig.corpses?.player || {};
     const ABANDONMENT_THRESHOLD = playerConfig.abandonmentThreshold || 604800000; // 7 days default
 
     let cleanedCount = 0;
@@ -730,8 +727,7 @@ class CorpseManager {
     // Restore player corpses (NO decay timers, but cleanup timers if looted)
     for (const playerCorpse of playerCorpses) {
       // If corpse was looted and grace period expired, skip it
-      const config = require('../../config/itemsConfig');
-      const playerConfig = config.corpses?.player || {};
+      const playerConfig = itemsConfig.corpses?.player || {};
       const gracePeriod = playerConfig.lootedGracePeriod || 300000; // 5 minutes default
 
       if (playerCorpse.isLooted && playerCorpse.lootedAt) {

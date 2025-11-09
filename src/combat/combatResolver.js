@@ -121,9 +121,9 @@ function getDamageDice(attacker, hand = 'main_hand') {
     };
   }
 
-  // Unarmed damage: 1d3 + STR modifier
+  // Unarmed damage: 1d4 + STR modifier
   return {
-    damageDice: '1d3',
+    damageDice: '1d4',
     weapon: null,
     isVersatile: false
   };
