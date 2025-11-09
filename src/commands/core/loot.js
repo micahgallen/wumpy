@@ -42,6 +42,15 @@ function execute(player, args, context) {
     return;
   }
 
+  // Check player corpse ownership
+  if (container.containerType === 'player_corpse') {
+    const CorpseManager = require('../../systems/corpses/CorpseManager');
+    if (!CorpseManager.canLootPlayerCorpse(container, player)) {
+      player.send('\n' + colors.error("This is someone else's corpse. You cannot loot it.\n"));
+      return;
+    }
+  }
+
   if (!container.inventory || container.inventory.length === 0) {
     player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
     return;
@@ -164,9 +173,17 @@ function execute(player, args, context) {
     }
   }
 
-  // Check if container is now empty
-  if (container.inventory.length === 0 && container.containerType === 'npc_corpse') {
-    player.send(colors.dim(`The ${container.name} is now empty.\n`));
+  // Check if container is now empty and mark player corpses as looted
+  if (container.inventory.length === 0) {
+    if (container.containerType === 'player_corpse' && !container.isLooted) {
+      const CorpseManager = require('../../systems/corpses/CorpseManager');
+      const marked = CorpseManager.markCorpseAsLooted(container.id, player, world);
+      if (marked) {
+        player.send(colors.dim(`The ${container.name} is now empty and will decay soon.\n`));
+      }
+    } else if (container.containerType === 'npc_corpse') {
+      player.send(colors.dim(`The ${container.name} is now empty.\n`));
+    }
   }
 }
 
