@@ -91,7 +91,18 @@ function executeGetFromContainer(player, args, context, fromIndex) {
 
   // Check if container has inventory
   if (!container.inventory || container.inventory.length === 0) {
-    player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    // Destroy empty player corpses immediately (they were already looted)
+    if (container.containerType === 'player_corpse') {
+      const CorpseManager = require('../../systems/corpses/CorpseManager');
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send('\n' + colors.dim(`The ${container.name} crumbles to dust.\n`));
+      } else {
+        player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+      }
+    } else {
+      player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    }
     return;
   }
 
