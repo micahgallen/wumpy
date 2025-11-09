@@ -522,6 +522,62 @@ class CorpseManager {
   }
 
   /**
+   * Clean up abandoned player corpses (corpses from inactive players)
+   * @param {object} world - World instance
+   * @param {object} playerDB - Player database instance
+   * @returns {number} Number of corpses cleaned up
+   */
+  cleanupAbandonedCorpses(world, playerDB) {
+    const config = require('../../config/itemsConfig');
+    const playerConfig = config.corpses?.player || {};
+    const ABANDONMENT_THRESHOLD = playerConfig.abandonmentThreshold || 604800000; // 7 days default
+
+    let cleanedCount = 0;
+    const now = Date.now();
+
+    // Iterate through all corpses
+    for (const corpse of this.corpses.values()) {
+      // Only check player corpses
+      if (corpse.containerType !== 'player_corpse') continue;
+
+      // Skip if already looted (cleanup timer already scheduled)
+      if (corpse.isLooted) continue;
+
+      // Check corpse age
+      const age = now - corpse.createdAt;
+      if (age > ABANDONMENT_THRESHOLD) {
+        // Check if player has logged in recently
+        try {
+          const player = playerDB.getPlayer(corpse.ownerUsername);
+          if (!player || !player.lastLogin) {
+            // Player not found or never logged in, clean up corpse
+            logger.log(`Cleaning up abandoned corpse for missing player ${corpse.ownerUsername}`);
+            this.destroyPlayerCorpse(corpse.id, world);
+            cleanedCount++;
+            continue;
+          }
+
+          // Check if player has been inactive
+          const timeSinceLogin = now - player.lastLogin;
+          if (timeSinceLogin > ABANDONMENT_THRESHOLD) {
+            logger.log(`Cleaning up abandoned corpse for inactive player ${corpse.ownerUsername} (last login: ${Math.floor(timeSinceLogin / 86400000)} days ago)`);
+            this.destroyPlayerCorpse(corpse.id, world);
+            cleanedCount++;
+          }
+        } catch (error) {
+          logger.error(`Error checking player ${corpse.ownerUsername} for corpse cleanup: ${error.message}`);
+        }
+      }
+    }
+
+    if (cleanedCount > 0) {
+      logger.log(`Cleaned up ${cleanedCount} abandoned player corpses`);
+    }
+
+    return cleanedCount;
+  }
+
+  /**
    * Export corpse state for persistence
    * @returns {object} Serializable corpse data with separate NPC and player corpses
    */
