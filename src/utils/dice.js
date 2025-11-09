@@ -36,8 +36,8 @@ function parseDiceString(dice) {
     return null;
   }
 
-  if (sides < 2 || sides > 100) {
-    console.error(`Dice sides out of range (2-100): ${sides}`);
+  if (sides < 1 || sides > 100) {
+    console.error(`Dice sides out of range (1-100): ${sides}`);
     return null;
   }
 
