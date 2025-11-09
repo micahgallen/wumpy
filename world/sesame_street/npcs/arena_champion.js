@@ -3,17 +3,22 @@
   "name": "Gronk the Wumpy Gladiator",
   "description": "Before you stands a Wumpy like no other - a towering, battle-scarred specimen whose fur is matted with what you desperately hope is just dried mud. Gronk wears a grotesque suit of armor fashioned entirely from the bones of other Wumpies, held together with what appears to be sinew and deeply questionable life choices. A necklace of tiny Wumpy skulls (color-coded: red, blue, yellow, green, purple) rattles against their chest like the world's most disturbing wind chime. Their eyes hold the thousand-yard stare of someone who's not just kicked Wumpies, but has climbed to the top of the Wumpy food chain through sheer cannibalistic determination. A championship belt reading 'WUMPIE DIVISION CHAMPION - 47 CONSECUTIVE WINS (AND MEALS)' hangs around their waist. Despite the horrifying aesthetic, they seem... surprisingly articulate?",
   "keywords": ["gronk", "champion", "warrior", "fighter", "gladiator", "undefeated", "wumpy", "cannibal"],
-  "level": 4,
-  "hp": 45,
+  "level": 6,
+  "hp": 65,
   "abilities": {
-    "str": 16,
+    "str": 18,
     "dex": 14,
-    "con": 15,
+    "con": 16,
     "int": 10,
     "wis": 12,
     "cha": 8
   },
-  "ac": 15,
+  "ac": 16,
+  "equippedWeapon": {
+    "name": "+1 Battle Axe",
+    "damage": "1d8+1",
+    "damageType": "physical"
+  },
   "dialogue": [
     "Forty-seven wins. You know what that means? Forty-seven dinners. Though I've had to explain to my mother that 'eating your own kind' is actually a very competitive career path.",
     "The thing about Wumpies is, we're surprisingly nutritious. High in protein, low in self-preservation instincts. It's like nature designed us to be consumed.",

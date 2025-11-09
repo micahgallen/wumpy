@@ -1,5 +1,74 @@
 {
-  "corpses": [],
-  "savedAt": 1762703647636,
+  "corpses": {
+    "npcCorpses": [],
+    "playerCorpses": [
+      {
+        "id": "corpse_player_test1_1762723633565",
+        "instanceId": "corpse_player_test1_1762723633565",
+        "definitionId": "corpse_player_test1",
+        "name": "corpse of test1",
+        "description": "The lifeless body of test1. Killed by Big Bird.",
+        "keywords": [
+          "corpse",
+          "body",
+          "test1",
+          "test1"
+        ],
+        "itemType": "container",
+        "containerType": "player_corpse",
+        "isPickupable": false,
+        "weight": 150,
+        "capacity": 100,
+        "inventory": [],
+        "isOpen": true,
+        "isLocked": false,
+        "ownerUsername": "test1",
+        "roomId": "sesame_street_01",
+        "deathLocation": "Sesame Street - Central Plaza",
+        "playerLevel": 1,
+        "currency": {},
+        "killerName": "Big Bird",
+        "createdAt": 1762723633565,
+        "isLooted": false,
+        "lootedAt": null
+      },
+      {
+        "id": "corpse_player_test1_1762723863916",
+        "instanceId": "corpse_player_test1_1762723863916",
+        "definitionId": "corpse_player_test1",
+        "name": "corpse of test1",
+        "description": "The lifeless body of test1. Killed by Big Bird.",
+        "keywords": [
+          "corpse",
+          "body",
+          "test1",
+          "test1"
+        ],
+        "itemType": "container",
+        "containerType": "player_corpse",
+        "isPickupable": false,
+        "weight": 150,
+        "capacity": 100,
+        "inventory": [],
+        "isOpen": true,
+        "isLocked": false,
+        "ownerUsername": "test1",
+        "roomId": "sesame_street_01",
+        "deathLocation": "Sesame Street - Central Plaza",
+        "playerLevel": 1,
+        "currency": {
+          "platinum": 0,
+          "gold": 0,
+          "silver": 0,
+          "copper": 100
+        },
+        "killerName": "Big Bird",
+        "createdAt": 1762723863916,
+        "isLooted": false,
+        "lootedAt": null
+      }
+    ]
+  },
+  "savedAt": 1762726036500,
   "version": "1.0"
 }

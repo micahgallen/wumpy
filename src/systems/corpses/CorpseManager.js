@@ -20,11 +20,14 @@
 const logger = require('../../logger');
 const TimerManager = require('./TimerManager');
 const { ItemType } = require('../../items/schemas/ItemTypes');
+const itemsConfig = require('../../config/itemsConfig');
+const CurrencyManager = require('../economy/CurrencyManager');
 
 class CorpseManager {
   constructor() {
     this.corpses = new Map(); // corpseId -> corpse data
     this.npcCorpseMap = new Map(); // npcId -> corpseId
+    this.playerCorpseMap = new Map(); // username -> Set<corpseId> (supports multiple corpses)
     this.listeners = {}; // Event listeners
   }
 
@@ -51,8 +54,7 @@ class CorpseManager {
       }
 
       // Get corpse configuration
-      const config = require('../../config/itemsConfig');
-      const corpseConfig = config.corpses || {};
+      const corpseConfig = itemsConfig.corpses || {};
       const npcConfig = corpseConfig.npc || {};
 
       // Calculate weight based on NPC size
@@ -132,6 +134,157 @@ class CorpseManager {
       return corpse;
     } catch (error) {
       logger.error(`Failed to create NPC corpse for ${npc.name}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a corpse from a dead player
+   * @param {object} player - Player object who died
+   * @param {string} roomId - Room where player died
+   * @param {object} killer - NPC or Player who killed them (optional)
+   * @param {object} world - World instance
+   * @returns {object} Created player corpse container
+   */
+  createPlayerCorpse(player, roomId, killer, world) {
+    try {
+      // Validate inputs
+      if (!player || !player.username) {
+        logger.error('createPlayerCorpse: Invalid player object (missing username)');
+        return null;
+      }
+
+      if (!roomId) {
+        logger.error(`createPlayerCorpse: Invalid roomId for player ${player.username}`);
+        return null;
+      }
+
+      if (!world) {
+        logger.error(`createPlayerCorpse: World instance is null for player ${player.username}`);
+        return null;
+      }
+
+      // Get corpse configuration
+      const corpseConfig = itemsConfig.corpses || {};
+      const playerConfig = corpseConfig.player || {};
+
+      // Create corpse ID
+      const timestamp = Date.now();
+      const corpseId = `corpse_player_${player.username}_${timestamp}`;
+
+      // Determine killer name
+      const killerName = killer ? (killer.name || killer.username || 'Unknown') : 'Unknown';
+
+      // Create corpse description with killer name
+      const description = `The lifeless body of ${player.username}. Killed by ${killerName}.`;
+
+      // Generate keywords from player username
+      const nameWords = player.username.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+      const keywords = ['corpse', 'body', player.username.toLowerCase(), ...nameWords];
+
+      // Collect ALL items (inventory + equipped)
+      const allItems = [...(player.inventory || [])];
+
+      // Unequip all equipped items and add to collection
+      if (player.equipment) {
+        for (const slot in player.equipment) {
+          if (player.equipment[slot]) {
+            const equippedItem = player.equipment[slot];
+            allItems.push(equippedItem);
+            player.equipment[slot] = null; // Unequip
+          }
+        }
+      }
+
+      // Apply durability damage to ALL items (death penalty)
+      const deathDurabilityLoss = itemsConfig.durability?.lossOnDeath || 10;
+      for (const item of allItems) {
+        if (item.durability !== undefined && item.maxDurability !== undefined) {
+          const loss = Math.floor(item.maxDurability * (deathDurabilityLoss / 100));
+          item.durability = Math.max(0, item.durability - loss);
+        }
+      }
+
+      // Get player's currency (deep copy to avoid reference issues)
+      const playerCurrency = {
+        platinum: (player.currency?.platinum || 0),
+        gold: (player.currency?.gold || 0),
+        silver: (player.currency?.silver || 0),
+        copper: (player.currency?.copper || 0)
+      };
+
+      // Get room information for deathLocation
+      const room = world.getRoom(roomId);
+      const deathLocation = room ? room.name : 'Unknown Location';
+
+      // Create corpse container
+      const corpse = {
+        id: corpseId,
+        instanceId: corpseId,
+        definitionId: `corpse_player_${player.username}`,
+        name: `corpse of ${player.username}`,
+        description: description,
+        keywords: keywords,
+
+        // Item properties (corpse is a non-pickupable container item)
+        itemType: ItemType.CONTAINER,
+        containerType: 'player_corpse',
+        isPickupable: playerConfig.isPickupable !== undefined ? playerConfig.isPickupable : false,
+        weight: playerConfig.baseWeight || 150,
+        capacity: playerConfig.capacity || 100,
+
+        // Container properties
+        inventory: allItems,
+        isOpen: true,  // Corpses are always open (can be looted by owner)
+        isLocked: false,
+
+        // Player corpse-specific metadata
+        ownerUsername: player.username,
+        roomId: roomId,
+        deathLocation: deathLocation,
+        playerLevel: player.level || 1,
+        currency: playerCurrency,
+        killerName: killerName,
+        createdAt: timestamp,
+
+        // Lifecycle management
+        isLooted: false,
+        lootedAt: null
+
+        // NO decayTime property (player corpses don't decay)
+        // NO npcId property
+        // NO spawnLocation property
+      };
+
+      // Store corpse
+      this.corpses.set(corpseId, corpse);
+
+      // Store in playerCorpseMap (supports multiple corpses per player)
+      if (!this.playerCorpseMap.has(player.username)) {
+        this.playerCorpseMap.set(player.username, new Set());
+      }
+      this.playerCorpseMap.get(player.username).add(corpseId);
+
+      // Clear player inventory and equipment
+      player.inventory = [];
+      if (player.equipment) {
+        for (const slot in player.equipment) {
+          player.equipment[slot] = null;
+        }
+      }
+
+      // Clear player currency
+      player.currency = CurrencyManager.createWallet();
+
+      // Add to room.items
+      this.addCorpseToRoom(corpse, roomId, world);
+
+      logger.log(`Created player corpse ${corpseId} in room ${roomId} (${allItems.length} items, owner: ${player.username})`);
+
+      return corpse;
+    } catch (error) {
+      logger.error(`Failed to create player corpse for ${player?.username || 'unknown'}:`, error);
+      logger.error(`Error stack: ${error.stack}`);
       return null;
     }
   }
@@ -237,6 +390,82 @@ class CorpseManager {
   }
 
   /**
+   * Get all corpses for a player (supports multiple deaths)
+   * @param {string} username - Player username
+   * @returns {Array<object>} Array of corpse objects
+   */
+  getCorpsesByPlayer(username) {
+    const corpseIds = this.playerCorpseMap.get(username);
+    if (!corpseIds) {
+      return [];
+    }
+    return Array.from(corpseIds)
+      .map(id => this.corpses.get(id))
+      .filter(corpse => corpse !== undefined);
+  }
+
+  /**
+   * Check if a player can loot a player corpse
+   * @param {object} corpse - Player corpse object
+   * @param {object} player - Player attempting to loot
+   * @returns {boolean} True if player owns this corpse
+   */
+  canLootPlayerCorpse(corpse, player) {
+    if (!corpse || corpse.containerType !== 'player_corpse') {
+      return false;
+    }
+    if (corpse.isLooted) {
+      return false;
+    }
+    return corpse.ownerUsername === player.username;
+  }
+
+  /**
+   * Mark a player corpse as looted (owner retrieved items)
+   * @param {string} corpseId - Corpse ID
+   * @param {object} player - Player who looted it
+   * @param {object} world - World instance
+   * @returns {boolean} True if marked successfully
+   */
+  markCorpseAsLooted(corpseId, player, world) {
+    const corpse = this.corpses.get(corpseId);
+    if (!corpse || corpse.containerType !== 'player_corpse') {
+      return false;
+    }
+
+    // Verify ownership
+    if (corpse.ownerUsername !== player.username) {
+      return false;
+    }
+
+    // Mark as looted
+    corpse.isLooted = true;
+    corpse.lootedAt = Date.now();
+
+    logger.log(`Player corpse ${corpseId} marked as looted by ${player.username}`);
+
+    // Schedule cleanup timer (grace period before removal)
+    const playerConfig = itemsConfig.corpses?.player || {};
+    const gracePeriod = playerConfig.lootedGracePeriod || 300000; // 5 minutes default
+
+    TimerManager.schedule(
+      `player_corpse_cleanup_${corpseId}`,
+      gracePeriod,
+      (data) => {
+        logger.log(`Cleaning up looted player corpse ${data.corpseId}`);
+        this.destroyPlayerCorpse(data.corpseId, world);
+      },
+      {
+        type: 'player_corpse_cleanup',
+        corpseId: corpseId,
+        username: player.username
+      }
+    );
+
+    return true;
+  }
+
+  /**
    * Get all active corpses
    * @returns {Array<object>} Array of corpse objects
    */
@@ -279,53 +508,183 @@ class CorpseManager {
   }
 
   /**
+   * Destroy a player corpse (for cleanup after looting or admin commands)
+   * @param {string} corpseId - Corpse ID
+   * @param {object} world - World instance
+   * @returns {boolean} True if corpse was destroyed
+   */
+  destroyPlayerCorpse(corpseId, world) {
+    const corpse = this.corpses.get(corpseId);
+    if (!corpse || corpse.containerType !== 'player_corpse') {
+      return false;
+    }
+
+    // Cancel cleanup timer if exists
+    TimerManager.cancel(`player_corpse_cleanup_${corpseId}`);
+
+    // Remove from room
+    this.removeCorpseFromRoom(corpseId, corpse.roomId, world);
+
+    // Remove from playerCorpseMap
+    if (this.playerCorpseMap.has(corpse.ownerUsername)) {
+      this.playerCorpseMap.get(corpse.ownerUsername).delete(corpseId);
+      // If no more corpses for this player, remove the entry
+      if (this.playerCorpseMap.get(corpse.ownerUsername).size === 0) {
+        this.playerCorpseMap.delete(corpse.ownerUsername);
+      }
+    }
+
+    // Cleanup
+    this.corpses.delete(corpseId);
+
+    logger.log(`Destroyed player corpse ${corpseId} (owner: ${corpse.ownerUsername})`);
+    return true;
+  }
+
+  /**
+   * Clean up abandoned player corpses (corpses from inactive players)
+   * @param {object} world - World instance
+   * @param {object} playerDB - Player database instance
+   * @returns {number} Number of corpses cleaned up
+   */
+  cleanupAbandonedCorpses(world, playerDB) {
+    const playerConfig = itemsConfig.corpses?.player || {};
+    const ABANDONMENT_THRESHOLD = playerConfig.abandonmentThreshold || 604800000; // 7 days default
+
+    let cleanedCount = 0;
+    const now = Date.now();
+
+    // Iterate through all corpses
+    for (const corpse of this.corpses.values()) {
+      // Only check player corpses
+      if (corpse.containerType !== 'player_corpse') continue;
+
+      // Skip if already looted (cleanup timer already scheduled)
+      if (corpse.isLooted) continue;
+
+      // Check corpse age
+      const age = now - corpse.createdAt;
+      if (age > ABANDONMENT_THRESHOLD) {
+        // Check if player has logged in recently
+        try {
+          const player = playerDB.getPlayer(corpse.ownerUsername);
+          if (!player || !player.lastLogin) {
+            // Player not found or never logged in, clean up corpse
+            logger.log(`Cleaning up abandoned corpse for missing player ${corpse.ownerUsername}`);
+            this.destroyPlayerCorpse(corpse.id, world);
+            cleanedCount++;
+            continue;
+          }
+
+          // Check if player has been inactive
+          const timeSinceLogin = now - player.lastLogin;
+          if (timeSinceLogin > ABANDONMENT_THRESHOLD) {
+            logger.log(`Cleaning up abandoned corpse for inactive player ${corpse.ownerUsername} (last login: ${Math.floor(timeSinceLogin / 86400000)} days ago)`);
+            this.destroyPlayerCorpse(corpse.id, world);
+            cleanedCount++;
+          }
+        } catch (error) {
+          logger.error(`Error checking player ${corpse.ownerUsername} for corpse cleanup: ${error.message}`);
+        }
+      }
+    }
+
+    if (cleanedCount > 0) {
+      logger.log(`Cleaned up ${cleanedCount} abandoned player corpses`);
+    }
+
+    return cleanedCount;
+  }
+
+  /**
    * Export corpse state for persistence
-   * @returns {Array<object>} Serializable corpse data
+   * @returns {object} Serializable corpse data with separate NPC and player corpses
    */
   exportState() {
-    const state = [];
+    const state = {
+      npcCorpses: [],
+      playerCorpses: []
+    };
+
     for (const corpse of this.corpses.values()) {
-      state.push({
-        id: corpse.id,
-        instanceId: corpse.instanceId,
-        definitionId: corpse.definitionId,
-        name: corpse.name,
-        description: corpse.description,
-        keywords: corpse.keywords,
-        itemType: corpse.itemType,
-        containerType: corpse.containerType,
-        isPickupable: corpse.isPickupable,
-        weight: corpse.weight,
-        capacity: corpse.capacity,
-        inventory: corpse.inventory,
-        isOpen: corpse.isOpen,
-        isLocked: corpse.isLocked,
-        npcId: corpse.npcId,
-        npcType: corpse.npcType,
-        killerName: corpse.killerName,
-        spawnLocation: corpse.spawnLocation,
-        createdAt: corpse.createdAt,
-        decayTime: corpse.decayTime
-      });
+      if (corpse.containerType === 'npc_corpse') {
+        // Export NPC corpse
+        state.npcCorpses.push({
+          id: corpse.id,
+          instanceId: corpse.instanceId,
+          definitionId: corpse.definitionId,
+          name: corpse.name,
+          description: corpse.description,
+          keywords: corpse.keywords,
+          itemType: corpse.itemType,
+          containerType: corpse.containerType,
+          isPickupable: corpse.isPickupable,
+          weight: corpse.weight,
+          capacity: corpse.capacity,
+          inventory: corpse.inventory,
+          isOpen: corpse.isOpen,
+          isLocked: corpse.isLocked,
+          npcId: corpse.npcId,
+          npcType: corpse.npcType,
+          killerName: corpse.killerName,
+          spawnLocation: corpse.spawnLocation,
+          createdAt: corpse.createdAt,
+          decayTime: corpse.decayTime
+        });
+      } else if (corpse.containerType === 'player_corpse') {
+        // Export player corpse
+        state.playerCorpses.push({
+          id: corpse.id,
+          instanceId: corpse.instanceId,
+          definitionId: corpse.definitionId,
+          name: corpse.name,
+          description: corpse.description,
+          keywords: corpse.keywords,
+          itemType: corpse.itemType,
+          containerType: corpse.containerType,
+          isPickupable: corpse.isPickupable,
+          weight: corpse.weight,
+          capacity: corpse.capacity,
+          inventory: corpse.inventory,
+          isOpen: corpse.isOpen,
+          isLocked: corpse.isLocked,
+          ownerUsername: corpse.ownerUsername,
+          roomId: corpse.roomId,
+          deathLocation: corpse.deathLocation,
+          playerLevel: corpse.playerLevel,
+          currency: corpse.currency,
+          killerName: corpse.killerName,
+          createdAt: corpse.createdAt,
+          isLooted: corpse.isLooted,
+          lootedAt: corpse.lootedAt
+        });
+      }
     }
+
     return state;
   }
 
   /**
    * Restore corpse state from persistence
-   * @param {Array<object>} state - Previously exported state
+   * @param {Array<object>|object} state - Previously exported state (array for old format, object for new format)
    * @param {object} world - World instance
    */
   restoreState(state, world) {
-    let restoredCount = 0;
+    let restoredNPCCount = 0;
+    let restoredPlayerCount = 0;
     const now = Date.now();
 
-    for (const corpseData of state) {
+    // Handle backward compatibility: old format was an array, new format is an object
+    const npcCorpses = Array.isArray(state) ? state : (state.npcCorpses || []);
+    const playerCorpses = Array.isArray(state) ? [] : (state.playerCorpses || []);
+
+    // Restore NPC corpses (with decay timers)
+    for (const corpseData of npcCorpses) {
       const remaining = corpseData.decayTime - now;
 
       // Check if corpse expired while server was down
       if (remaining <= 0) {
-        logger.log(`Corpse ${corpseData.id} expired during downtime, decaying immediately`);
+        logger.log(`NPC corpse ${corpseData.id} expired during downtime, decaying immediately`);
 
         // Remove from room if it still exists there
         this.removeCorpseFromRoom(corpseData.id, corpseData.spawnLocation, world);
@@ -362,10 +721,61 @@ class CorpseManager {
         }
       );
 
-      restoredCount++;
+      restoredNPCCount++;
     }
 
-    logger.log(`Restored ${restoredCount} corpses with decay timers`);
+    // Restore player corpses (NO decay timers, but cleanup timers if looted)
+    for (const playerCorpse of playerCorpses) {
+      // If corpse was looted and grace period expired, skip it
+      const playerConfig = itemsConfig.corpses?.player || {};
+      const gracePeriod = playerConfig.lootedGracePeriod || 300000; // 5 minutes default
+
+      if (playerCorpse.isLooted && playerCorpse.lootedAt) {
+        const timeSinceLooted = now - playerCorpse.lootedAt;
+        if (timeSinceLooted > gracePeriod) {
+          logger.log(`Player corpse ${playerCorpse.id} grace period expired during downtime, skipping restoration`);
+          continue;
+        }
+      }
+
+      // Recreate corpse in memory
+      this.corpses.set(playerCorpse.id, playerCorpse);
+
+      // Store in playerCorpseMap (supports multiple corpses per player)
+      if (!this.playerCorpseMap.has(playerCorpse.ownerUsername)) {
+        this.playerCorpseMap.set(playerCorpse.ownerUsername, new Set());
+      }
+      this.playerCorpseMap.get(playerCorpse.ownerUsername).add(playerCorpse.id);
+
+      // Add back to room
+      this.addCorpseToRoom(playerCorpse, playerCorpse.roomId, world);
+
+      // If looted, reschedule cleanup timer
+      if (playerCorpse.isLooted && playerCorpse.lootedAt) {
+        const timeSinceLooted = now - playerCorpse.lootedAt;
+        const remaining = gracePeriod - timeSinceLooted;
+
+        if (remaining > 0) {
+          TimerManager.schedule(
+            `player_corpse_cleanup_${playerCorpse.id}`,
+            remaining,
+            (data) => {
+              logger.log(`Cleaning up looted player corpse ${data.corpseId}`);
+              this.destroyPlayerCorpse(data.corpseId, world);
+            },
+            {
+              type: 'player_corpse_cleanup',
+              corpseId: playerCorpse.id,
+              username: playerCorpse.ownerUsername
+            }
+          );
+        }
+      }
+
+      restoredPlayerCount++;
+    }
+
+    logger.log(`Restored ${restoredNPCCount} NPC corpses and ${restoredPlayerCount} player corpses`);
   }
 
   /**

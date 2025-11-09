@@ -150,15 +150,17 @@ CorpseManager
 createPlayerCorpse(player, roomId, killer, world) {
   // 1. Generate unique corpse ID: corpse_player_USERNAME_TIMESTAMP
   // 2. Create corpse container with containerType: 'player_corpse'
-  // 3. Transfer ALL items from player.inventory to corpse.inventory
-  // 4. Transfer player.currency to corpse.currency
-  // 5. Clear player.inventory = []
-  // 6. Clear player.currency = CurrencyManager.createWallet()
-  // 7. Set ownerUsername, roomId, deathLocation
-  // 8. Add to room.items
-  // 9. Store in corpses map and playerCorpseMap
-  // 10. NO timer scheduling (no decay)
-  // 11. Return corpse object
+  // 3. Transfer ALL items from player.inventory to corpse.inventory (including equipped)
+  // 4. Apply durability damage to all items (death penalty)
+  // 5. Transfer player.currency to corpse.currency
+  // 6. Clear player.inventory = []
+  // 7. Clear player.equipment = {} (all slots)
+  // 8. Clear player.currency = CurrencyManager.createWallet()
+  // 9. Set ownerUsername, roomId, deathLocation
+  // 10. Add to room.items
+  // 11. Store in corpses map and playerCorpseMap
+  // 12. NO timer scheduling (no decay)
+  // 13. Return corpse object
 }
 ```
 
@@ -340,13 +342,14 @@ restoreState(state, world) {
 ```
 
 ### 4.2 Player Inventory Concerns
-**IMPORTANT:** Player corpses contain actual Item instances from the player's inventory. These must be properly serialized/deserialized.
+**IMPORTANT:** Player corpses contain actual Item instances from the player's inventory AND equipped items. These must be properly serialized/deserialized.
 
 The existing `InventorySerializer` system should handle this automatically since corpse.inventory is an array of Item instances, but we should verify:
-- Items with durability are properly saved
+- Items with durability are properly saved (including death penalty damage)
 - Currency is correctly transferred
 - Stackable items maintain quantity
-- Equipped items are transferred (or handled separately)
+- ALL items (equipped + inventory) are transferred to corpse
+- Equipment slots are properly cleared after transfer
 
 ---
 
@@ -444,28 +447,45 @@ corpses: {
 2. **Only inventory drops:** Equipped items stay equipped (damaged by death durability loss)
 3. **Hybrid:** Inventory drops, equipped items stay but take durability hit
 
-**Recommendation:** Option 2 (only inventory drops) because:
-- Equipped items already have death penalty (durability loss)
-- DeathHandler.handlePlayerDeath() already implemented
-- Players keep their gear but need to repair it
-- Simpler implementation
+**DECISION:** Option 1 (everything drops) to create meaningful death penalty:
+- Players lose ALL items (equipped + inventory) on death
+- All items take durability damage from death
+- Player must recover corpse to get everything back
+- Creates stronger incentive to avoid death
+- More punishing but fair (items are recoverable)
 
 **Implementation:**
 ```javascript
 createPlayerCorpse(player, roomId, killer, world) {
-  // Transfer only UNEQUIPPED items
-  const unequippedItems = player.inventory.filter(item => {
-    return !EquipmentManager.isEquipped(player, item.instanceId);
-  });
+  // 1. Collect ALL items (inventory + equipped)
+  const allItems = [...player.inventory];
 
-  corpse.inventory = unequippedItems;
+  // 2. Unequip all equipped items and add to collection
+  if (player.equipment) {
+    for (const slot in player.equipment) {
+      if (player.equipment[slot]) {
+        const equippedItem = player.equipment[slot];
+        allItems.push(equippedItem);
+        player.equipment[slot] = null; // Unequip
+      }
+    }
+  }
 
-  // Remove transferred items from player
-  player.inventory = player.inventory.filter(item => {
-    return EquipmentManager.isEquipped(player, item.instanceId);
-  });
+  // 3. Apply durability damage to ALL items (death penalty)
+  for (const item of allItems) {
+    if (item.durability !== undefined) {
+      item.durability = Math.max(0, item.durability - itemsConfig.deathDurabilityLoss);
+    }
+  }
 
-  // Currency always drops
+  // 4. Transfer everything to corpse
+  corpse.inventory = allItems;
+
+  // 5. Clear player inventory and equipment
+  player.inventory = [];
+  player.equipment = {}; // All slots empty
+
+  // 6. Currency always drops
   corpse.currency = player.currency;
   player.currency = CurrencyManager.createWallet();
 }
@@ -590,7 +610,7 @@ corpses: {
    - Recommendation: Yes, useful for achievements/statistics
 
 5. **Equipment Dropping:** Final decision on equipped items?
-   - Recommendation: Only inventory drops (see 5.5)
+   - **DECISION:** ALL items drop (inventory + equipped) with durability penalty (see 5.5)
 
 ---
 

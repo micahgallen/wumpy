@@ -190,6 +190,7 @@ class PlayerDB {
       maxHp: startingHp,
       isGhost: false,
       lastDamageTaken: 0,
+      lastLogin: Date.now(), // Track last login for abandoned corpse cleanup
       stats: {
         strength: 10,
         dexterity: 10,
@@ -432,6 +433,19 @@ class PlayerDB {
         silver: currency.silver ?? 0,
         copper: currency.copper ?? 0
       };
+      this.save();
+    }
+  }
+
+  /**
+   * Update player's last login timestamp
+   * @param {string} username - Player username
+   * @param {number} timestamp - Login timestamp (milliseconds since epoch)
+   */
+  updatePlayerLastLogin(username, timestamp) {
+    const lowerUsername = username.toLowerCase();
+    if (this.players[lowerUsername]) {
+      this.players[lowerUsername].lastLogin = timestamp;
       this.save();
     }
   }

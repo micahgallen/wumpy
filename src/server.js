@@ -158,6 +158,10 @@ try {
 
     // Restore corpses (this will also emit decay events for expired corpses)
     CorpseManager.restoreState(corpseState.corpses, world);
+
+    // Clean up abandoned player corpses (corpses from inactive players)
+    logger.log('Running abandoned corpse cleanup...');
+    CorpseManager.cleanupAbandonedCorpses(world, playerDB);
   } else {
     logger.log('No corpse state file found, starting fresh');
   }
@@ -366,6 +370,9 @@ function handleLoginPassword(player, password) {
     if (adminSystem) {
       updatePlayerInfoOnLogin(adminSystem.adminService, player);
     }
+
+    // Update last login timestamp for abandoned corpse cleanup
+    playerDB.updatePlayerLastLogin(player.username, Date.now());
 
     logger.log(`Player ${player.username} logged in.`);
 
@@ -825,7 +832,10 @@ function gracefulShutdown(signal) {
       };
 
       fs.writeFileSync(corpsesPath, JSON.stringify(corpseState, null, 2));
-      logger.log(`Saved ${corpseState.corpses.length} corpses to ${corpsesPath}`);
+      const npcCount = corpseState.corpses.npcCorpses?.length || 0;
+      const playerCount = corpseState.corpses.playerCorpses?.length || 0;
+      const totalCorpses = npcCount + playerCount;
+      logger.log(`Saved ${totalCorpses} corpses (${npcCount} NPC, ${playerCount} player) to ${corpsesPath}`);
     } catch (err) {
       logger.error(`Failed to save corpse state: ${err.message}`);
     }

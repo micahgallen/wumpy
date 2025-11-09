@@ -121,9 +121,9 @@ function getDamageDice(attacker, hand = 'main_hand') {
     };
   }
 
-  // Unarmed damage: 1 base damage (not 1d4, per design doc)
+  // Unarmed damage: 1d4 + STR modifier
   return {
-    damageDice: '1',
+    damageDice: '1d4',
     weapon: null,
     isVersatile: false
   };

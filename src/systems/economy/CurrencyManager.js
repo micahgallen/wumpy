@@ -464,6 +464,23 @@ class CurrencyManager {
   }
 
   /**
+   * Check if currency is empty (all zeros or null/undefined)
+   * @param {Object} currency - Currency object to check
+   * @returns {boolean} True if currency is empty
+   */
+  isEmpty(currency) {
+    if (!currency) {
+      return true;
+    }
+    return (
+      (currency.platinum === 0 || currency.platinum === undefined) &&
+      (currency.gold === 0 || currency.gold === undefined) &&
+      (currency.silver === 0 || currency.silver === undefined) &&
+      (currency.copper === 0 || currency.copper === undefined)
+    );
+  }
+
+  /**
    * Create a clean currency object with default zeros
    * @param {Object} [partial={}] - Partial currency object
    * @returns {Object} Complete currency object

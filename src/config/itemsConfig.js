@@ -240,6 +240,14 @@ module.exports = {
       capacity: 20,             // Number of item slots
       isPickupable: true        // Can be picked up by strong players
     },
+    player: {
+      baseWeight: 150,          // Players heavier than NPCs
+      capacity: 100,            // Large capacity (player's full inventory)
+      isPickupable: false,      // Cannot be picked up
+      allowPvPLooting: false,   // Only owner can loot
+      lootedGracePeriod: 300000,  // 5 minutes before cleanup after looting
+      abandonmentThreshold: 604800000  // 7 days (cleanup if player inactive)
+    },
     sizeWeights: {
       tiny: 10,
       small: 50,

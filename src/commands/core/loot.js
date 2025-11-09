@@ -18,6 +18,12 @@ const InventorySerializer = require('../../systems/inventory/InventorySerializer
 function execute(player, args, context) {
   const { world, playerDB } = context;
 
+  // Ghosts cannot loot
+  if (player.isGhost) {
+    player.send('\n' + colors.error('You are a ghost and cannot interact with physical objects.\n'));
+    return;
+  }
+
   if (args.length === 0) {
     player.send('\n' + colors.error('Loot what? Try "loot <container>"\n'));
     return;
@@ -42,8 +48,28 @@ function execute(player, args, context) {
     return;
   }
 
+  // Check player corpse ownership
+  if (container.containerType === 'player_corpse') {
+    const CorpseManager = require('../../systems/corpses/CorpseManager');
+    if (!CorpseManager.canLootPlayerCorpse(container, player)) {
+      player.send('\n' + colors.error("This is someone else's corpse. You cannot loot it.\n"));
+      return;
+    }
+  }
+
   if (!container.inventory || container.inventory.length === 0) {
-    player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    // Destroy empty player corpses immediately (they were already looted)
+    if (container.containerType === 'player_corpse') {
+      const CorpseManager = require('../../systems/corpses/CorpseManager');
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send('\n' + colors.dim(`The ${container.name} crumbles to dust.\n`));
+      } else {
+        player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+      }
+    } else {
+      player.send('\n' + colors.info(`The ${container.name} is empty.\n`));
+    }
     return;
   }
 
@@ -118,6 +144,35 @@ function execute(player, args, context) {
     }
   }
 
+  // Handle currency from player corpses
+  let currencyTaken = null;
+  if (container.containerType === 'player_corpse' && container.currency) {
+    const CurrencyManager = require('../../systems/economy/CurrencyManager');
+
+    // Check if corpse has any currency
+    const hasCurrency = !CurrencyManager.isEmpty(container.currency);
+
+    if (hasCurrency) {
+      // Transfer currency to player wallet
+      const result = CurrencyManager.addToWalletExact(player, container.currency);
+
+      if (result.success) {
+        currencyTaken = CurrencyManager.format(container.currency);
+
+        // Clear corpse currency
+        container.currency = {
+          platinum: 0,
+          gold: 0,
+          silver: 0,
+          copper: 0
+        };
+
+        // Save player currency
+        playerDB.updatePlayerCurrency(player.username, result.newBalance);
+      }
+    }
+  }
+
   // Save player inventory if we took anything
   if (itemsTaken.length > 0) {
     const serialized = InventorySerializer.serializeInventory(player);
@@ -125,7 +180,7 @@ function execute(player, args, context) {
   }
 
   // Build result message
-  if (itemsTaken.length === 0) {
+  if (itemsTaken.length === 0 && !currencyTaken) {
     if (failures.length > 0) {
       player.send('\n' + colors.error(`You can't carry anything from the ${container.name}. You're too encumbered!\n`));
     } else {
@@ -137,6 +192,11 @@ function execute(player, args, context) {
   let message = colors.success(`You loot the ${container.name}:\n`);
   for (const itemName of itemsTaken) {
     message += colors.dim(`  - ${itemName}\n`);
+  }
+
+  // Add currency to message if any was taken
+  if (currencyTaken) {
+    message += colors.dim(`  - ${currencyTaken}\n`);
   }
 
   if (failures.length > 0) {
@@ -164,9 +224,21 @@ function execute(player, args, context) {
     }
   }
 
-  // Check if container is now empty
-  if (container.inventory.length === 0 && container.containerType === 'npc_corpse') {
-    player.send(colors.dim(`The ${container.name} is now empty.\n`));
+  // Check if container is now empty and destroy player corpses immediately
+  const CurrencyManager = require('../../systems/economy/CurrencyManager');
+  const isCorpseEmpty = container.inventory.length === 0 && CurrencyManager.isEmpty(container.currency);
+
+  if (isCorpseEmpty) {
+    if (container.containerType === 'player_corpse') {
+      // Destroy empty player corpses immediately - no need to keep them around
+      const CorpseManager = require('../../systems/corpses/CorpseManager');
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send(colors.dim(`The ${container.name} crumbles to dust.\n`));
+      }
+    } else if (container.containerType === 'npc_corpse') {
+      player.send(colors.dim(`The ${container.name} is now empty.\n`));
+    }
   }
 }
 
