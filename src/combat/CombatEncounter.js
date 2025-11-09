@@ -121,16 +121,7 @@ class CombatEncounter {
                     this.broadcast(deathMessage);
 
                     if (target.socket && target.username) {
-                        target.isGhost = true;
-                        this.playerDB.updatePlayerGhostStatus(target.username, true);
-                        target.send('\n' + colors.error('======================================'));
-                        target.send('\n' + colors.error('        YOU HAVE DIED!'));
-                        target.send('\n' + colors.error('======================================'));
-                        target.send('\n' + colors.info('You are now a GHOST.'));
-                        target.send('\n' + colors.hint('As a ghost, you cannot attack or be attacked.'));
-                        target.send('\n' + colors.hint('Your form is translucent and ethereal.'));
-                        target.send('\n' + colors.hint('(Respawn mechanics coming soon...)'));
-                        target.send('\n');
+                        this.handlePlayerDeath(target, attacker);
                     }
 
                     this.endCombat();
@@ -156,16 +147,7 @@ class CombatEncounter {
                         this.broadcast(deathMessage);
 
                         if (target.socket && target.username) {
-                            target.isGhost = true;
-                            this.playerDB.updatePlayerGhostStatus(target.username, true);
-                            target.send('\n' + colors.error('======================================'));
-                            target.send('\n' + colors.error('        YOU HAVE DIED!'));
-                            target.send('\n' + colors.error('======================================'));
-                            target.send('\n' + colors.info('You are now a GHOST.'));
-                            target.send('\n' + colors.hint('As a ghost, you cannot attack or be attacked.'));
-                            target.send('\n' + colors.hint('Your form is translucent and ethereal.'));
-                            target.send('\n' + colors.hint('(Respawn mechanics coming soon...)'));
-                            target.send('\n');
+                            this.handlePlayerDeath(target, attacker);
                         }
 
                         this.endCombat();
@@ -293,6 +275,34 @@ class CombatEncounter {
         }
 
         return true;
+    }
+
+    handlePlayerDeath(player, killer) {
+        // Set ghost status
+        player.isGhost = true;
+        this.playerDB.updatePlayerGhostStatus(player.username, true);
+
+        // Create player corpse
+        const corpse = CorpseManager.createPlayerCorpse(
+            player,
+            this.roomId,
+            killer,
+            this.world
+        );
+
+        // Send death messages
+        player.send('\n' + colors.error('======================================'));
+        player.send('\n' + colors.error('        YOU HAVE DIED!'));
+        player.send('\n' + colors.error('======================================'));
+        player.send('\n' + colors.info('You are now a GHOST.'));
+        player.send('\n' + colors.hint('As a ghost, you cannot attack or be attacked.'));
+        player.send('\n' + colors.hint('Your form is translucent and ethereal.'));
+        player.send('\n');
+
+        if (corpse) {
+            player.send(colors.info(`Your belongings have fallen into your corpse.`));
+            player.send(colors.hint(`Return to ${corpse.deathLocation} after revival to recover your items.\n`));
+        }
     }
 
     broadcast(message) {
