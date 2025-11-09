@@ -189,9 +189,20 @@ class CurrencyManager {
         result.gold += borrow * 10;
       }
 
-      // If still negative, clamp to zero
+      // If platinum is negative after borrowing, we need to "make change"
+      // from lower denominations
       if (result.platinum < 0) {
-        return { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        // Check if we have enough total value
+        const totalCopper1 = this.toCopper(currency1);
+        const totalCopper2 = this.toCopper(currency2);
+
+        if (totalCopper1 >= totalCopper2) {
+          // We have enough, just need to convert denominations properly
+          return this.fromCopper(totalCopper1 - totalCopper2);
+        } else {
+          // Truly insufficient funds
+          return { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        }
       }
 
       return result;
