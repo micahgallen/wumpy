@@ -4,14 +4,14 @@ const EquipmentManager = require('../systems/equipment/EquipmentManager');
 const { EquipmentSlot, ItemType } = require('../items/schemas/ItemTypes');
 
 function createHealthBar(currentHp, maxHp, barLength = 20) {
-  // Ensure we have valid numbers
-  const current = Math.max(0, Math.floor(currentHp));
-  const max = Math.max(1, Math.floor(maxHp));
+  // Ensure we have valid numbers (handle NaN, undefined, null)
+  const current = Math.max(0, Math.floor(Number(currentHp) || 0));
+  const max = Math.max(1, Math.floor(Number(maxHp) || 1));
   const percentage = current / max;
 
-  // Calculate filled portion
-  const filledLength = Math.round(barLength * percentage);
-  const emptyLength = barLength - filledLength;
+  // Calculate filled portion (clamp to valid range)
+  const filledLength = Math.max(0, Math.min(barLength, Math.round(barLength * percentage)));
+  const emptyLength = Math.max(0, barLength - filledLength);
 
   // Create bar using block characters
   const filledBar = '#'.repeat(filledLength);
