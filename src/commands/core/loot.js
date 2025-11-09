@@ -18,6 +18,12 @@ const InventorySerializer = require('../../systems/inventory/InventorySerializer
 function execute(player, args, context) {
   const { world, playerDB } = context;
 
+  // Ghosts cannot loot
+  if (player.isGhost) {
+    player.send('\n' + colors.error('You are a ghost and cannot interact with physical objects.\n'));
+    return;
+  }
+
   if (args.length === 0) {
     player.send('\n' + colors.error('Loot what? Try "loot <container>"\n'));
     return;
@@ -138,6 +144,38 @@ function execute(player, args, context) {
     }
   }
 
+  // Handle currency from player corpses
+  let currencyTaken = null;
+  if (container.containerType === 'player_corpse' && container.currency) {
+    const CurrencyManager = require('../../systems/economy/CurrencyManager');
+
+    // Check if corpse has any currency
+    const totalCurrency = (container.currency.platinum || 0) +
+                         (container.currency.gold || 0) +
+                         (container.currency.silver || 0) +
+                         (container.currency.copper || 0);
+
+    if (totalCurrency > 0) {
+      // Transfer currency to player wallet
+      const result = CurrencyManager.addToWalletExact(player, container.currency);
+
+      if (result.success) {
+        currencyTaken = CurrencyManager.format(container.currency);
+
+        // Clear corpse currency
+        container.currency = {
+          platinum: 0,
+          gold: 0,
+          silver: 0,
+          copper: 0
+        };
+
+        // Save player currency
+        playerDB.updatePlayerCurrency(player.username, result.newBalance);
+      }
+    }
+  }
+
   // Save player inventory if we took anything
   if (itemsTaken.length > 0) {
     const serialized = InventorySerializer.serializeInventory(player);
@@ -145,7 +183,7 @@ function execute(player, args, context) {
   }
 
   // Build result message
-  if (itemsTaken.length === 0) {
+  if (itemsTaken.length === 0 && !currencyTaken) {
     if (failures.length > 0) {
       player.send('\n' + colors.error(`You can't carry anything from the ${container.name}. You're too encumbered!\n`));
     } else {
@@ -157,6 +195,11 @@ function execute(player, args, context) {
   let message = colors.success(`You loot the ${container.name}:\n`);
   for (const itemName of itemsTaken) {
     message += colors.dim(`  - ${itemName}\n`);
+  }
+
+  // Add currency to message if any was taken
+  if (currencyTaken) {
+    message += colors.dim(`  - ${currencyTaken}\n`);
   }
 
   if (failures.length > 0) {
@@ -184,13 +227,21 @@ function execute(player, args, context) {
     }
   }
 
-  // Check if container is now empty and mark player corpses as looted
-  if (container.inventory.length === 0) {
-    if (container.containerType === 'player_corpse' && !container.isLooted) {
+  // Check if container is now empty and destroy player corpses immediately
+  const isCorpseEmpty = container.inventory.length === 0 &&
+    (!container.currency ||
+     (container.currency.platinum === 0 &&
+      container.currency.gold === 0 &&
+      container.currency.silver === 0 &&
+      container.currency.copper === 0));
+
+  if (isCorpseEmpty) {
+    if (container.containerType === 'player_corpse') {
+      // Destroy empty player corpses immediately - no need to keep them around
       const CorpseManager = require('../../systems/corpses/CorpseManager');
-      const marked = CorpseManager.markCorpseAsLooted(container.id, player, world);
-      if (marked) {
-        player.send(colors.dim(`The ${container.name} is now empty and will decay soon.\n`));
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send(colors.dim(`The ${container.name} crumbles to dust.\n`));
       }
     } else if (container.containerType === 'npc_corpse') {
       player.send(colors.dim(`The ${container.name} is now empty.\n`));

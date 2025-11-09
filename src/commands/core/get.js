@@ -18,6 +18,12 @@ const InventorySerializer = require('../../systems/inventory/InventorySerializer
 function executeGetFromContainer(player, args, context, fromIndex) {
   const { world, playerDB } = context;
 
+  // Ghosts cannot pick up items
+  if (player.isGhost) {
+    player.send('\n' + colors.error('You are a ghost and cannot interact with physical objects.\n'));
+    return;
+  }
+
   // Parse "get X from Y" or "get all X from Y" or "get 5 X from Y"
   const itemArgs = args.slice(0, fromIndex);
   const containerArgs = args.slice(fromIndex + 1);
@@ -272,13 +278,21 @@ function executeGetFromContainer(player, args, context, fromIndex) {
     }
   }
 
-  // Check if container is now empty and mark player corpses as looted
-  if (container.inventory.length === 0) {
-    if (container.containerType === 'player_corpse' && !container.isLooted) {
+  // Check if container is now empty and destroy player corpses immediately
+  const isCorpseEmpty = container.inventory.length === 0 &&
+    (!container.currency ||
+     (container.currency.platinum === 0 &&
+      container.currency.gold === 0 &&
+      container.currency.silver === 0 &&
+      container.currency.copper === 0));
+
+  if (isCorpseEmpty) {
+    if (container.containerType === 'player_corpse') {
+      // Destroy empty player corpses immediately - no need to keep them around
       const CorpseManager = require('../../systems/corpses/CorpseManager');
-      const marked = CorpseManager.markCorpseAsLooted(container.id, player, world);
-      if (marked) {
-        player.send(colors.dim(`The ${container.name} is now empty and will decay soon.\n`));
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send(colors.dim(`The ${container.name} crumbles to dust.\n`));
       }
     } else if (container.containerType === 'npc_corpse') {
       player.send(colors.dim(`The ${container.name} is now empty.\n`));
@@ -415,13 +429,21 @@ function getAllFromContainer(player, containerArgs, context) {
     }
   }
 
-  // Check if container is now empty and mark player corpses as looted
-  if (container.inventory.length === 0) {
-    if (container.containerType === 'player_corpse' && !container.isLooted) {
+  // Check if container is now empty and destroy player corpses immediately
+  const isCorpseEmpty = container.inventory.length === 0 &&
+    (!container.currency ||
+     (container.currency.platinum === 0 &&
+      container.currency.gold === 0 &&
+      container.currency.silver === 0 &&
+      container.currency.copper === 0));
+
+  if (isCorpseEmpty) {
+    if (container.containerType === 'player_corpse') {
+      // Destroy empty player corpses immediately - no need to keep them around
       const CorpseManager = require('../../systems/corpses/CorpseManager');
-      const marked = CorpseManager.markCorpseAsLooted(container.id, player, world);
-      if (marked) {
-        player.send(colors.dim(`The ${container.name} is now empty and will decay soon.\n`));
+      const destroyed = CorpseManager.destroyPlayerCorpse(container.id, world);
+      if (destroyed) {
+        player.send(colors.dim(`The ${container.name} crumbles to dust.\n`));
       }
     } else if (container.containerType === 'npc_corpse') {
       player.send(colors.dim(`The ${container.name} is now empty.\n`));
@@ -503,6 +525,12 @@ function findItemInContainer(container, keyword) {
  */
 function execute(player, args, context) {
   const { world, playerDB } = context;
+
+  // Ghosts cannot pick up items
+  if (player.isGhost) {
+    player.send('\n' + colors.error('You are a ghost and cannot interact with physical objects.\n'));
+    return;
+  }
 
   if (args.length === 0) {
     player.send('\n' + colors.error('Get what? Try "get [item]", "get [qty] [item]", "get all [item]", or "get [item] from [container]"\n'));
