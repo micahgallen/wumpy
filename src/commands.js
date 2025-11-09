@@ -48,6 +48,8 @@ const moneyCommand = require('./commands/core/money');
 const attuneCommand = require('./commands/core/attune');
 const identifyCommand = require('./commands/core/identify');
 const useCommand = require('./commands/core/use');
+const eatCommand = require('./commands/core/eat');
+const drinkCommand = require('./commands/core/drink');
 registry.registerCommand(quitCommand);
 registry.registerCommand(helpCommand);
 registry.registerCommand(whoCommand);
@@ -72,6 +74,8 @@ registry.registerCommand(moneyCommand);
 registry.registerCommand(attuneCommand);
 registry.registerCommand(identifyCommand);
 registry.registerCommand(useCommand);
+registry.registerCommand(eatCommand);
+registry.registerCommand(drinkCommand);
 
 // Economy commands
 const listCommand = require('./commands/economy/list');

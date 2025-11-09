@@ -28,22 +28,38 @@ function execute(player, args, context) {
 
   // Find the item in inventory (search by keywords like examine command does)
   let item = null;
+  let exactMatchItem = null;
 
   if (player.inventory && player.inventory.length > 0) {
     for (const invItem of player.inventory) {
       // Check if it's a new item system item
       if (invItem && typeof invItem === 'object' && invItem.keywords) {
-        // Check if any keyword matches (exact or partial match)
+        // Check for exact matches first (highest priority)
         const exactMatch = invItem.keywords.some(kw => kw.toLowerCase() === keyword);
-        const partialMatch = invItem.keywords.some(kw => kw.toLowerCase().includes(keyword) || keyword.includes(kw.toLowerCase()));
+        if (exactMatch) {
+          exactMatchItem = invItem;
+          break; // Exact match found, stop searching
+        }
 
-        if (exactMatch || partialMatch) {
-          item = invItem;
-          break;
+        // Check for partial matches (only if keyword is 3+ chars to avoid false positives)
+        if (!item && keyword.length >= 3) {
+          const partialMatch = invItem.keywords.some(kw => {
+            const kwLower = kw.toLowerCase();
+            // Avoid matching single-letter keywords in partial searches
+            if (kwLower.length < 2) return false;
+            return kwLower.includes(keyword) || keyword.includes(kwLower);
+          });
+
+          if (partialMatch) {
+            item = invItem; // Keep searching for exact match
+          }
         }
       }
     }
   }
+
+  // Use exact match if found, otherwise use partial match
+  item = exactMatchItem || item;
 
   if (!item) {
     player.send('\n' + colors.error(`You don't have '${keyword}' in your inventory.\n`));
@@ -63,6 +79,21 @@ function execute(player, args, context) {
     return;
   }
 
+  // Additional validation for consumables
+  if (item.itemType === 'consumable') {
+    // Can't consume while dead
+    if (player.hp <= 0 || player.isGhost) {
+      player.send('\n' + colors.error('You cannot consume items while dead.\n'));
+      return;
+    }
+
+    // Optional: Warn if healing at full health
+    if (item.consumableProperties?.healAmount && player.hp >= player.maxHp) {
+      player.send('\n' + colors.warning('You are already at full health, but you consume it anyway.\n'));
+      // Don't return - allow consumption, just warn
+    }
+  }
+
   // Build context for the use action
   const useContext = {
     world: context.world,
@@ -79,38 +110,57 @@ function execute(player, args, context) {
     return;
   }
 
-  // Log the use
-  logger.log(`Player ${player.name} used item ${item.name} (${item.instanceId})`);
+  // Notify others in the room about the consumption
+  if (success && context.allPlayers && player.currentRoom && item.itemType === 'consumable') {
+    const consumableType = item.consumableProperties?.consumableType;
+    let action = 'uses';
 
-  // Check if item should be consumed (removed from inventory)
-  // Most consumables are single-use, but some might have multiple uses
-  const shouldConsume = item.consumeOnUse !== false; // Default true
-
-  if (shouldConsume) {
-    // Remove one instance of the item from inventory
-    const removeResult = InventoryManager.removeItem(player.name, item.instanceId, 1);
-
-    if (removeResult.success) {
-      // Success message is typically handled by the item's onUse hook
-      // But we can add a subtle hint
-      if (item.quantity > 1) {
-        player.send(colors.gray(`(${item.quantity - 1} remaining)\n`));
-      }
-
-      // Save inventory after consuming item
-      if (context.playerDB) {
-        const serialized = InventorySerializer.serializeInventory(player);
-        context.playerDB.updatePlayerInventory(player.username, serialized);
-      }
-    } else {
-      // This shouldn't happen since we just found the item, but handle it anyway
-      logger.error(`Failed to remove consumed item ${item.name} from ${player.name}'s inventory`);
+    switch (consumableType) {
+      case 'food':
+        action = 'eats';
+        break;
+      case 'potion':
+      case 'elixir':
+        action = 'drinks';
+        break;
+      case 'scroll':
+        action = 'reads';
+        break;
     }
+
+    // Broadcast to others in the room
+    for (const p of context.allPlayers) {
+      if (p.currentRoom === player.currentRoom && p.username !== player.username) {
+        p.send(`\n${player.username} ${action} ${item.name}.\n`);
+        p.sendPrompt();
+      }
+    }
+  }
+
+  // Log the use
+  logger.log(`Player ${player.username} used item ${item.name} (${item.instanceId})`);
+
+  // Check if item was fully consumed (quantity reached 0)
+  // Note: ConsumableMixin.consume() already reduced the quantity
+  if (item.itemType === 'consumable' && item.quantity <= 0) {
+    // Remove the item from inventory since it's fully consumed
+    const removedItem = InventoryManager.removeItem(player, item.instanceId);
+
+    if (!removedItem) {
+      // This shouldn't happen since we just found the item, but handle it anyway
+      logger.error(`Failed to remove consumed item ${item.name} from ${player.username}'s inventory`);
+    }
+  }
+
+  // Save inventory after consuming item (quantity changed or item removed)
+  if (item.itemType === 'consumable' && context.playerDB) {
+    const serialized = InventorySerializer.serializeInventory(player);
+    context.playerDB.updatePlayerInventory(player.username, serialized);
   }
 
   // Update player stats if they changed (HP, etc.)
   if (context.playerDB && context.playerDB.updatePlayer) {
-    context.playerDB.updatePlayer(player.name, {
+    context.playerDB.updatePlayer(player.username, {
       hp: player.hp,
       maxHp: player.maxHp,
       // Add other stats that might have changed
@@ -126,16 +176,15 @@ function execute(player, args, context) {
 
 module.exports = {
   name: 'use',
-  aliases: ['consume', 'eat', 'drink', 'quaff'],
+  aliases: ['consume'],
   execute,
   help: {
     description: 'Use or consume an item',
     usage: 'use <item>',
     examples: [
       'use potion - Use a health potion',
-      'eat cookie - Eat a cookie',
-      'drink milk - Drink a bottle of milk',
-      'quaff potion - Quaff a potion (alternative)'
+      'use cookie - Use a cookie',
+      'consume potion - Consume a potion (alternative)'
     ]
   }
 };

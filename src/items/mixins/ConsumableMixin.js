@@ -7,6 +7,33 @@
 
 const ConsumableMixin = {
   /**
+   * Override onUse to call consume for consumables
+   * This provides a unified interface for all usable items
+   * @param {Object} player - Player using the item
+   * @param {Object} context - Additional context
+   * @returns {boolean} True if use succeeded (for backwards compatibility)
+   */
+  onUse(player, context = {}) {
+    const colors = require('../../colors');
+
+    // Call the consume method which has all the logic
+    const result = this.consume(player, context);
+
+    // Send message to player
+    if (result.message) {
+      player.send('\n' + (result.success ? colors.success(result.message) : colors.error(result.message)) + '\n');
+    }
+
+    // Show remaining quantity if item is stackable
+    if (result.success && this.isStackable && this.quantity > 0) {
+      player.send(colors.gray(`(${this.quantity} remaining)\n`));
+    }
+
+    // Return boolean for backwards compatibility with use command
+    return result.success;
+  },
+
+  /**
    * Use/consume this item
    * @param {Object} player - Player using the item
    * @param {Object} [context={}] - Additional context (target, etc.)
