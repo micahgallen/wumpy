@@ -1,152 +1,20 @@
 const net = require('net');
 const path = require('path');
-const PlayerDB = require('./playerdb');
-const World = require('./world');
-const CombatEngine = require('./combat/combatEngine');
-const { parseCommand } = require('./commands');
-const colors = require('./colors');
-const { getBanner } = require('./banner');
-const RespawnService = require('./respawnService');
-const RespawnManager = require('./systems/corpses/RespawnManager');
 const logger = require('./logger');
-const { bootstrapAdmin, createBanEnforcementHook, updatePlayerInfoOnLogin } = require('./admin/bootstrap');
-const { calculateMaxHP } = require('./utils/modifiers');
 const Player = require('./server/Player');
-const SessionManager = require('./server/SessionManager');
-const AuthenticationFlow = require('./server/AuthenticationFlow');
-const ConnectionHandler = require('./server/ConnectionHandler');
-
-// Load items FIRST (before World is created)
-const { loadCoreItems } = require('../world/core/items/loadItems');
-const { loadSesameStreetItems } = require('../world/sesame_street/items/loadItems');
-
-logger.log('Loading core items...');
-const coreItemResult = loadCoreItems();
-logger.log(`Core items loaded: ${coreItemResult.successCount} items registered`);
-
-logger.log('Loading Sesame Street items...');
-const sesameItemResult = loadSesameStreetItems();
-logger.log(`Sesame Street items loaded: ${sesameItemResult.successCount} items registered`);
-
-// Load shops (after items are registered)
-const { loadSesameStreetShops } = require('../world/sesame_street/shops/loadShops');
-
-logger.log('Loading Sesame Street shops...');
-const sesameShopResult = loadSesameStreetShops();
-logger.log(`Sesame Street shops loaded: ${sesameShopResult.successCount} shops registered`);
-
-// Initialize server components
-const playerDB = new PlayerDB();
-const world = new World(); // Now items are available for room initialization
-const players = new Set();
-const sessionManager = new SessionManager();
-const activeInteractions = new Map();
-
-const combatEngine = new CombatEngine(world, players, playerDB);
-
-// Initialize event-driven respawn system
-// This replaces the old polling-based RespawnService for NPCs
-RespawnManager.initialize(world);
-
-// Listen for room messages from RespawnManager and broadcast to players
-RespawnManager.on('roomMessage', ({ roomId, message }) => {
-  // Broadcast message to all players in the specified room
-  for (const player of players) {
-    if (player.currentRoom === roomId && player.state === 'playing') {
-      player.send('\n' + message + '\n');
-      player.sendPrompt();
-    }
-  }
-});
-
-// PHASE 4: Restore corpse and timer state from previous session
-const TimerManager = require('./systems/corpses/TimerManager');
-const CorpseManager = require('./systems/corpses/CorpseManager');
-const fs = require('fs');
-
-const dataDir = path.join(__dirname, '../data');
-const corpsesPath = path.join(dataDir, 'corpses.json');
-
-logger.log('Restoring corpse and timer state...');
-
-// Load corpse state first
-try {
-  if (fs.existsSync(corpsesPath)) {
-    const rawData = fs.readFileSync(corpsesPath, 'utf8');
-    const corpseState = JSON.parse(rawData);
-    const downtime = Date.now() - corpseState.savedAt;
-
-    logger.log(`Loading corpse state (server was down for ${Math.floor(downtime / 1000)}s)`);
-
-    // Restore corpses (this will also emit decay events for expired corpses)
-    CorpseManager.restoreState(corpseState.corpses, world);
-
-    // Clean up abandoned player corpses (corpses from inactive players)
-    logger.log('Running abandoned corpse cleanup...');
-    CorpseManager.cleanupAbandonedCorpses(world, playerDB);
-  } else {
-    logger.log('No corpse state file found, starting fresh');
-  }
-} catch (err) {
-  logger.error(`Failed to restore corpse state: ${err.message}`);
-  logger.log('Starting with fresh corpse state');
-}
-
-// Perform one-time manual respawn check on startup
-// This catches any NPCs that should exist but don't (e.g., after server restart)
-// This runs AFTER corpse restoration to respect active corpses
-const respawnedCount = RespawnManager.checkAndRespawnMissing();
-logger.log(`Startup respawn check: ${respawnedCount} NPCs respawned`);
-
-// OLD POLLING-BASED RESPAWN SERVICE (DEPRECATED)
-// The new RespawnManager handles all NPC respawning via events from CorpseManager
-// Keeping this commented out for now in case we need to rollback
-// const respawnService = new RespawnService(world);
-// respawnService.start();
-
-// Initialize admin system
-let adminSystem = null;
-let banEnforcementHook = null;
-let authenticationFlow = null;
+const ServerBootstrap = require('./server/ServerBootstrap');
 
 /**
- * Handle player input based on their current state
- * @param {Player} player - Player object
- * @param {string} input - User input
+ * Create the TCP server
  */
-function handleInput(player, input) {
-  // Try to handle auth states first
-  if (authenticationFlow && authenticationFlow.handleInput(player, input)) {
-    return; // Auth flow handled it
-  }
-
-  // Handle non-auth states
-  player.lastActivity = Date.now();
-  const trimmed = input.trim();
-
-  switch (player.state) {
-    case 'playing':
-      parseCommand(trimmed, player, world, playerDB, players, activeInteractions, combatEngine, adminSystem);
-      player.sendPrompt();
-      break;
-
-    default:
-      player.send('Error: Invalid state.\n');
-      player.socket.end();
-  }
-}
-
-/**
- * Create the TCP server (ConnectionHandler will be initialized in main())
- */
-let connectionHandler = null;
+let components = null;
 const server = net.createServer(socket => {
-  if (!connectionHandler) {
+  if (!components) {
     logger.error('Connection rejected - server still initializing');
     socket.end('Server is starting up, please try again in a moment.\n');
     return;
   }
-  connectionHandler.handleConnection(socket, players);
+  components.connectionHandler.handleConnection(socket, components.players);
 });
 
 // Handle server errors
@@ -155,35 +23,9 @@ server.on('error', err => {
 });
 
 async function main() {
-  logger.log('Initializing admin system...');
-  adminSystem = await bootstrapAdmin({
-    playerDB,
-    world,
-    allPlayers: players,
-    combatEngine,
-    dataDir: path.join(__dirname, '../data/admin')
-  });
-  banEnforcementHook = createBanEnforcementHook(adminSystem.adminService);
-  logger.log('Admin system ready.');
-
-  // Initialize authentication flow with all dependencies
-  authenticationFlow = new AuthenticationFlow({
-    playerDB,
-    sessionManager,
-    world,
-    players,
-    adminSystem,
-    banEnforcementHook
-  });
-  logger.log('Authentication flow initialized.');
-
-  // Initialize connection handler
-  connectionHandler = new ConnectionHandler({
-    playerDB,
-    sessionManager,
-    handleInput
-  });
-  logger.log('Connection handler initialized.');
+  // Bootstrap all server components
+  const dataDir = path.join(__dirname, '../data');
+  components = await ServerBootstrap.initialize({ dataDir });
 
   const PORT = parseInt(process.env.PORT, 10) || 4000;
   server.listen(PORT, () => {
@@ -207,7 +49,7 @@ function gracefulShutdown(signal) {
     const ShopManager = require('./systems/economy/ShopManager');
     const TimerManager = require('./systems/corpses/TimerManager');
     const CorpseManager = require('./systems/corpses/CorpseManager');
-    const path = require('path');
+    const fs = require('fs');
 
     // Save corpse and timer state synchronously (critical for shutdown)
     const dataDir = path.join(__dirname, '../data');
@@ -222,7 +64,6 @@ function gracefulShutdown(signal) {
 
     // Save corpses
     try {
-      const fs = require('fs');
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
