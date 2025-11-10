@@ -29,11 +29,12 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 **Systems (High-Level Overviews):**
 - [Combat System](wiki/systems/combat-overview.md) - Combat mechanics, flow, integration ✓
 - [Item System](wiki/systems/item-system.md) - Items, equipment, weapons, armor ✓
-- Corpse System - Being consolidated from `/docs/implementation/`
+- [Corpse System](wiki/systems/corpse-system.md) - Corpse lifecycle, decay, respawn ✓
 - Inventory System - Being consolidated
 - Admin System - Being consolidated
 
 **Mechanics (Detailed Rules):**
+- [Corpse Mechanics](wiki/mechanics/corpse-mechanics.md) - Decay timers, respawn rules, looting ✓
 - Attack Resolution - Planned
 - Damage Calculation - Planned
 - Armor Class - Planned

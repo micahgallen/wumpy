@@ -10,7 +10,7 @@ High-level overviews of major game systems. Start here for context.
 |--------|--------|-------------|
 | [Combat](systems/combat-overview.md) | Complete | Combat mechanics, phases, integration ✓ |
 | [Items](systems/item-system.md) | Complete | Item types, equipment, weapons, armor ✓ |
-| Corpse | Planned | Corpse mechanics, decay, respawn - to be consolidated from `/docs/implementation/` |
+| [Corpse](systems/corpse-system.md) | Complete | Corpse lifecycle, decay, respawn ✓ |
 | Inventory | Planned | Player inventory, containers - to be consolidated |
 | Admin | Planned | Admin commands, roles, permissions |
 
@@ -22,6 +22,7 @@ Detailed game mechanics and rules. Drill down from systems to understand specifi
 
 | Mechanic | Status | Related Systems |
 |----------|--------|-----------------|
+| [Corpse Mechanics](mechanics/corpse-mechanics.md) | Complete | Combat, Items ✓ |
 | Attack Resolution | Planned | Combat |
 | Damage Calculation | Planned | Combat, Items |
 | Armor Class | Planned | Combat, Items |
@@ -87,12 +88,13 @@ This wiki is under construction as part of documentation reorganization (Week 1,
 - Templates and standards in place
 - Combat system overview wiki page
 - Item system overview wiki page
-- Creating Items pattern guide
+- Corpse system overview wiki page
+- Corpse mechanics detailed page
+- Creating Items pattern guides (basics and advanced)
 
 **In Progress:**
-- Phase 2: Consolidating corpse system docs
+- Phase 2: Creating architecture and pattern documentation
 - Creating additional system overviews
-- Creating mechanic deep-dives
 
 **Legacy Docs:**
 - Existing documentation in `/docs/library/`, `/docs/systems/`, `/docs/implementation/` is being consolidated

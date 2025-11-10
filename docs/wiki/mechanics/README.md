@@ -11,6 +11,7 @@ This directory will contain detailed game mechanics documentation as part of the
 
 ## Planned Content
 
+- [**Corpse Mechanics**](corpse-mechanics.md) - Decay timers, respawn mechanics, looting rules ✓
 - **Attack Resolution** - Detailed mechanics for attack rolls, advantage/disadvantage, and hit determination
 - **Damage Calculation** - In-depth damage formulas, critical hits, and resistance calculations
 - **Armor Class** - Complete AC calculation mechanics including armor types and DEX caps
@@ -29,8 +30,13 @@ For current mechanics information, see:
 - [Combat Overview](../systems/combat-overview.md) - Includes basic mechanics
 - [Combat Stats Reference](../../reference/combat-stats.md) - Quick lookup tables
 
+## Available Mechanics
+
+- [Corpse Mechanics](corpse-mechanics.md) - Detailed decay and respawn mechanics
+
 ## See Also
 
 - [Combat System Overview](../systems/combat-overview.md) - High-level combat system
 - [Item System Overview](../systems/item-system.md) - High-level item system
+- [Corpse System Overview](../systems/corpse-system.md) - High-level corpse system
 - [Combat Stats Reference](../../reference/combat-stats.md) - Quick formulas
