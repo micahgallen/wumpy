@@ -43,10 +43,12 @@ Quick lookup tables for combat calculations and formulas.
 | Component | Formula | Notes |
 |-----------|---------|-------|
 | Base HP (Level 1) | 10 | Starting HP |
-| HP per level | 4 + CON modifier | Minimum 1 per level |
+| HP per level after L1 | 4 + CON modifier | Minimum +1 per level |
 | Full heal on level up | Yes | Current HP set to max HP |
 
 **Formula:** `maxHP += max(1, 4 + CON_modifier)`
+
+**Note:** At level 1, players start with 10 HP. Each level after level 1 adds 4 + CON modifier HP (minimum +1).
 
 **Implementation:** `/src/progression/statProgression.js:calculateStatGains()`
 
@@ -69,8 +71,8 @@ Quick lookup tables for combat calculations and formulas.
 | Proficiency Bonus | See table above | Based on attacker level |
 | Ability Modifier | See table above | STR (melee), DEX (ranged/finesse) |
 | Weapon Bonus | Varies | Magical weapon enhancement |
-| Proficiency Penalty | -2 | If not proficient with weapon |
-| Armor Penalty | -2 | If not proficient with armor |
+| Proficiency Penalty | -4 | If not proficient with weapon |
+| Armor Penalty | -2 (medium), -4 (heavy) | If not proficient with armor |
 
 **Total Attack Bonus = Proficiency + Ability Mod + Weapon Bonus + Proficiency Penalty + Armor Penalty**
 
@@ -81,7 +83,7 @@ Quick lookup tables for combat calculations and formulas.
 | Level | STR/DEX | Proficient | Weapon | Total Bonus |
 |-------|---------|------------|--------|-------------|
 | 1     | 14 (+2) | Yes        | None   | +4 (+2 prof + 2 ability) |
-| 1     | 14 (+2) | No         | None   | +2 (+2 prof + 2 ability - 2 penalty) |
+| 1     | 14 (+2) | No         | None   | 0 (+2 prof + 2 ability - 4 penalty) |
 | 5     | 16 (+3) | Yes        | +1     | +7 (+3 prof + 3 ability + 1 weapon) |
 | 10    | 18 (+4) | Yes        | +2     | +10 (+4 prof + 4 ability + 2 weapon) |
 

@@ -261,7 +261,7 @@ Final XP = floor(Base XP × Multiplier)
 - Formula: `1000 × (level ^ 1.5)`
 
 **Level-Up Stat Gains:**
-- **Every level**: +5 max HP, full HP restore
+- **Every level**: Base 10 HP at level 1, then +4 + CON modifier per level (minimum +1 per level), full HP restore
 - **Every 4th level**: +1 to primary stat (STR)
 - **Every 5th level**: +1 CON
 - **Every 6th level**: +1 DEX

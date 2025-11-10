@@ -20,10 +20,11 @@ The corpse system bridges combat outcomes with the loot economy, providing playe
 | Component | Purpose | Location |
 |-----------|---------|----------|
 | **CorpseManager** | Creates and configures corpse containers | `/src/systems/corpses/CorpseManager.js` |
-| **CorpseDecayService** | Manages decay timers and respawn | `/src/systems/corpses/CorpseDecayService.js` |
+| **TimerManager** | Event-driven timer management for decay | `/src/systems/corpses/TimerManager.js` |
+| **RespawnManager** | Handles NPC respawn after decay | `/src/systems/respawn/RespawnManager.js` |
 | **ContainerManager** | Underlying container system | `/src/systems/containers/ContainerManager.js` |
 | **LootGenerator** | Generates corpse contents | `/src/systems/loot/LootGenerator.js` |
-| **Timer Persistence** | State across restarts | `/data/corpse_timers.json` |
+| **Timer Persistence** | State across restarts | Via TimerManager.saveState() |
 
 ## Corpse Lifecycle
 
@@ -36,17 +37,17 @@ Generate Loot (LootGenerator)
     ↓
 Create Corpse Container (CorpseManager)
     ↓
-Register Decay Timer (CorpseDecayService)
+Register Decay Timer (TimerManager.schedule)
     ↓
 Place in Room (World)
     ↓
 Player Looting (get/loot commands)
     ↓
-Decay Timer Expires (5 minutes)
+Decay Timer Fires (5 minutes, setTimeout)
     ↓
-Remove Corpse (CorpseDecayService)
+Remove Corpse (CorpseManager.onCorpseDecay)
     ↓
-Respawn NPC (at spawn location)
+Respawn NPC (RespawnManager)
 ```
 
 ## Corpse Properties
@@ -73,14 +74,15 @@ Corpses are containers with additional metadata:
 
 ### Decay Timer System
 
-The CorpseDecayService manages decay timers with persistence:
+The TimerManager provides event-driven decay timing:
 
 | Feature | Implementation | Purpose |
 |---------|----------------|---------|
-| **Check Interval** | Every 10 seconds | Efficient polling |
+| **Timer Architecture** | setTimeout() per corpse | Event-driven, zero polling overhead |
 | **Decay Time** | 5 minutes (300,000ms) | Configurable default |
-| **Persistence** | JSON file storage | Survive server restarts |
-| **Cleanup** | Automatic on decay | No memory leaks |
+| **Precision** | Millisecond-accurate | setTimeout precision (not polling) |
+| **Persistence** | TimerManager state file | Survive server restarts |
+| **Cleanup** | Automatic on expiration | No memory leaks |
 
 ### Respawn Mechanics
 
@@ -179,9 +181,12 @@ Corpse settings are centralized in `/src/config/itemsConfig.js`:
 |---------|---------|---------|
 | `corpses.npc.decayTime` | 300000 (5 min) | Time before decay |
 | `corpses.npc.capacity` | 20 | Max items in corpse |
-| `corpses.npc.weight` | 100 lbs | Base corpse weight |
-| `corpses.decay.checkInterval` | 10000 (10 sec) | Decay check frequency |
-| `corpses.decay.persistenceFile` | `./data/corpse_timers.json` | Timer save location |
+| `corpses.npc.baseWeight` | 100 lbs | Base corpse weight |
+| `corpses.npc.isPickupable` | true | Can be picked up |
+| `corpses.player.baseWeight` | 150 lbs | Player corpse weight |
+| `corpses.player.capacity` | 100 | Max items in player corpse |
+| `corpses.player.isPickupable` | false | Cannot be picked up |
+| `corpses.player.lootedGracePeriod` | 300000 (5 min) | Cleanup delay after looting |
 | `corpses.sizeWeights.tiny` | 10 lbs | Tiny creature weight |
 | `corpses.sizeWeights.small` | 50 lbs | Small creature weight |
 | `corpses.sizeWeights.medium` | 100 lbs | Medium creature weight |
@@ -273,6 +278,7 @@ The system is designed to handle hundreds of simultaneous corpses efficiently.
 ## See Also
 
 - [Corpse Mechanics](../mechanics/corpse-mechanics.md) - Detailed decay and respawn mechanics
+- [Timer System](timer-system.md) - Event-driven timer architecture (TimerManager)
 - [Combat System Overview](combat-overview.md) - How corpses are created
 - [Item System Overview](item-system.md) - Loot generation and items
 - [Item Loot Reference](../reference/item-loot.md) - Loot table configuration

@@ -22,22 +22,35 @@ When a corpse is created, a decay timer is registered:
 | 3 | Store in Map | `corpseTimers.set(corpseId, timerData)` |
 | 4 | Persist to file | Save to `corpse_timers.json` |
 
-### Timer Checking
+### Timer Execution
 
-The CorpseDecayService checks timers every 10 seconds:
+The TimerManager uses event-driven setTimeout() calls for each corpse:
 
 ```javascript
-setInterval(() => {
-  const now = Date.now();
-  for (const [corpseId, timer] of corpseTimers) {
-    if (now >= timer.decayTime) {
-      decayCorpse(corpseId, timer);
-    }
+// Each corpse schedules its own decay event (NOT polling)
+TimerManager.schedule(
+  `corpse_decay_${corpseId}`,
+  delay,
+  (data) => onCorpseDecay(data.corpseId, world),
+  {
+    type: 'corpse_decay',
+    corpseId,
+    npcId: npc.id,
+    roomId: roomId
   }
-}, 10000);
+);
+
+// Internally uses setTimeout (event-driven, not interval polling)
+schedule(id, delay, callback, data) {
+  const timeoutId = setTimeout(() => {
+    callback(data);
+    this.timers.delete(id);
+  }, delay);
+  this.timers.set(id, { timeoutId, expiresAt: Date.now() + delay, callback, data });
+}
 ```
 
-**Precision:** ±10 seconds (decay occurs on next check after expiry)
+**Precision:** Millisecond-accurate (setTimeout precision, no polling delay)
 
 ### Edge Cases
 
@@ -204,20 +217,25 @@ When the last item is removed from a corpse:
 
 ### Save Format
 
-Timer data persisted to `/data/corpse_timers.json`:
+Timer data persisted via TimerManager to timer state file:
 
 ```javascript
+// TimerManager stores timer state with expiration times
 {
-  "corpse_goblin_123_1699999999": {
-    "corpseId": "corpse_goblin_123_1699999999",
-    "createdAt": 1699999999999,
-    "decayTime": 1700000299999,
-    "npcId": "goblin_warrior",
-    "npcType": "goblin",
-    "roomId": "dungeon_01",
-    "spawnLocation": "goblin_camp",
-    "isPlayerCorpse": false
-  }
+  "timers": [
+    {
+      "id": "corpse_decay_corpse_goblin_123_1699999999",
+      "expiresAt": 1700000299999,
+      "data": {
+        "type": "corpse_decay",
+        "corpseId": "corpse_goblin_123_1699999999",
+        "npcId": "goblin_warrior",
+        "roomId": "dungeon_01"
+      }
+    }
+  ],
+  "savedAt": 1699999999999,
+  "version": "1.0"
 }
 ```
 
@@ -225,27 +243,28 @@ Timer data persisted to `/data/corpse_timers.json`:
 
 | Event | Save Action | Frequency |
 |-------|-------------|-----------|
-| Corpse created | Immediate save | Every create |
-| Corpse decayed | Remove from file | Every decay |
-| Server shutdown | Save all timers | On SIGINT |
-| Periodic backup | Full save | Every 60 seconds |
+| Corpse created | Timer scheduled | Immediate |
+| Corpse decayed | Timer auto-removed | On decay |
+| Server shutdown | TimerManager.saveState() | On SIGINT |
+| Periodic backup | Automatic save | Configurable |
 
 ### Load and Recovery
 
-On server startup:
+On server startup, TimerManager handles restoration:
 
 | Step | Action | Purpose |
 |------|--------|---------|
-| 1 | Read timer file | Load all timers |
-| 2 | Parse JSON | Convert to Map |
-| 3 | Validate entries | Check timestamps |
-| 4 | Reconstruct corpses | Recreate containers |
-| 5 | Resume checking | Start timer service |
-| 6 | Clean expired | Decay overdue corpses |
+| 1 | TimerManager.loadState() | Load all timer data |
+| 2 | Parse JSON | Convert to timer objects |
+| 3 | Calculate remaining time | `expiresAt - Date.now()` |
+| 4 | Restore active timers | Reschedule with setTimeout() |
+| 5 | Execute expired timers | Immediate decay callback |
+| 6 | Clean up state | Remove completed timers |
 
 **Expired Timers:**
-- If `decayTime < Date.now()`: Immediately decay and respawn
-- Handles corpses that should have decayed during downtime
+- If `remaining <= 0`: Execute callback immediately (decay and respawn)
+- If `remaining > 0`: Reschedule with new setTimeout() for remaining time
+- Handles corpses that should have decayed during server downtime
 
 ## Weight Calculation
 
@@ -345,5 +364,6 @@ When corpse-related events occur, messages are broadcast to the room:
 ## See Also
 
 - [Corpse System Overview](../systems/corpse-system.md) - High-level architecture
+- [Timer System](../systems/timer-system.md) - Event-driven timer architecture (TimerManager)
 - [Combat System Overview](../systems/combat-overview.md) - How corpses are created
 - [Item Loot Reference](../reference/item-loot.md) - Loot table configuration
