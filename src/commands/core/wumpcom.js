@@ -23,7 +23,11 @@ function execute(player, args, context) {
   // Show both display name and username for global chat
   // This provides immersion (colorized capnames) while maintaining clarity (real usernames for moderation)
   const displayName = player.getDisplayName();
-  const attribution = displayName !== player.username
+
+  // Strip colors from display name to check if it visually matches username
+  // If they match, no need to show (@username)
+  const visibleName = colors.stripColors(displayName);
+  const attribution = visibleName !== player.username
     ? `${displayName} (@${player.username})`
     : player.username;
 

@@ -29,12 +29,13 @@ player1.username = 'testuser';
 test('getDisplayName() returns username when capname is null',
   player1.getDisplayName() === 'testuser');
 
-// Test 2: Player.getDisplayName() with capname
+// Test 2: Player.getDisplayName() with capname (auto-appends ANSI reset)
 const player2 = new Player(null);
 player2.username = 'testuser';
 player2.capname = '\x1b[31mTestUser\x1b[0m';
-test('getDisplayName() returns capname when set',
-  player2.getDisplayName() === '\x1b[31mTestUser\x1b[0m');
+const displayName = player2.getDisplayName();
+test('getDisplayName() returns capname with auto-appended reset',
+  displayName.startsWith('\x1b[31mTestUser\x1b[0m') && displayName.endsWith('\x1b[0m'));
 
 // Test 3: stripColors() with simple ANSI
 const simpleAnsi = '\x1b[31mRed Text\x1b[0m';

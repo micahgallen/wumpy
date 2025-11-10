@@ -340,11 +340,15 @@ function dialogue(dialogue) {
  * @returns {string} Colorized emote with color restoration after resets
  */
 function emote(emoteText) {
-  // Apply emote color (bright magenta)
+  // Apply emote color (bright magenta) to the entire text first
   const colored = colorize(emoteText, MUD_COLORS.EMOTE);
 
   // Replace any ANSI reset codes with reset + restore emote color
-  // This prevents capnames from killing the emote color
+  // Order of operations:
+  // 1. Emote color applied to whole text
+  // 2. Capnames contain embedded resets (from getDisplayName())
+  // 3. We replace those resets with reset + emote color restoration
+  // Result: Text stays magenta even after capname resets
   const emoteColorCode = MUD_COLORS.EMOTE;
   const resetPattern = /\x1b\[0m/g;
   const resetWithRestore = ANSI.RESET + emoteColorCode;
