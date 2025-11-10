@@ -39,7 +39,7 @@ function execute(player, args, context) {
     let output = [];
     output.push(colors.info('Character Information'));
     output.push(colors.line(23, '='));
-    output.push(`${colors.highlight('Name:')} ${colors.playerName(player.username)}`);
+    output.push(`${colors.highlight('Name:')} ${colors.playerName(player.getDisplayName())}`);
     output.push(`${colors.highlight('Level:')} ${player.level}`);
     output.push('');
 

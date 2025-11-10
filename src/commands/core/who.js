@@ -59,8 +59,12 @@ function execute(player, args, context) {
       const rolePadding = 12 - colors.visibleLength(roleDisplay);
       const paddedRole = roleDisplay + ' '.repeat(Math.max(0, rolePadding));
 
+      // Use capname for display
+      const displayName = p.getDisplayName();
+      const paddedName = displayName.padEnd(20);
+
       output.push(
-        colors.playerName(p.username.padEnd(20)) +
+        colors.playerName(paddedName) +
         paddedRole +
         colors.colorize(realm.padEnd(25), colors.MUD_COLORS.ROOM_NAME) +
         colors.colorize((p.level || 1).toString().padEnd(8), colors.MUD_COLORS.INFO) +

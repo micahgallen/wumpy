@@ -23,7 +23,7 @@ function execute(player, args, context) {
   // Search for players in the current room
   for (const p of allPlayers) {
     if (p.username.toLowerCase() === target && p.currentRoom === player.currentRoom) {
-      let output = `\n${colors.playerName(p.username)}`;
+      let output = `\n${colors.playerName(p.getDisplayName())}`;
       if (p.isGhost) {
         output += colors.hint(' (ghost)');
       }

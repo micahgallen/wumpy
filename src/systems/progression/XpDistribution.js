@@ -123,6 +123,7 @@ function calculateXpDistribution(combat, defeatedNpc, npcLevel, getEntityFn) {
       entityType: 'player',
       xpAmount: xpShare,
       playerLevel: player.level,
+      // Use username for tracking, not display
       playerName: player.username || player.name
     });
   }
@@ -158,6 +159,7 @@ function awardXp(xpAwards, getEntityFn) {
 
     results.push({
       playerId: player.id,
+      // Use username for tracking, not display
       playerName: player.username || player.name,
       xpAwarded: award.xpAmount,
       previousXp,
@@ -257,6 +259,7 @@ function getDamageStatistics(combat, getEntityFn) {
 
     stats.push({
       entityId,
+      // This is for logging/debugging - use username for identity tracking
       entityName: entity ? (entity.username || entity.name) : 'Unknown',
       damageDealt: damage,
       percentageOfTotal: parseFloat(percentage)

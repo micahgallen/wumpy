@@ -199,7 +199,9 @@ function processCombatRound(combat, getEntityFn, messageFn) {
       // Check for death
       if (attackResult.targetDied) {
         results.deaths.push(target.id);
-        const deathMsg = `${target.username || target.name} has been defeated!`;
+        // Use capname for players, name for NPCs
+        const targetName = target.getDisplayName ? target.getDisplayName() : target.name;
+        const deathMsg = `${targetName} has been defeated!`;
         broadcastToCombat(combat, deathMsg, messageFn, getEntityFn);
       }
     }
@@ -217,7 +219,8 @@ function processCombatRound(combat, getEntityFn, messageFn) {
           offHandWeapon.weaponProperties.isLight) {
 
         // Broadcast off-hand attack
-        const attackerName = attacker.username || attacker.name;
+        // Use capname for players, name for NPCs
+        const attackerName = attacker.getDisplayName ? attacker.getDisplayName() : attacker.name;
         const weaponName = offHandWeapon.name || 'weapon';
         broadcastToCombat(combat, `${attackerName} strikes with their off-hand ${weaponName}!`, messageFn, getEntityFn);
 
@@ -254,7 +257,9 @@ function processCombatRound(combat, getEntityFn, messageFn) {
           // Check for death from off-hand attack
           if (offHandResult.targetDied) {
             results.deaths.push(target.id);
-            const deathMsg = `${target.username || target.name} has been defeated!`;
+            // Use capname for players, name for NPCs
+            const targetName = target.getDisplayName ? target.getDisplayName() : target.name;
+            const deathMsg = `${targetName} has been defeated!`;
             broadcastToCombat(combat, deathMsg, messageFn, getEntityFn);
           }
         }

@@ -70,7 +70,9 @@ function checkAndApplyLevelUp(player, options = {}) {
 
     // Broadcast to room
     if (broadcastFn) {
-      const broadcastMsg = `${player.username || player.name} glows briefly as they gain a level!`;
+      // Use capname for players, name for NPCs
+      const displayName = player.getDisplayName ? player.getDisplayName() : (player.name || player.username);
+      const broadcastMsg = `${displayName} glows briefly as they gain a level!`;
       broadcastFn(player.currentRoom, broadcastMsg, [player.id]);
     }
 

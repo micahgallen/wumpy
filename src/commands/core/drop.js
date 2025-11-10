@@ -82,7 +82,7 @@ function execute(player, args, context) {
 
       // Announce to room
       if (context.allPlayers) {
-        const roomMessage = colors.info(`${player.username} drops some currency.\n`);
+        const roomMessage = colors.info(`${player.getDisplayName()} drops some currency.\n`);
         for (const p of context.allPlayers) {
           if (p !== player && p.currentRoom === player.currentRoom && p.send) {
             p.send(roomMessage);
@@ -324,7 +324,7 @@ function execute(player, args, context) {
         p.username !== player.username
       );
       if (otherPlayers.length > 0) {
-        let announcement = `${player.username} drops ${itemName}`;
+        let announcement = `${player.getDisplayName()} drops ${itemName}`;
         if (totalDropped > 1) {
           announcement += ` x${totalDropped}`;
         }

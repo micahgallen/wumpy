@@ -191,8 +191,9 @@ function tickStatusEffects(participant) {
  * @returns {string} Formatted message
  */
 function formatAttackMessage(attacker, defender, result) {
-  const attackerName = attacker.username || attacker.name;
-  const defenderName = defender.username || defender.name;
+  // Use capname for players, name for NPCs
+  const attackerName = attacker.getDisplayName ? attacker.getDisplayName() : attacker.name;
+  const defenderName = defender.getDisplayName ? defender.getDisplayName() : defender.name;
 
   let msg = '';
 

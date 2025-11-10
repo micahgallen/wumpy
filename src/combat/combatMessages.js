@@ -55,8 +55,9 @@ function getWeaponName(attacker, hand = 'main_hand') {
 }
 
 function getAttackMessage(attacker, defender, hit, critical, hand = 'main_hand') {
-  const attackerName = attacker.username || attacker.name;
-  const defenderName = defender.username || defender.name;
+  // Use capname for players, name for NPCs
+  const attackerName = attacker.getDisplayName ? attacker.getDisplayName() : attacker.name;
+  const defenderName = defender.getDisplayName ? defender.getDisplayName() : defender.name;
   const weaponName = getWeaponName(attacker, hand);
 
   if (critical) {
@@ -87,7 +88,8 @@ function getDamageMessage(damage, damageType, target = null) {
 
   // Add HP bar if target is provided
   if (target && target.hp !== undefined && target.maxHp !== undefined) {
-    const targetName = target.username || target.name;
+    // Use capname for players, name for NPCs
+    const targetName = target.getDisplayName ? target.getDisplayName() : target.name;
     const hpBar = createHealthBar(target.hp, target.maxHp);
     message += `\n${colors.hint(targetName + ':')} ${hpBar}`;
   }
@@ -96,7 +98,8 @@ function getDamageMessage(damage, damageType, target = null) {
 }
 
 function getDeathMessage(combatant) {
-  const name = combatant.username || combatant.name;
+  // Use capname for players, name for NPCs
+  const name = combatant.getDisplayName ? combatant.getDisplayName() : combatant.name;
 
   if (combatant.deathMessages && combatant.deathMessages.length > 0) {
     const msg = combatant.deathMessages[Math.floor(Math.random() * combatant.deathMessages.length)];

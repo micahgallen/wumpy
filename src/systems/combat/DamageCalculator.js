@@ -224,7 +224,8 @@ function resolveAttackDamage(attacker, target, attackResult) {
  * @returns {string} Formatted message
  */
 function formatDamageMessage(target, damageResult) {
-  const targetName = target.username || target.name;
+  // Use capname for players, name for NPCs
+  const targetName = target.getDisplayName ? target.getDisplayName() : target.name;
   let msg = '';
 
   if (damageResult.finalDamage > 0) {
