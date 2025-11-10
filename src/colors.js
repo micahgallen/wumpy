@@ -337,10 +337,19 @@ function dialogue(dialogue) {
 /**
  * Colorize emote
  * @param {string} emote - Emote text
- * @returns {string} Colorized emote
+ * @returns {string} Colorized emote with color restoration after resets
  */
-function emote(emote) {
-  return colorize(emote, MUD_COLORS.EMOTE);
+function emote(emoteText) {
+  // Apply emote color (bright magenta)
+  const colored = colorize(emoteText, MUD_COLORS.EMOTE);
+
+  // Replace any ANSI reset codes with reset + restore emote color
+  // This prevents capnames from killing the emote color
+  const emoteColorCode = MUD_COLORS.EMOTE;
+  const resetPattern = /\x1b\[0m/g;
+  const resetWithRestore = ANSI.RESET + emoteColorCode;
+
+  return colored.replace(resetPattern, resetWithRestore);
 }
 
 /**
