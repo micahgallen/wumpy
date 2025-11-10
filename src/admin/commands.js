@@ -1554,11 +1554,10 @@ async function destroyCommand(player, args, context) {
       const CorpseManager = require('../systems/corpses/CorpseManager');
       const destroyed = CorpseManager.destroyCorpse(item.id, world);
 
-      // Even if CorpseManager doesn't track it, still remove from room.items
-      // (handles orphaned corpses that exist in room but not in CorpseManager)
-      if (!destroyed) {
-        room.items.splice(itemIndex, 1);
-      }
+      // ALWAYS remove from current room.items manually
+      // CorpseManager removes from corpse.spawnLocation, which might be different
+      // from the current room if the corpse was moved or player moved
+      room.items.splice(itemIndex, 1);
 
       player.send('\n' + colors.success(`Destroyed corpse: ${itemName}\n`));
       player.send(colors.dim(`(${item.inventory?.length || 0} items destroyed with it)\n`));
