@@ -1582,6 +1582,7 @@ async function destroyCommand(player, args, context) {
   const itemIndex = room.items.findIndex(item =>
     (item.name && item.name.toLowerCase().includes(targetNameLower)) ||
     (item.id && item.id.toLowerCase().includes(targetNameLower)) ||
+    (item.definitionId && item.definitionId.toLowerCase().includes(targetNameLower)) ||
     (item.keywords && item.keywords.some(kw => kw && kw.toLowerCase().includes(targetNameLower)))
   );
 
