@@ -1,6 +1,11 @@
-# Mechanics Documentation
+---
+title: Mechanics Documentation
+status: draft
+last_updated: 2025-11-10
+related: [combat-overview, item-system]
+---
 
-**Status:** Under construction
+# Mechanics Documentation
 
 This directory will contain detailed game mechanics documentation as part of the documentation reorganization.
 
@@ -23,3 +28,9 @@ See `/docs/_INDEX.md` for the complete reorganization plan and timeline.
 For current mechanics information, see:
 - [Combat Overview](../systems/combat-overview.md) - Includes basic mechanics
 - [Combat Stats Reference](../../reference/combat-stats.md) - Quick lookup tables
+
+## See Also
+
+- [Combat System Overview](../systems/combat-overview.md) - High-level combat system
+- [Item System Overview](../systems/item-system.md) - High-level item system
+- [Combat Stats Reference](../../reference/combat-stats.md) - Quick formulas
