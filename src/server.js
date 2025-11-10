@@ -12,6 +12,7 @@ const logger = require('./logger');
 const { bootstrapAdmin, createBanEnforcementHook, updatePlayerInfoOnLogin } = require('./admin/bootstrap');
 const { calculateMaxHP } = require('./utils/modifiers');
 const Player = require('./server/Player');
+const SessionManager = require('./server/SessionManager');
 
 // Load items FIRST (before World is created)
 const { loadCoreItems } = require('../world/core/items/loadItems');
@@ -36,7 +37,7 @@ logger.log(`Sesame Street shops loaded: ${sesameShopResult.successCount} shops r
 const playerDB = new PlayerDB();
 const world = new World(); // Now items are available for room initialization
 const players = new Set();
-const activeSessions = new Map(); // username (lowercase) -> Player object
+const sessionManager = new SessionManager();
 const activeInteractions = new Map();
 
 const combatEngine = new CombatEngine(world, players, playerDB);
@@ -252,7 +253,7 @@ function handleLoginPassword(player, password) {
     player.lastDamageTaken = playerData.lastDamageTaken || 0;
 
     // CHECK FOR DUPLICATE LOGIN
-    const existingPlayer = activeSessions.get(player.username.toLowerCase());
+    const existingPlayer = sessionManager.getSession(player.username);
     if (existingPlayer) {
       // Duplicate login detected - store temp data and prompt user
       logger.log(`Duplicate login detected for ${player.username}.`);
@@ -281,7 +282,7 @@ function handleLoginPassword(player, password) {
     player.state = 'playing';
 
     // Register this player as the active session
-    activeSessions.set(player.username.toLowerCase(), player);
+    sessionManager.registerSession(player);
 
     // Update admin info
     if (adminSystem) {
@@ -378,7 +379,7 @@ function handleCreatePassword(player, password) {
     player.state = 'playing';
 
     // Register new player in active sessions
-    activeSessions.set(player.username.toLowerCase(), player);
+    sessionManager.registerSession(player);
 
     // Update admin info
     if (adminSystem) {
@@ -472,9 +473,7 @@ function handleReconnect(newPlayer) {
       playerDB.savePlayer(existingPlayer);
 
       // Remove from active sessions map
-      if (activeSessions.get(existingPlayer.username.toLowerCase()) === existingPlayer) {
-        activeSessions.delete(existingPlayer.username.toLowerCase());
-      }
+      sessionManager.removeSession(existingPlayer);
     } else {
       logger.log(`Connection from ${reconnectIP}:${reconnectPort} disconnected before logging in.`);
     }
@@ -488,9 +487,7 @@ function handleReconnect(newPlayer) {
     logger.error(`Socket error for ${identifier}:`, err);
 
     // Remove from active sessions if this is the active player
-    if (existingPlayer.username && activeSessions.get(existingPlayer.username.toLowerCase()) === existingPlayer) {
-      activeSessions.delete(existingPlayer.username.toLowerCase());
-    }
+    sessionManager.removeSession(existingPlayer);
 
     players.delete(existingPlayer);
   });
@@ -623,7 +620,7 @@ function finalizeNewLogin(player) {
   player.state = 'playing';
 
   // Register this player as the active session
-  activeSessions.set(player.username.toLowerCase(), player);
+  sessionManager.registerSession(player);
 
   // Update admin info
   if (adminSystem) {
@@ -668,9 +665,7 @@ const server = net.createServer(socket => {
       playerDB.savePlayer(player);
 
       // Remove from active sessions map (only if THIS player object is the current active session)
-      if (activeSessions.get(player.username.toLowerCase()) === player) {
-        activeSessions.delete(player.username.toLowerCase());
-      }
+      sessionManager.removeSession(player);
     } else {
       logger.log(`Connection from ${clientIP}:${clientPort} disconnected before logging in.`);
     }
@@ -683,9 +678,7 @@ const server = net.createServer(socket => {
     logger.error(`Socket error for ${identifier}:`, err);
 
     // Remove from active sessions if this is the active player
-    if (player.username && activeSessions.get(player.username.toLowerCase()) === player) {
-      activeSessions.delete(player.username.toLowerCase());
-    }
+    sessionManager.removeSession(player);
 
     players.delete(player);
   });
