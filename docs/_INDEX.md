@@ -91,6 +91,7 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 - [Combat System](wiki/systems/combat-overview.md) - Combat mechanics, flow, integration ✓
 - [Item System](wiki/systems/item-system.md) - Items, equipment, weapons, armor ✓
 - [Corpse System](wiki/systems/corpse-system.md) - Corpse lifecycle, decay, respawn ✓
+- [Player Description System](wiki/systems/player-description.md) - Dynamic player descriptions, modifiers, level tiers ✓
 - Inventory System - Being consolidated
 - Admin System - Being consolidated
 
@@ -108,6 +109,7 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 - [Timer System](wiki/architecture/timer-system.md) - TimerManager, event-driven timers ✓
 - [Event System](wiki/architecture/event-system.md) - EventEmitter patterns, event handling ✓
 - [Data Schemas](wiki/architecture/data-schemas.md) - Player, NPC, Item, Room structures ✓
+- [Player Description](wiki/architecture/player-description.md) - Description generation, modifiers, data flow ✓
 
 **Patterns (How-Tos for Common Tasks):**
 - [Adding Commands](wiki/patterns/adding-commands.md) - Create new player commands ✓
@@ -125,6 +127,7 @@ Tables and formulas only, no prose.
   - [Item Combat](reference/item-combat.md) - Weapons, armor, damage ✓
   - [Item Systems](reference/item-systems.md) - Attunement, proficiency, etc. ✓
   - [Item Loot](reference/item-loot.md) - Spawn tags, code reference ✓
+- [Player Description Examples](reference/player-description-examples.md) - Example outputs by level/type ✓
 - Damage Types - Planned
 - Command List - Planned
 
@@ -146,6 +149,7 @@ Chronological session logs (append-only).
 
 - [Work Logs Index](work-logs/README.md)
 - [2025-11](work-logs/2025-11/) - November 2025 sessions
+  - [Player Description Implementation](work-logs/2025-11/player-description-implementation.md) - Complete system implementation ✓
 
 ### Specs
 

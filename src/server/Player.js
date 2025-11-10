@@ -9,6 +9,7 @@ class Player {
     this.username = null;
     this.capname = null; // Optional colorized display name
     this.description = null;
+    this.descriptionModifiers = []; // Array of description modifiers {text, source, priority, addedAt}
     this.currentRoom = null;
     this.inventory = []; // Array of object IDs
     this.lastActivity = Date.now();

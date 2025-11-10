@@ -11,6 +11,7 @@ High-level overviews of major game systems. Start here for context.
 | [Combat](systems/combat-overview.md) | Complete | Combat mechanics, phases, integration ✓ |
 | [Items](systems/item-system.md) | Complete | Item types, equipment, weapons, armor ✓ |
 | [Corpse](systems/corpse-system.md) | Complete | Corpse lifecycle, decay, respawn ✓ |
+| [Player Description](systems/player-description.md) | Complete | Dynamic player descriptions, modifiers, level tiers ✓ |
 | Inventory | Planned | Player inventory, containers - to be consolidated |
 | Admin | Planned | Admin commands, roles, permissions |
 
@@ -43,6 +44,7 @@ Code structure and patterns. Use these to understand implementation details and 
 | [Timer System](architecture/timer-system.md) | Complete | TimerManager.js ✓ |
 | [Event System](architecture/event-system.md) | Complete | EventEmitter usage ✓ |
 | [Data Schemas](architecture/data-schemas.md) | Complete | Player, NPC, Item, Room ✓ |
+| [Player Description](architecture/player-description.md) | Complete | PlayerDescriptionService.js ✓ |
 
 **Location:** `/docs/wiki/architecture/`
 
@@ -84,14 +86,15 @@ This wiki is under construction as part of documentation reorganization (Week 1,
 
 **Completed:**
 - Directory structure created
-- Reference docs created (combat-stats, item-properties, item-types, item-combat, item-systems, item-loot)
+- Reference docs created (combat-stats, item-properties, item-types, item-combat, item-systems, item-loot, player-description-examples)
 - Templates and standards in place
 - Combat system overview wiki page
 - Item system overview wiki page
 - Corpse system overview wiki page
+- Player description system wiki page
 - Corpse mechanics detailed page
 - Creating Items pattern guides (basics and advanced)
-- Architecture pages (command-system, combat-flow, timer-system, event-system, data-schemas)
+- Architecture pages (command-system, combat-flow, timer-system, event-system, data-schemas, player-description)
 - Pattern pages (adding-commands, creating-npcs)
 
 **In Progress:**

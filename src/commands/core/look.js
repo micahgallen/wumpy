@@ -4,6 +4,7 @@
 
 const colors = require('../../colors');
 const registry = require('../registry');
+const PlayerDescriptionService = require('../../systems/description/PlayerDescriptionService');
 
 /**
  * Execute look command
@@ -24,30 +25,24 @@ function execute(player, args, context) {
   if (targetName) {
     // Check self
     if (targetName === player.username.toLowerCase()) {
-      let output = `\n${colors.playerName(player.getDisplayName())}`;
-      if (player.isGhost) {
-        output += colors.hint(' (ghost)');
-      }
-      output += `\n${player.description}`;
-      if (player.isGhost) {
-        output += `\n${colors.hint('Your form is translucent and ethereal.')}`;
-      }
-      player.send(output + '\n');
+      const description = PlayerDescriptionService.generateDescription(player, {
+        isSelf: true,
+        showEquipment: true,
+        showLevel: true
+      });
+      player.send(description + '\n');
       return;
     }
 
     // Check other players
     for (const p of allPlayers) {
       if (p.username.toLowerCase() === targetName && p.currentRoom === player.currentRoom) {
-        let output = `\n${colors.playerName(p.getDisplayName())}`;
-        if (p.isGhost) {
-          output += colors.hint(' (ghost)');
-        }
-        output += `\n${p.description}`;
-        if (p.isGhost) {
-          output += `\n${colors.hint('Their form is translucent and ethereal, barely visible in this world.')}`;
-        }
-        player.send(output + '\n');
+        const description = PlayerDescriptionService.generateDescription(p, {
+          isSelf: false,
+          showEquipment: true,
+          showLevel: true
+        });
+        player.send(description + '\n');
         return;
       }
     }

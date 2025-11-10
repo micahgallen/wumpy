@@ -93,6 +93,7 @@ class PlayerDB {
     // Save location and state
     stored.currentRoom = player.currentRoom;
     stored.description = player.description;
+    stored.descriptionModifiers = player.descriptionModifiers || [];
     stored.capname = player.capname || null;
     stored.isGhost = player.isGhost || false;
 
@@ -169,6 +170,7 @@ class PlayerDB {
       username: username,
       passwordHash: this.hashPassword(password),
       description: 'A normal-looking person.',
+      descriptionModifiers: [], // Array of description modifiers from game systems
       capname: null, // Optional colorized display name
       currentRoom: 'sesame_street_01', // Starting room
       inventory: [], // Empty inventory for new players
@@ -253,6 +255,11 @@ class PlayerDB {
             silver: 0,
             copper: 100 // Backwards compat: give existing players starting money
         };
+    }
+
+    // Add description modifiers array if it doesn't exist (Player Description System)
+    if (!playerData.descriptionModifiers) {
+        playerData.descriptionModifiers = [];
     }
 
     // CRITICAL FIX: Initialize baseStats if not present (new system for equipment bonuses)
