@@ -1554,29 +1554,31 @@ async function destroyCommand(player, args, context) {
       const CorpseManager = require('../systems/corpses/CorpseManager');
       const destroyed = CorpseManager.destroyCorpse(item.id, world);
 
-      if (destroyed) {
-        player.send('\n' + colors.success(`Destroyed corpse: ${itemName}\n`));
-        player.send(colors.dim(`(${item.inventory?.length || 0} items destroyed with it)\n`));
-
-        world.sendToRoom(
-          player.currentRoom,
-          colors.dim(`${itemName} vanishes in a puff of admin magic.`),
-          [player.username],
-          context.allPlayers
-        );
-
-        rateLimiter.recordCommand(issuer.id);
-        writeAuditLog({
-          issuerID: issuer.id,
-          issuerRank: issuer.role,
-          command: 'DESTROY',
-          args: [itemName],
-          result: 'success',
-          reason: `Corpse destroyed (${item.containerType}, ${item.inventory?.length || 0} items)`
-        });
-      } else {
-        player.send('\n' + colors.error(`Failed to destroy corpse: ${itemName}\n`));
+      // Even if CorpseManager doesn't track it, still remove from room.items
+      // (handles orphaned corpses that exist in room but not in CorpseManager)
+      if (!destroyed) {
+        room.items.splice(itemIndex, 1);
       }
+
+      player.send('\n' + colors.success(`Destroyed corpse: ${itemName}\n`));
+      player.send(colors.dim(`(${item.inventory?.length || 0} items destroyed with it)\n`));
+
+      world.sendToRoom(
+        player.currentRoom,
+        colors.dim(`${itemName} vanishes in a puff of admin magic.`),
+        [player.username],
+        context.allPlayers
+      );
+
+      rateLimiter.recordCommand(issuer.id);
+      writeAuditLog({
+        issuerID: issuer.id,
+        issuerRank: issuer.role,
+        command: 'DESTROY',
+        args: [itemName],
+        result: 'success',
+        reason: `Corpse destroyed (${item.containerType}, ${item.inventory?.length || 0} items)${destroyed ? '' : ' - orphaned'}`
+      });
       return;
     }
 
