@@ -144,6 +144,23 @@ function isValidLevel(level) {
   return typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 50;
 }
 
+/**
+ * Calculate maximum HP based on level and constitution
+ * Formula: Base HP + (level-1) * HP per level + CON modifier per level
+ * - Level 1: 15 + CON_mod
+ * - Each level: +4 HP + CON_mod (minimum +1 per level)
+ * @param {number} level - Character level
+ * @param {number} constitution - Constitution ability score
+ * @returns {number} Maximum HP
+ */
+function calculateMaxHP(level, constitution) {
+  const conMod = getModifier(constitution);
+  const baseHP = 15; // Starting HP at level 1
+  const hpPerLevel = Math.max(1, 4 + conMod); // Minimum 1 HP per level
+
+  return baseHP + conMod + (level - 1) * hpPerLevel;
+}
+
 module.exports = {
   getModifier,
   calculateProficiency,
@@ -157,5 +174,6 @@ module.exports = {
   applyDamageMultiplier,
   clamp,
   isValidAbilityScore,
-  isValidLevel
+  isValidLevel,
+  calculateMaxHP
 };

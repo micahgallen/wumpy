@@ -18,6 +18,7 @@ const config = require('../../config/itemsConfig');
 const logger = require('../../logger');
 const { EquipmentSlot, ItemType } = require('../../items/schemas/ItemTypes');
 const AttunementManager = require('./AttunementManager');
+const { calculateMaxHP } = require('../../utils/modifiers');
 
 class EquipmentManager {
   /**
@@ -763,10 +764,8 @@ class EquipmentManager {
     const acResult = this.calculateAC(player);
     player.armorClass = acResult.totalAC;
 
-    // Update max HP based on CON modifier
-    const conModifier = Math.floor((player.con - 10) / 2);
-    const baseHp = 10 + (player.level - 1) * 5;
-    const newMaxHp = baseHp + (conModifier * player.level);
+    // Update max HP using centralized formula from utils/modifiers.js
+    const newMaxHp = calculateMaxHP(player.level, player.con);
 
     // Update max HP, but don't exceed current if it changed
     if (newMaxHp !== player.maxHp) {
@@ -805,12 +804,12 @@ class EquipmentManager {
 
     player.resistances = resistances;
 
-    // Log resistance changes for debugging
+    // Log resistance changes for debugging (DEBUG level only)
     const activeResistances = Object.entries(resistances)
       .filter(([type, mult]) => mult < 1.0)
       .map(([type, mult]) => `${type}: ${Math.round((1-mult)*100)}%`);
 
-    logger.log(`Recalculated ${player.username} stats: STR ${player.str} (${equipmentBonuses.strength >= 0 ? '+' : ''}${equipmentBonuses.strength}), DEX ${player.dex} (${equipmentBonuses.dexterity >= 0 ? '+' : ''}${equipmentBonuses.dexterity}), CON ${player.con} (${equipmentBonuses.constitution >= 0 ? '+' : ''}${equipmentBonuses.constitution}), AC ${player.armorClass}, MaxHP ${player.maxHp}${activeResistances.length > 0 ? `, Resist: ${activeResistances.join(', ')}` : ''}`);
+    logger.debug(`Recalculated ${player.username} stats: STR ${player.str} (${equipmentBonuses.strength >= 0 ? '+' : ''}${equipmentBonuses.strength}), DEX ${player.dex} (${equipmentBonuses.dexterity >= 0 ? '+' : ''}${equipmentBonuses.dexterity}), CON ${player.con} (${equipmentBonuses.constitution >= 0 ? '+' : ''}${equipmentBonuses.constitution}), AC ${player.armorClass}, MaxHP ${player.maxHp}${activeResistances.length > 0 ? `, Resist: ${activeResistances.join(', ')}` : ''}`);
 
     // CRITICAL FIX: Save player state to database after stat changes
     // This ensures equipment bonuses and stat changes persist across server restarts

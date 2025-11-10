@@ -1,7 +1,6 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const InventorySerializer = require('./systems/inventory/InventorySerializer');
 
 /**
  * PlayerDB - Manages player account persistence
@@ -22,14 +21,6 @@ class PlayerDB {
       if (fs.existsSync(this.filepath)) {
         const data = fs.readFileSync(this.filepath, 'utf8');
         this.players = JSON.parse(data);
-
-        // Migrate inventory format if needed
-        for (const username in this.players) {
-          const player = this.players[username];
-          if (player.inventory) {
-            player.inventory = InventorySerializer.migrateInventory(player.inventory);
-          }
-        }
 
         console.log(`Loaded ${Object.keys(this.players).length} player accounts.`);
       } else {

@@ -4,7 +4,7 @@
  * Defines the combat-related statistics structure
  */
 
-const { calculateProficiency, calculateArmorClass } = require('../utils/modifiers');
+const { calculateProficiency, calculateArmorClass, calculateMaxHP } = require('../utils/modifiers');
 
 /**
  * Create default combat stats for a new player
@@ -12,12 +12,14 @@ const { calculateProficiency, calculateArmorClass } = require('../utils/modifier
  * @returns {Object} Combat stats object
  */
 function createPlayerCombatStats(level = 1) {
+  const maxHp = calculateMaxHP(level, 10); // Default CON of 10
+
   return {
     // Core Stats
     level: level,
     currentXp: 0,
-    maxHp: 10,
-    currentHp: 10,
+    maxHp: maxHp,
+    currentHp: maxHp,
     resource: 100,          // Mana/energy (guild-specific)
     maxResource: 100,
 
@@ -93,7 +95,9 @@ function createNpcCombatStats(npcDef) {
  */
 function applyLevelUp(stats) {
   stats.level++;
-  stats.maxHp += 5;
+
+  // Recalculate max HP based on new level and CON
+  stats.maxHp = calculateMaxHP(stats.level, stats.con);
   stats.currentHp = stats.maxHp; // Full heal on level up
   stats.proficiency = calculateProficiency(stats.level);
 

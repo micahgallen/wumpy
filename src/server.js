@@ -10,6 +10,7 @@ const RespawnService = require('./respawnService');
 const RespawnManager = require('./systems/corpses/RespawnManager');
 const logger = require('./logger');
 const { bootstrapAdmin, createBanEnforcementHook, updatePlayerInfoOnLogin } = require('./admin/bootstrap');
+const { calculateMaxHP } = require('./utils/modifiers');
 
 /**
  * Player class - Represents a connected player
@@ -303,10 +304,8 @@ function handleLoginPassword(player, password) {
     player.wisdom = player.stats.wisdom;
     player.charisma = player.stats.charisma;
 
-    // Recalculate maxHp based on level and CON modifier
-    // Formula: 15 base + CON_mod + (level-1) * (4 + CON_mod)
-    const conMod = Math.floor((player.constitution - 10) / 2);
-    const calculatedMaxHp = 15 + conMod + (player.level - 1) * Math.max(1, 4 + conMod);
+    // Calculate maxHp using centralized formula from utils/modifiers.js
+    const calculatedMaxHp = calculateMaxHP(player.level, player.constitution);
 
     // Use stored maxHp if it exists and matches expected, otherwise recalculate (migration)
     if (playerData.maxHp && playerData.maxHp === calculatedMaxHp) {
@@ -545,8 +544,11 @@ function handleReconnect(newPlayer) {
   });
 
   existingPlayer.socket.on('end', () => {
+    const reconnectIP = existingPlayer.socket.remoteAddress;
+    const reconnectPort = existingPlayer.socket.remotePort;
+
     if (existingPlayer.username) {
-      logger.log(`Player ${existingPlayer.username} disconnected.`);
+      logger.log(`Player ${existingPlayer.username} (${reconnectIP}:${reconnectPort}) disconnected.`);
 
       // CRITICAL FIX: Save player state on disconnect
       playerDB.savePlayer(existingPlayer);
@@ -556,13 +558,16 @@ function handleReconnect(newPlayer) {
         activeSessions.delete(existingPlayer.username.toLowerCase());
       }
     } else {
-      logger.log('A connection disconnected before logging in.');
+      logger.log(`Connection from ${reconnectIP}:${reconnectPort} disconnected before logging in.`);
     }
     players.delete(existingPlayer);
   });
 
   existingPlayer.socket.on('error', err => {
-    logger.error('Socket error:', err);
+    const reconnectIP = existingPlayer.socket.remoteAddress;
+    const reconnectPort = existingPlayer.socket.remotePort;
+    const identifier = existingPlayer.username || `${reconnectIP}:${reconnectPort}`;
+    logger.error(`Socket error for ${identifier}:`, err);
 
     // Remove from active sessions if this is the active player
     if (existingPlayer.username && activeSessions.get(existingPlayer.username.toLowerCase()) === existingPlayer) {
@@ -669,9 +674,8 @@ function finalizeNewLogin(player) {
     player.wisdom = player.stats.wisdom;
     player.charisma = player.stats.charisma;
 
-    // Recalculate maxHp based on level and CON modifier
-    const conMod = Math.floor((player.constitution - 10) / 2);
-    const calculatedMaxHp = 15 + conMod + (player.level - 1) * Math.max(1, 4 + conMod);
+    // Calculate maxHp using centralized formula from utils/modifiers.js
+    const calculatedMaxHp = calculateMaxHP(player.level, player.constitution);
 
     if (playerData.maxHp && playerData.maxHp === calculatedMaxHp) {
       player.maxHp = playerData.maxHp;
@@ -722,7 +726,9 @@ const server = net.createServer(socket => {
   const player = new Player(socket);
   players.add(player);
 
-  logger.log('A new connection has been established.');
+  const clientIP = socket.remoteAddress;
+  const clientPort = socket.remotePort;
+  logger.log(`New connection from ${clientIP}:${clientPort}`);
 
   // Welcome banner
   player.send('\n' + getBanner() + '\n');
@@ -737,7 +743,7 @@ const server = net.createServer(socket => {
   // Handle disconnection
   socket.on('end', () => {
     if (player.username) {
-      logger.log(`Player ${player.username} disconnected.`);
+      logger.log(`Player ${player.username} (${clientIP}:${clientPort}) disconnected.`);
 
       // CRITICAL FIX: Save player state to database on logout
       // This ensures all stats, equipment, inventory, and progression persist
@@ -748,14 +754,15 @@ const server = net.createServer(socket => {
         activeSessions.delete(player.username.toLowerCase());
       }
     } else {
-      logger.log('A connection disconnected before logging in.');
+      logger.log(`Connection from ${clientIP}:${clientPort} disconnected before logging in.`);
     }
     players.delete(player);
   });
 
   // Handle errors
   socket.on('error', err => {
-    logger.error('Socket error:', err);
+    const identifier = player.username || `${clientIP}:${clientPort}`;
+    logger.error(`Socket error for ${identifier}:`, err);
 
     // Remove from active sessions if this is the active player
     if (player.username && activeSessions.get(player.username.toLowerCase()) === player) {

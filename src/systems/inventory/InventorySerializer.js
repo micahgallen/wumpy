@@ -111,12 +111,12 @@ class InventorySerializer {
       }
     }
 
-    logger.log(`Restored ${restoredItems.length}/${serializedData.length} items for ${player.username}`);
+    logger.debug(`Restored ${restoredItems.length}/${serializedData.length} items for ${player.username}`);
 
     // Consolidate stacks after deserialization
     const consolidated = this.consolidateStacks(restoredItems);
     if (consolidated.length < restoredItems.length) {
-      logger.log(`Consolidated ${restoredItems.length} items into ${consolidated.length} stacks`);
+      logger.debug(`Consolidated ${restoredItems.length} items into ${consolidated.length} stacks`);
     }
 
     return consolidated;
@@ -145,32 +145,6 @@ class InventorySerializer {
     const restoredItem = ItemFactory.restoreItem(itemData, definition);
 
     return restoredItem;
-  }
-
-  /**
-   * Migrate old inventory format to new format
-   * Legacy format: array of strings (object IDs)
-   * New format: array of serialized item objects
-   * @param {Array} oldInventory - Old inventory format
-   * @returns {Array<Object>} Migrated inventory data
-   */
-  migrateInventory(oldInventory) {
-    if (!oldInventory || !Array.isArray(oldInventory)) {
-      return [];
-    }
-
-    // Check if already in new format
-    if (oldInventory.length > 0 && typeof oldInventory[0] === 'object' && oldInventory[0].instanceId) {
-      return oldInventory; // Already migrated
-    }
-
-    logger.log(`Migrating legacy inventory with ${oldInventory.length} items`);
-
-    // Legacy format was just object IDs, we can't recover item data
-    // Return empty inventory and log warning
-    logger.warn('Legacy inventory format detected but cannot be migrated (no item data). Starting with empty inventory.');
-
-    return [];
   }
 
   /**
@@ -342,7 +316,7 @@ class InventorySerializer {
         // Merge into existing stack
         existingStack.quantity += item.quantity;
         existingStack.modifiedAt = Date.now();
-        logger.log(`Consolidated ${item.name}: merged ${item.quantity} into existing stack`);
+        logger.debug(`Consolidated ${item.name}: merged ${item.quantity} into existing stack`);
       } else {
         // No matching stack found, add as new
         consolidated.push(item);

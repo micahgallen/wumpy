@@ -53,12 +53,20 @@ function debug(message) {
   fs.appendFileSync(logFilePath, logMessage);
 }
 
-function error(message) {
+function error(message, err) {
   if (!shouldLog('ERROR')) return;
 
-  console.error(`ERROR: ${message}`);
+  // Handle Error objects by including stack trace
+  let fullMessage = message;
+  if (err instanceof Error) {
+    fullMessage = `${message} ${err.message}\nStack: ${err.stack}`;
+  } else if (err) {
+    fullMessage = `${message} ${JSON.stringify(err)}`;
+  }
+
+  console.error(`ERROR: ${fullMessage}`);
   const timestamp = new Date().toISOString();
-  const errorMessage = `[${timestamp}] [ERROR] ${message}\n`;
+  const errorMessage = `[${timestamp}] [ERROR] ${fullMessage}\n`;
   fs.appendFileSync(logFilePath, errorMessage);
 }
 
