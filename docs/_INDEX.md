@@ -1,7 +1,7 @@
 # Wumpy MUD Documentation Index
 
 **Last Updated:** 2025-11-10
-**Status:** In Reorganization
+**Status:** Reorganization Complete - Maintenance Phase
 
 ## Quick Start (For AI Agents)
 
@@ -19,6 +19,67 @@
 - Check [Wiki Index](wiki/_wiki-index.md) for system docs (under construction)
 - Check legacy docs in current structure
 - Check [Work Logs](work-logs/README.md) for recent sessions
+
+## AI Agent Workflow
+
+**Contributing code?** Follow this workflow:
+
+1. **Before starting:**
+   - Read [DOC_STANDARDS.md](../.claude/DOC_STANDARDS.md)
+   - Check wiki for existing system docs
+   - Check library for practical examples
+
+2. **During work:**
+   - Update wiki pages as you modify systems
+   - Reference library for patterns
+   - Check reference for stats
+
+3. **After session:**
+   - Create work log in `/docs/work-logs/YYYY-MM/`
+   - Update wiki pages with changes
+   - Do NOT create new standalone docs
+
+**Common tasks quick reference:**
+- Working on combat? → `wiki/systems/combat-overview.md` + `reference/combat-stats.md`
+- Working on items? → `wiki/systems/item-system.md` + `reference/item-properties.md`
+- Adding command? → `wiki/patterns/adding-commands.md`
+- Creating NPC? → `wiki/patterns/creating-npcs.md`
+
+## Documentation Philosophy
+
+Wumpy uses **two complementary organizational systems**:
+
+### System 1: Wiki (Primary for System Documentation)
+- **Location:** `/docs/wiki/`
+- **Purpose:** Authoritative documentation on how systems work
+- **Maintained by:** Active development (DOC_STANDARDS.md enforced)
+- **Organization:** By documentation type (systems, mechanics, architecture, patterns)
+- **Use when:** Understanding how code works, contributing changes, architectural decisions
+
+**Navigation:** See [Wiki Index](wiki/_wiki-index.md)
+
+### System 2: Library/Systems (Practical Guides)
+- **Location:** `/docs/library/`, `/docs/systems/`, `/docs/operations/`
+- **Purpose:** Practical guides, examples, operational runbooks
+- **Maintained by:** As needed for specific features
+- **Organization:** By topic and development phase
+- **Use when:** Quick reference, running operations, implementation examples
+
+**Navigation:** See [Documentation Library](README.md)
+
+### Relationship Between Systems
+
+These are **complementary, not redundant**:
+- **Wiki** = "How does combat work?" (system documentation)
+- **Library** = "How do I use combat commands?" (practical guide)
+- **Reference** = "What are the combat formulas?" (quick lookup)
+
+**Example:**
+- Combat system understanding → `wiki/systems/combat-overview.md`
+- Combat quick reference → `library/combat/COMBAT_QUICK_START.md`
+- Combat stats table → `reference/combat-stats.md`
+
+All three serve different purposes and should be maintained.
 
 ## Documentation Map
 
@@ -112,17 +173,21 @@ Historical docs (rarely needed).
 
 **Completed Reorganization:**
 - `/docs/implementation/` - Moved to `/docs/archive/phase-reports/` ✓
-- `/docs/reports/` - Moved to `/docs/archive/phase-reports/reports/` ✓
+- `/docs/reports/` - MOVED to `/docs/archive/phase-reports/reports/` ✓
 - `/docs/reviews/` - Moved to `/docs/archive/old-reviews/` ✓
 - Item system docs - Consolidated into wiki, originals in `/docs/archive/superseded/` ✓
 
+**Note:** reports/ directory no longer exists at top level. All reports moved to archive.
+
 **Still Active:**
-- `/docs/library/` - Topic-specific documentation
-- `/docs/systems/` - System-specific documentation (being consolidated)
-- `/docs/architecture/` - Architecture documentation
-- `/docs/proposals/` - Feature proposals
+- `/docs/library/` - Practical guides and topical documentation
+- `/docs/systems/` - Deep technical design docs by subsystem
+- `/docs/architecture/` - Architecture documentation and diagrams
+- `/docs/proposals/` - Feature proposals and design drafts
 - `/docs/design/` - Design documents
 - `/docs/plans-roadmaps/` - Project roadmaps and future plans
+- `/docs/operations/` - Operational playbooks and checklists
+- `/docs/_TEMPLATES/` - Documentation templates for contributors
 
 ## Contributing Docs (For AI Agents)
 
@@ -185,6 +250,14 @@ Docs are tagged with status in frontmatter:
   - [x] Updated navigation files
 
 **Recent Updates:**
+- 2025-11-10: Documentation index reconciliation
+  - Updated status to "Reorganization Complete - Maintenance Phase"
+  - Added missing directories (architecture, design, proposals, _TEMPLATES)
+  - Fixed broken links in docs/README.md
+  - Added Documentation Philosophy section explaining Wiki + Library dual system
+  - Created _NAVIGATION.md for easier wayfinding
+  - Added AI agent workflow guide
+  - Updated main README.md with clear navigation paths
 - 2025-11-10: Server refactor documentation archived
   - Moved SERVER_REFACTOR_PLAN.md and SERVER_REFACTOR_QUICK_START.md to archive/phase-reports/server-refactor/
   - Added refactored server architecture section to library/general/ARCHITECTURE.txt

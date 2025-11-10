@@ -1,6 +1,8 @@
 # Documentation Library
 
-This folder now separates active references, operational guides, in-progress plans, published reports, and historical archives. Start with the **library** when you need authoritative documentation for the current build, then branch into the other sections as required.
+**Navigation:** This describes the Library/Systems organizational structure. For wiki-based system documentation, see [Wiki Index](wiki/_wiki-index.md). For a complete documentation map, see [Documentation Index](_INDEX.md).
+
+This folder separates active references, operational guides, in-progress plans, and historical archives. The **library** contains practical guides, while the **wiki** contains authoritative system documentation. Both systems are actively maintained and serve complementary purposes.
 
 ## Directory Guide
 - `library/` — Canonical documentation kept current for day-to-day development.
@@ -11,15 +13,18 @@ This folder now separates active references, operational guides, in-progress pla
 - `operations/` — Playbook-style checklists and demos for running live flows.
 - `systems/` — Deep technical design docs by subsystem (combat, items, status).
 - `plans-roadmaps/` — Future work, handoffs, and in-flight planning notes.
-- `reports/` — Completed work: bugfix write-ups, postmortems, and phase summaries.
+- `reports/` — MOVED TO ARCHIVE: See `archive/phase-reports/reports/` for completed work.
 - `archives/` — Superseded material retained for historical reference (see `archives/README.md`).
+- `wiki/` — Wiki-based system documentation (architecture, patterns, mechanics)
+- `reference/` — Quick lookup tables (combat stats, item properties)
+- `work-logs/` — Chronological session logs documenting development
 
 ## Quick Entry Points
 - New contributor onboarding: `library/general/AGENTS.md`
 - Combat feature walkthroughs: `library/combat/COMBAT_QUICK_START.md`
 - Admin permissions and capabilities: `library/admin/admin-system.md`
 - Current roadmap: `plans-roadmaps/FEATURES_ROADMAP.md`
-- Latest combat implementation status: `reports/combat/COMBAT_IMPLEMENTATION_STATUS.md`
+- Latest combat implementation status: `archive/phase-reports/reports/combat/COMBAT_IMPLEMENTATION_STATUS.md`
 
 ## Maintaining This Layout
 - Place new canonical docs under `library/` and keep them updated as the source of truth.

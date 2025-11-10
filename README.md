@@ -49,22 +49,30 @@ That's it. You're in. Start kicking things. We won't judge. (Green Wumpy will ju
 
 ## For the Organized Minds (Green Wumpy Approved)
 
-Our documentation is structured with the care of someone who definitely owns color-coded clipboards:
+Our documentation uses two complementary systems - choose your path:
 
-### Primary Documentation (Start Here)
+### Navigation Hub
+**[Documentation Navigation Guide](docs/_NAVIGATION.md)** - Lost? Start here to find your way
 
-**[Documentation Index](docs/_INDEX.md)** - Complete map of all documentation (yes, we have maps of the documentation)
+**[Documentation Index](docs/_INDEX.md)** - Complete map of all documentation (yes, we have maps)
 
-**[Wiki](docs/wiki/_wiki-index.md)** - Your primary source for understanding how this beautiful chaos works
+**[Wiki](docs/wiki/_wiki-index.md)** - Authoritative system documentation (how things work)
 
-Key wiki pages for the discerning reader:
+### Quick Paths by Purpose
+
+**Understanding Systems (Wiki):**
 - **Systems**: [Combat](docs/wiki/systems/combat-overview.md), [Items](docs/wiki/systems/item-system.md), [Corpses](docs/wiki/systems/corpse-system.md)
 - **Architecture**: [Commands](docs/wiki/architecture/command-system.md), [Combat Flow](docs/wiki/architecture/combat-flow.md), [Timers](docs/wiki/architecture/timer-system.md), [Events](docs/wiki/architecture/event-system.md), [Data Schemas](docs/wiki/architecture/data-schemas.md)
 - **Patterns**: [Adding Commands](docs/wiki/patterns/adding-commands.md), [Creating Items](docs/wiki/patterns/creating-items-basics.md), [Creating NPCs](docs/wiki/patterns/creating-npcs.md)
 
-**[Reference Tables](docs/reference/)** - Quick lookup for stats, properties, and formulas
+**Quick Reference Tables:**
 - [Combat Stats](docs/reference/combat-stats.md)
 - [Item Properties](docs/reference/item-properties.md)
+
+**Practical Guides (Library):**
+- [Combat Quick Start](docs/library/combat/COMBAT_QUICK_START.md) - Player guide
+- [Agent Guidelines](docs/library/general/AGENTS.md) - For AI contributors
+- [Features Roadmap](docs/plans-roadmaps/FEATURES_ROADMAP.md) - Planned features
 
 ### For AI Agents & Contributors
 
