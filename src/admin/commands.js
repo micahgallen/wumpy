@@ -1492,8 +1492,8 @@ async function destroyCommand(player, args, context) {
 
   // Try to find and destroy NPC first
   const npcIndex = room.npcs?.findIndex(n =>
-    n.name.toLowerCase().includes(targetName) ||
-    n.id.toLowerCase().includes(targetName)
+    (n.name && n.name.toLowerCase().includes(targetName)) ||
+    (n.id && n.id.toLowerCase().includes(targetName))
   );
 
   if (npcIndex !== -1 && npcIndex !== undefined && room.npcs) {
