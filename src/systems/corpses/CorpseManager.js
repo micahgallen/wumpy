@@ -35,7 +35,7 @@ class CorpseManager {
    * Create a corpse from a dead NPC
    * @param {object} npc - NPC object
    * @param {string} roomId - Room where corpse is created
-   * @param {string} killerName - Name of player who killed NPC
+   * @param {string|object} killerName - Name of player who killed NPC, or player object
    * @param {object} world - World instance
    * @returns {object} Created corpse container
    */
@@ -70,9 +70,21 @@ class CorpseManager {
       const corpseId = `corpse_${npc.id}_${timestamp}`;
 
       // Create corpse description with killer name
-      const description = killerName
-        ? `The lifeless body of ${npc.name}. Killed by ${killerName}.`
-        : `The lifeless body of ${npc.name}.`;
+      // If killer is a player object with getDisplayName, use it for display
+      let description;
+      if (killerName) {
+        const displayKiller = (typeof killerName === 'object' && killerName.getDisplayName)
+          ? killerName.getDisplayName()
+          : killerName;
+        description = `The lifeless body of ${npc.name}. Killed by ${displayKiller}.`;
+      } else {
+        description = `The lifeless body of ${npc.name}.`;
+      }
+
+      // For ownership tracking, use username if killer is a player object
+      const ownerUsername = (typeof killerName === 'object' && killerName.username)
+        ? killerName.username
+        : killerName;
 
       // Generate keywords from NPC name (split by spaces, lowercase)
       const nameWords = npc.name.toLowerCase().split(/\s+/).filter(w => w.length > 0);
@@ -102,7 +114,7 @@ class CorpseManager {
         // Corpse-specific metadata
         npcId: npc.id,
         npcType: npc.id,
-        killerName: killerName,
+        killerName: ownerUsername,  // Store username for tracking, not display name
         spawnLocation: npc.homeRoom || roomId,  // Where NPC respawns (use home room if available)
         createdAt: timestamp,
         decayTime: timestamp + (npcConfig.decayTime || 300000) // 5 minutes default
@@ -172,11 +184,26 @@ class CorpseManager {
       const timestamp = Date.now();
       const corpseId = `corpse_player_${player.username}_${timestamp}`;
 
-      // Determine killer name
-      const killerName = killer ? (killer.name || killer.username || 'Unknown') : 'Unknown';
+      // Determine killer name for display (use display name if available)
+      let killerDisplayName;
+      if (!killer) {
+        killerDisplayName = 'Unknown';
+      } else if (killer.getDisplayName) {
+        killerDisplayName = killer.getDisplayName(); // Player with capname support
+      } else if (killer.name) {
+        killerDisplayName = killer.name; // NPC
+      } else if (killer.username) {
+        killerDisplayName = killer.username; // Fallback for player without getDisplayName
+      } else {
+        killerDisplayName = 'Unknown';
+      }
 
-      // Create corpse description with killer name
-      const description = `The lifeless body of ${player.username}. Killed by ${killerName}.`;
+      // Determine killer username for tracking (identity, not display)
+      const killerUsername = killer ? (killer.username || killer.name || 'Unknown') : 'Unknown';
+
+      // Create corpse description with killer display name
+      const playerDisplayName = player.getDisplayName ? player.getDisplayName() : player.username;
+      const description = `The lifeless body of ${playerDisplayName}. Killed by ${killerDisplayName}.`;
 
       // Generate keywords from player username
       const nameWords = player.username.toLowerCase().split(/\s+/).filter(w => w.length > 0);
@@ -244,7 +271,7 @@ class CorpseManager {
         deathLocation: deathLocation,
         playerLevel: player.level || 1,
         currency: playerCurrency,
-        killerName: killerName,
+        killerName: killerUsername,  // Store username for tracking, not display name
         createdAt: timestamp,
 
         // Lifecycle management
