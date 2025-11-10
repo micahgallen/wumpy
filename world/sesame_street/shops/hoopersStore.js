@@ -23,7 +23,7 @@ module.exports = {
     { itemId: 'sardine_can', quantity: 15, price: 12 },
 
     // === CONSUMABLES - Potions ===
-    { itemId: 'health_potion', quantity: 20, price: 50 },
+    { itemId: 'sesame_health_potion', quantity: 20, price: 50 },
 
     // === EQUIPMENT - Weapons ===
     { itemId: 'wooden_practice_sword', quantity: 10, price: 50 },

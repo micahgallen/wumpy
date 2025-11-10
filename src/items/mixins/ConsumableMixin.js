@@ -107,8 +107,23 @@ const ConsumableMixin = {
     // Check for healing effect
     if (this.consumableProperties.healAmount) {
       const healAmount = this.consumableProperties.healAmount;
+
+      // Validate healAmount is positive - if negative, log error and use 0
+      if (healAmount < 0) {
+        const logger = require('../../logger');
+        logger.error(`Item ${this.name} (${this.instanceId}) has negative healAmount: ${healAmount}. This is a data corruption bug.`);
+
+        this.quantity -= 1;
+        return {
+          success: false,
+          message: `The ${this.name} appears to be corrupted and has no effect.`,
+          consumed: this.quantity <= 0
+        };
+      }
+
       const actualHeal = Math.min(healAmount, player.maxHp - player.hp);
-      player.hp += actualHeal;
+      player.hp = Math.min(player.maxHp, player.hp + actualHeal); // Ensure we don't exceed maxHp
+      player.hp = Math.max(0, player.hp); // Ensure we don't go below 0
 
       this.quantity -= 1;
 
@@ -151,8 +166,23 @@ const ConsumableMixin = {
     // Simple food restoration
     if (this.consumableProperties.healAmount) {
       const healAmount = this.consumableProperties.healAmount;
+
+      // Validate healAmount is positive
+      if (healAmount < 0) {
+        const logger = require('../../logger');
+        logger.error(`Item ${this.name} (${this.instanceId}) has negative healAmount: ${healAmount}. This is a data corruption bug.`);
+
+        this.quantity -= 1;
+        return {
+          success: false,
+          message: `The ${this.name} appears to be spoiled and has no effect.`,
+          consumed: this.quantity <= 0
+        };
+      }
+
       const actualHeal = Math.min(healAmount, player.maxHp - player.hp);
-      player.hp += actualHeal;
+      player.hp = Math.min(player.maxHp, player.hp + actualHeal); // Ensure we don't exceed maxHp
+      player.hp = Math.max(0, player.hp); // Ensure we don't go below 0
 
       this.quantity -= 1;
 
