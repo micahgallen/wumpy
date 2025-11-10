@@ -347,3 +347,122 @@ Optimization Opportunities:
 
 
 ================================================================================
+                    REFACTORED SERVER ARCHITECTURE (NOV 2025)
+================================================================================
+
+MAJOR REFACTORING: As of November 2025, server.js has been modularized from a
+monolithic 869-line file into a clean 50-line entry point with dedicated modules
+for each responsibility. This represents a 94% reduction in the main file size.
+
+New Module Structure:
+
+    src/
+    ├── server.js (50 lines)              Main entry point and TCP server setup
+    └── server/
+        ├── Player.js (86 lines)          Player class definition
+        ├── SessionManager.js (92 lines)  Session tracking and duplicate logins
+        ├── AuthenticationFlow.js (575 l) Login/creation state machine
+        ├── ConnectionHandler.js (84 l)   TCP socket event handling
+        ├── ServerBootstrap.js (270 l)    Initialization sequence
+        └── ShutdownHandler.js (125 l)    Graceful shutdown coordination
+
+Module Responsibilities:
+
+Player.js
+  - Defines the Player class used for connected players
+  - Player properties: socket, username, state, stats, inventory
+  - Helper methods: send(), prompt(), sendPrompt(), takeDamage(), isDead()
+  - No external dependencies (self-contained)
+
+SessionManager.js
+  - Manages activeSessions Map (username -> Player)
+  - registerSession() / unregisterSession()
+  - handleDuplicateLogin() - Prompts user for reconnect or respawn choice
+  - handleReconnect() - Transfers socket to existing session
+  - handleRespawnWithCooldown() - 5-second cooldown for combat exploit prevention
+
+AuthenticationFlow.js
+  - Central state machine for login/creation flows
+  - handleInput() - Routes input based on player.state
+  - State handlers:
+    * handleLoginUsername() - Username entry
+    * handleLoginPassword() - Password authentication
+    * handleCreateUsername() - Account creation confirmation
+    * handleCreatePassword() - New password entry
+    * handleDuplicateLoginChoice() - Reconnect vs respawn decision
+  - finalizeNewLogin() - Loads player data, deserializes inventory/currency
+  - Integrates with SessionManager for duplicate login detection
+
+ConnectionHandler.js
+  - Handles TCP socket lifecycle
+  - handleNewConnection() - Creates Player instance, sends banner
+  - onData() - Delegates input to AuthenticationFlow
+  - onEnd() - Saves player data, cleans up sessions
+  - onError() - Handles socket errors gracefully
+
+ServerBootstrap.js
+  - Coordinates all server initialization
+  - Static initialize() method returns components object with:
+    * playerDB, world, players Set, activeSessions Map
+    * combatEngine, adminSystem, sessionManager, authFlow
+    * connectionHandler
+  - Phases:
+    1. Load items (core + Sesame Street)
+    2. Load shops
+    3. Initialize components (PlayerDB, World, CombatEngine)
+    4. Restore corpse/timer state
+    5. Check respawns
+    6. Initialize admin system
+    7. Create handlers
+
+ShutdownHandler.js
+  - Handles SIGTERM and SIGINT signals
+  - setup() - Registers signal handlers
+  - handleShutdown() - Coordinates graceful shutdown
+  - Saves state in order:
+    1. Timers (synchronous)
+    2. Corpses (synchronous)
+    3. Shops (async but awaited)
+  - Prevents multiple shutdown attempts with isShuttingDown flag
+
+Refactored server.js Flow:
+
+    1. Import modules (ServerBootstrap, ConnectionHandler, ShutdownHandler)
+    2. main() async function:
+       a. const components = await ServerBootstrap.initialize()
+       b. Create net.createServer() with ConnectionHandler
+       c. ShutdownHandler.setup(components)
+       d. server.listen(PORT)
+    3. Export Player class for backward compatibility
+
+Dependency Injection Pattern:
+
+All modules use dependency injection for testability and decoupling:
+  - AuthenticationFlow receives (playerDB, sessionManager, adminSystem)
+  - ConnectionHandler receives (playerDB, sessionManager, handleInput)
+  - SessionManager is self-contained (no constructor dependencies)
+  - ServerBootstrap returns fully initialized components object
+
+Key Design Principles:
+  - Single Responsibility: Each module has one clear purpose
+  - Behavior Preservation: Zero regressions from refactor
+  - Dependency Injection: Explicit dependencies, no hidden globals
+  - Testability: Each module can be unit tested independently
+  - Documentation: Comprehensive JSDoc comments on all modules
+
+Benefits:
+  - Maintainability: Clear boundaries between components
+  - Testability: Each module independently testable
+  - Readability: Easy to understand initialization and flow
+  - Extensibility: Easy to add new authentication states or handlers
+  - Debugging: Clear boundaries make isolation of issues simpler
+
+Historical Context:
+
+For complete details on the refactoring process, approach, and lessons learned,
+see archived documentation:
+  /docs/archive/phase-reports/server-refactor/SERVER_REFACTOR_PLAN.md
+  /docs/archive/phase-reports/server-refactor/SERVER_REFACTOR_QUICK_START.md
+
+
+================================================================================

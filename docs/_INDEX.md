@@ -104,6 +104,7 @@ Design decision logs.
 Historical docs (rarely needed).
 
 - [Phase Reports](archive/phase-reports/) - Implementation phase reports and session summaries
+  - [Server Refactor](archive/phase-reports/server-refactor/) - November 2025 server.js refactoring (869 → 50 lines)
 - [Old Reviews](archive/old-reviews/) - Code reviews from completed phases
 - [Superseded](archive/superseded/) - Documentation replaced by wiki pages
 
@@ -182,5 +183,11 @@ Docs are tagged with status in frontmatter:
 - Phase 2.4: Pattern Pages
   - [x] Created 2 pattern pages (adding-commands, creating-npcs)
   - [x] Updated navigation files
+
+**Recent Updates:**
+- 2025-11-10: Server refactor documentation archived
+  - Moved SERVER_REFACTOR_PLAN.md and SERVER_REFACTOR_QUICK_START.md to archive/phase-reports/server-refactor/
+  - Added refactored server architecture section to library/general/ARCHITECTURE.txt
+  - Documents describe completed November 2025 refactor (869 → 50 lines, 94% reduction)
 
 **Status:** Phase 2 (Architecture & Patterns) complete. Future phases will continue consolidating system documentation into wiki pages.

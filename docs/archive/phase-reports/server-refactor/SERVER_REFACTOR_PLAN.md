@@ -1,9 +1,19 @@
 ---
 title: Server.js Refactoring Plan
-status: completed
+status: archived
 created: 2025-11-10
 completed: 2025-11-10
+archived: 2025-11-10
+archived_reason: Refactoring complete and merged. Moved to archive for historical reference.
 related: [architecture/README.md, patterns/adding-commands.md]
+---
+
+# ARCHIVED: Server.js Refactoring Plan
+
+**ARCHIVAL NOTICE:** This document describes the completed server.js refactoring work (November 2025). The refactoring has been successfully completed and merged to main. This document is preserved for historical reference and to document the approach, decisions, and lessons learned.
+
+For current server architecture information, see `/docs/library/general/ARCHITECTURE.txt`.
+
 ---
 
 # Server.js Refactoring Plan

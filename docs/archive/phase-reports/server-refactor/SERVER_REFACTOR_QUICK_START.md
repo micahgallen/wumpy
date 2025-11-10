@@ -1,8 +1,19 @@
 ---
 title: Server Refactor Quick Start Guide
-status: proposed
+status: archived
 created: 2025-11-10
+completed: 2025-11-10
+archived: 2025-11-10
+archived_reason: Refactoring complete and merged. This was a working guide for the refactoring process.
 related: [SERVER_REFACTOR_PLAN.md]
+---
+
+# ARCHIVED: Server Refactor Quick Start Guide
+
+**ARCHIVAL NOTICE:** This document was a working guide for the server.js refactoring process (November 2025). The refactoring has been successfully completed. This document is preserved for historical reference to show the phased approach taken.
+
+For current server architecture information, see `/docs/library/general/ARCHITECTURE.txt`.
+
 ---
 
 # Server Refactor Quick Start Guide
