@@ -3,7 +3,6 @@ const PlayerDB = require('../playerdb');
 const World = require('../world');
 const CombatEngine = require('../combat/combatEngine');
 const RespawnManager = require('../systems/corpses/RespawnManager');
-const TimerManager = require('../systems/corpses/TimerManager');
 const CorpseManager = require('../systems/corpses/CorpseManager');
 const SessionManager = require('./SessionManager');
 const AuthenticationFlow = require('./AuthenticationFlow');

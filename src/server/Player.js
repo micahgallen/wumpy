@@ -1,5 +1,3 @@
-const { calculateMaxHP } = require('../utils/modifiers');
-
 /**
  * Player class - Represents a connected player
  */
@@ -76,7 +74,7 @@ class Player {
 
   /**
    * Check if the player is dead
-   * @returns {boolean} True if currentHp <= 0
+   * @returns {boolean} True if hp <= 0
    */
   isDead() {
     return this.hp <= 0;

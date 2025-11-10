@@ -73,6 +73,11 @@ class ConnectionHandler {
       const identifier = player.username || `${clientIP}:${clientPort}`;
       logger.error(`Socket error for ${identifier}:`, err);
 
+      // CRITICAL: Save player state before removing to prevent data loss
+      if (player.username) {
+        this.playerDB.savePlayer(player);
+      }
+
       // Remove from active sessions if this is the active player
       this.sessionManager.removeSession(player);
 

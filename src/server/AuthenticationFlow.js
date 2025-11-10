@@ -102,7 +102,9 @@ class AuthenticationFlow {
 
       // Use stored maxHp if it exists and matches expected, otherwise recalculate (migration)
       if (playerData.maxHp && playerData.maxHp === calculatedMaxHp) {
+        // No migration needed - use stored values
         player.maxHp = playerData.maxHp;
+        player.hp = Math.min(playerData.hp ?? player.maxHp, player.maxHp);
       } else {
         // Migration: recalculate HP and preserve HP percentage
         const oldMaxHp = playerData.maxHp ?? 20;
@@ -111,10 +113,6 @@ class AuthenticationFlow {
         player.hp = Math.max(1, Math.floor(player.maxHp * hpPercentage));
         logger.log(`Migrated ${player.username} HP: ${oldMaxHp} -> ${player.maxHp}`);
       }
-
-      // Set current HP
-      player.hp = playerData.hp ?? player.maxHp;
-      player.hp = Math.min(player.hp, player.maxHp); // Cap at maxHp
 
       // Recalculate stats based on equipped items
       // This must happen AFTER inventory deserialization
@@ -364,6 +362,11 @@ class AuthenticationFlow {
       const identifier = existingPlayer.username || `${reconnectIP}:${reconnectPort}`;
       logger.error(`Socket error for ${identifier}:`, err);
 
+      // CRITICAL: Save player state before removing to prevent data loss
+      if (existingPlayer.username) {
+        this.playerDB.savePlayer(existingPlayer);
+      }
+
       // Remove from active sessions if this is the active player
       this.sessionManager.removeSession(existingPlayer);
 
@@ -477,19 +480,16 @@ class AuthenticationFlow {
       const calculatedMaxHp = calculateMaxHP(player.level, player.constitution);
 
       if (playerData.maxHp && playerData.maxHp === calculatedMaxHp) {
+        // No migration needed - use stored values
         player.maxHp = playerData.maxHp;
+        player.hp = Math.min(playerData.hp ?? player.maxHp, player.maxHp);
       } else {
+        // Migration: recalculate HP and preserve HP percentage
         const oldMaxHp = playerData.maxHp ?? 20;
         const hpPercentage = (playerData.hp ?? oldMaxHp) / oldMaxHp;
         player.maxHp = calculatedMaxHp;
         player.hp = Math.max(1, Math.floor(player.maxHp * hpPercentage));
         logger.log(`Migrated ${player.username} HP: ${oldMaxHp} -> ${player.maxHp}`);
-      }
-
-      if (!playerData.maxHp || playerData.maxHp !== calculatedMaxHp) {
-        player.hp = playerData.hp ?? player.maxHp;
-      } else {
-        player.hp = Math.min(playerData.hp ?? player.maxHp, player.maxHp);
       }
 
       // Recalculate stats based on equipped items
