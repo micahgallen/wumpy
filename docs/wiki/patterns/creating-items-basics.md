@@ -1,13 +1,13 @@
 ---
-title: Creating Items
+title: Creating Items - Basics
 status: current
 last_updated: 2025-11-10
-related: [item-system, item-properties, item-types]
+related: [item-system, creating-items-advanced, item-properties, item-types]
 ---
 
-# Creating Items
+# Creating Items - Basics
 
-This guide shows how to create new items for Wumpy, from simple weapons to complex magical items with custom behaviors.
+This guide covers creating basic items including weapons, armor, consumables, quest items, and jewelry. For advanced topics like custom hooks and testing, see [Creating Items - Advanced](creating-items-advanced.md).
 
 ## Quick Start
 
@@ -259,136 +259,6 @@ const strengthRing = {
 };
 ```
 
-## Adding Custom Hooks
-
-Items support lifecycle hooks for custom behavior:
-
-### onEquip and onUnequip
-
-```javascript
-const vampiricSword = {
-  id: 'vampiric_sword',
-  name: 'Vampiric Blade',
-  // ... base properties ...
-  onEquip: (player, item) => {
-    player.send('Dark energy flows through you as you grasp the blade.');
-    return true;                       // Allow equip
-  },
-  onUnequip: (player, item) => {
-    player.send('The dark energy fades as you release the blade.');
-    return true;                       // Allow unequip
-  }
-};
-```
-
-### onExamine
-
-```javascript
-const mysteryBox = {
-  id: 'mystery_box',
-  name: 'Mystery Box',
-  // ... base properties ...
-  onExamine: (player, item) => {
-    if (!item.isIdentified) {
-      return 'The box hums with magical energy. Its true nature is unknown.';
-    }
-    return `${item.description}\nIt contains the secret to immortality!`;
-  }
-};
-```
-
-## Domain Organization
-
-Place items in appropriate realm directories:
-
-```
-world/
-  sesame_street/
-    items/
-      weapons/           # Weapon items
-      armor/             # Armor items
-      consumables/       # Potions, food
-      quest/             # Quest-specific items
-      cosmetic/          # Fun items
-      jewelry/           # Rings, amulets
-```
-
-Create item files as `.js` with module.exports:
-
-```javascript
-// world/sesame_street/items/weapons/cookie_sword.js
-module.exports = {
-  id: 'cookie_sword',
-  name: 'Cookie Sword',
-  // ... properties ...
-};
-```
-
-## Loading Items
-
-Items are auto-loaded at server startup from realm directories. To manually load:
-
-```javascript
-const { loadCoreItems } = require('./world/core/items/loadItems');
-
-// Load all items in core realm
-const result = loadCoreItems();
-console.log(`Loaded ${result.successCount} items`);
-
-// Items now available in registry
-const sword = ItemRegistry.getItem('iron_longsword');
-```
-
-## Creating Item Instances
-
-Use ItemFactory to create instances from definitions:
-
-```javascript
-const ItemFactory = require('./src/items/ItemFactory');
-const ItemRegistry = require('./src/items/ItemRegistry');
-
-// Get definition
-const definition = ItemRegistry.getItem('iron_sword');
-
-// Create instance
-const sword = ItemFactory.createItem(definition);
-
-// Create with custom properties
-const stack = ItemFactory.createItem(definition, {
-  quantity: 5,
-  boundTo: 'PlayerName',
-  location: { type: 'room', roomId: 'tavern' }
-});
-```
-
-## Testing Items
-
-Test items before deploying to production:
-
-```javascript
-// Validate definition
-const { validateItemDefinition } = require('./src/items/schemas/ItemValidator');
-const result = validateItemDefinition(myItemDef);
-
-if (!result.valid) {
-  console.log('Validation errors:', result.errors);
-} else {
-  // Register and test
-  ItemRegistry.registerItem(myItemDef, 'test');
-  const instance = ItemFactory.createItem(myItemDef);
-
-  // Test weapon damage
-  if (instance.itemType === 'weapon') {
-    console.log('Damage:', instance.rollDamage(false));
-  }
-
-  // Test armor AC
-  if (instance.itemType === 'armor') {
-    console.log('AC:', instance.calculateAC(3, true));
-  }
-}
-```
-
 ## Common Patterns
 
 ### Magical Weapon with Multiple Effects
@@ -447,6 +317,7 @@ const arrow = {
 
 ## See Also
 
+- [Creating Items - Advanced](creating-items-advanced.md) - Custom hooks, testing, domain organization
 - [Item System Overview](../systems/item-system.md) - Architecture and components
 - [Item Properties Reference](../reference/item-properties.md) - Complete property schemas
 - [Item Types Reference](../reference/item-types.md) - All item types detailed

@@ -12,7 +12,8 @@ This directory will contain step-by-step how-to guides for common development ta
 ## Planned Content
 
 - **Adding Commands** - How to create new player commands with proper structure
-- [**Creating Items**](creating-items.md) - Step-by-step guide to adding items to the game with all required properties ✓
+- [**Creating Items - Basics**](creating-items-basics.md) - Core item types (weapons, armor, consumables, quest items, jewelry) ✓
+- [**Creating Items - Advanced**](creating-items-advanced.md) - Custom hooks, testing, domain organization ✓
 - **Creating NPCs** - How to set up NPCs with combat stats, AI behavior, and loot tables
 
 ## Current Status
@@ -23,7 +24,8 @@ See `/docs/_INDEX.md` for the complete reorganization plan and timeline.
 
 ## Available Guides
 
-- [Creating Items](creating-items.md) - Complete guide for adding items to the game
+- [Creating Items - Basics](creating-items-basics.md) - Basic item types and examples
+- [Creating Items - Advanced](creating-items-advanced.md) - Custom hooks, testing, and organization
 
 ## In the Meantime
 

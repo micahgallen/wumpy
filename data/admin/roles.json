@@ -27,5 +27,14 @@
     ],
     "grantedBy": "texan",
     "grantedAt": "2025-11-07T21:42:07.242Z"
+  },
+  "test1": {
+    "role": "Player",
+    "lastKnownName": "test1",
+    "ips": [
+      "::ffff:192.168.50.96"
+    ],
+    "grantedBy": "texan",
+    "grantedAt": "2025-11-09T22:46:51.939Z"
   }
 }

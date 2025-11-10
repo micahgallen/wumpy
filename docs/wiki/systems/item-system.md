@@ -316,5 +316,6 @@ Instance serialization includes:
 - [Item Types Reference](../reference/item-types.md) - Type details and examples
 - [Item Combat Reference](../reference/item-combat.md) - Combat stats and formulas
 - [Item Systems Reference](../reference/item-systems.md) - Attunement, proficiency, identification
-- [Creating Items Pattern](../patterns/creating-items.md) - How-to guide for builders
+- [Creating Items - Basics](../patterns/creating-items-basics.md) - Core item types guide
+- [Creating Items - Advanced](../patterns/creating-items-advanced.md) - Hooks and testing guide
 - [Combat System Overview](combat-overview.md) - Combat mechanics integration

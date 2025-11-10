@@ -52,7 +52,8 @@ How-to guides for common development tasks. Step-by-step instructions for implem
 | Pattern | Purpose | Difficulty | Estimated Time |
 |---------|---------|------------|----------------|
 | Adding Commands | Create new player commands | Easy | 30 min |
-| [Creating Items](patterns/creating-items.md) | Add items to the game ✓ | Medium | 1 hour |
+| [Creating Items - Basics](patterns/creating-items-basics.md) | Core item types ✓ | Medium | 45 min |
+| [Creating Items - Advanced](patterns/creating-items-advanced.md) | Hooks & testing ✓ | Medium | 45 min |
 | Creating NPCs | Add NPCs with combat stats | Medium | 1.5 hours |
 
 **Location:** `/docs/wiki/patterns/`

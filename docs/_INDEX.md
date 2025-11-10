@@ -49,7 +49,8 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 
 **Patterns (How-Tos for Common Tasks):**
 - Adding Commands - Planned
-- [Creating Items](wiki/patterns/creating-items.md) - How to create new items ✓
+- [Creating Items - Basics](wiki/patterns/creating-items-basics.md) - Core item types ✓
+- [Creating Items - Advanced](wiki/patterns/creating-items-advanced.md) - Hooks and testing ✓
 - Creating NPCs - Planned
 
 ### Reference (Quick Lookup)
