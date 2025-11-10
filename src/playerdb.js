@@ -1,6 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
+const InventorySerializer = require('./systems/inventory/InventorySerializer');
 
 /**
  * PlayerDB - Manages player account persistence

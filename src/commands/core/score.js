@@ -21,19 +21,19 @@ function execute(player, args, context) {
     const xpNeededForLevel = nextLevelXP - currentLevelXP;
     const xpProgress = Math.max(0, Math.min(1, xpIntoLevel / xpNeededForLevel));
 
-    // Create XP progress bar (30 characters wide)
+    // Create XP progress bar (30 characters wide) - using ASCII-safe characters
     const barWidth = 30;
     const filledWidth = Math.floor(xpProgress * barWidth);
     const emptyWidth = barWidth - filledWidth;
-    const progressBar = colors.xpGain('█'.repeat(filledWidth)) + colors.dim('░'.repeat(emptyWidth));
+    const progressBar = colors.xpGain('='.repeat(filledWidth)) + colors.dim('-'.repeat(emptyWidth));
     const percentComplete = Math.floor(xpProgress * 100);
 
-    // Create HP bar (20 characters wide)
+    // Create HP bar (20 characters wide) - using ASCII-safe characters
     const hpBarWidth = 20;
     const hpProgress = Math.max(0, Math.min(1, player.hp / player.maxHp));
     const hpFilledWidth = Math.floor(hpProgress * hpBarWidth);
     const hpEmptyWidth = hpBarWidth - hpFilledWidth;
-    const hpBar = colors.success('█'.repeat(hpFilledWidth)) + colors.dim('░'.repeat(hpEmptyWidth));
+    const hpBar = colors.success('='.repeat(hpFilledWidth)) + colors.dim('-'.repeat(hpEmptyWidth));
     const hpPercent = Math.floor(hpProgress * 100);
 
     let output = [];
