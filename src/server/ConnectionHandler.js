@@ -47,6 +47,10 @@ class ConnectionHandler {
 
     // Handle incoming data
     socket.on('data', data => {
+      // Ignore input from sockets that are no longer writable
+      if (!socket.writable || socket.destroyed) {
+        return;
+      }
       const input = data.toString().trim();
       this.handleInput(player, input);
     });

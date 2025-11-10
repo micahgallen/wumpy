@@ -44,7 +44,7 @@ class Player {
    * @param {string} message - Message to send
    */
   send(message) {
-    if (this.socket && !this.socket.destroyed) {
+    if (this.socket && !this.socket.destroyed && this.socket.writable) {
       this.socket.write(message);
     }
   }
@@ -54,7 +54,7 @@ class Player {
    * @param {string} message - Message to send
    */
   prompt(message) {
-    if (this.socket && !this.socket.destroyed) {
+    if (this.socket && !this.socket.destroyed && this.socket.writable) {
       this.socket.write(message);
     }
   }
@@ -63,7 +63,7 @@ class Player {
    * Send the command prompt (> )
    */
   sendPrompt() {
-    if (this.socket && !this.socket.destroyed && this.state === 'playing') {
+    if (this.socket && !this.socket.destroyed && this.socket.writable && this.state === 'playing') {
       this.socket.write('\n> ');
     }
   }
