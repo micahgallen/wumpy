@@ -5,6 +5,7 @@
 
 // Import all emote modules
 const applaud = require('./applaud');
+const bandaid = require('./bandaid');
 const bounce = require('./bounce');
 const bow = require('./bow');
 const cackle = require('./cackle');
@@ -46,6 +47,7 @@ const yawn = require('./yawn');
 // Collect all emote descriptors
 const emoteDescriptors = [
   applaud,
+  bandaid,
   bounce,
   bow,
   cackle,
