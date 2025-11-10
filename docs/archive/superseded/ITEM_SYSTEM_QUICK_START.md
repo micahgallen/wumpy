@@ -166,7 +166,7 @@ console.log(`${status.usedSlots}/${status.maxSlots} slots used`);  // "1/3 slots
 AttunementManager.breakAttunement(player, magicalSword);
 
 // Check if player is attuned to specific item
-const isAttuned = AttunementManager.isAttunedTo(player.name, magicalSword.instanceId);
+const isAttuned = AttunementManager.isAttunedTo(player.username, magicalSword.instanceId);
 console.log(isAttuned);  // false
 ```
 

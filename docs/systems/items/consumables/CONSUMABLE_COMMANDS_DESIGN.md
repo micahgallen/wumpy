@@ -400,6 +400,7 @@ if (success && context.world && player.currentRoom && item.itemType === 'consuma
       break;
   }
 
+  // NOTE: player.name in this design doc will be player.getDisplayName() in implementation
   context.world.sendToRoom(
     player.currentRoom,
     `\n${player.name} ${action} ${item.name}.\n`,

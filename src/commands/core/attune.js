@@ -116,20 +116,20 @@ function attuneToItem(player, item, playerDB) {
   }
 
   // Check if already attuned to this item
-  if (item.isAttuned && item.attunedTo === player.name) {
+  if (item.isAttuned && item.attunedTo === player.username) {
     player.send('\n' + colors.error(`You are already attuned to ${item.name}.\n`));
     return;
   }
 
   // Check if item is attuned to someone else
-  if (item.isAttuned && item.attunedTo !== player.name) {
+  if (item.isAttuned && item.attunedTo !== player.username) {
     player.send('\n' + colors.error(`${item.name} is attuned to someone else.\n`));
     return;
   }
 
   // Check available attunement slots
   const maxSlots = AttunementManager.getMaxAttunementSlots(player);
-  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.name);
+  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.username);
   const availableSlots = maxSlots - usedSlots;
 
   if (availableSlots <= 0) {
@@ -156,7 +156,7 @@ function attuneToItem(player, item, playerDB) {
   }
 
   // Show updated slot usage
-  const newUsedSlots = AttunementManager.getAttunementSlotsUsed(player.name);
+  const newUsedSlots = AttunementManager.getAttunementSlotsUsed(player.username);
   player.send(colors.hint(`\nAttunement slots: ${newUsedSlots}/${maxSlots}\n`));
 
   // Recalculate player stats to apply attunement bonuses
@@ -177,7 +177,7 @@ function attuneToItem(player, item, playerDB) {
  */
 function breakAttunement(player, item, playerDB) {
   // Check if attuned to this item
-  if (!item.isAttuned || item.attunedTo !== player.name) {
+  if (!item.isAttuned || item.attunedTo !== player.username) {
     player.send('\n' + colors.error(`You are not attuned to ${item.name}.\n`));
     return;
   }
@@ -196,7 +196,7 @@ function breakAttunement(player, item, playerDB) {
 
   // Show updated slot usage
   const maxSlots = AttunementManager.getMaxAttunementSlots(player);
-  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.name);
+  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.username);
   player.send(colors.hint(`\nAttunement slots: ${usedSlots}/${maxSlots}\n`));
 
   // Recalculate player stats (attunement bonuses no longer apply)
@@ -215,7 +215,7 @@ function breakAttunement(player, item, playerDB) {
  */
 function showAttunementStatus(player) {
   const maxSlots = AttunementManager.getMaxAttunementSlots(player);
-  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.name);
+  const usedSlots = AttunementManager.getAttunementSlotsUsed(player.username);
   const availableSlots = maxSlots - usedSlots;
 
   player.send('\n' + colors.cyan('='.repeat(60) + '\n'));
@@ -226,7 +226,7 @@ function showAttunementStatus(player) {
   player.send(colors.white(`Available: ${availableSlots}\n\n`));
 
   // List attuned items
-  const attunedItemIds = AttunementManager.getAttunedItems(player.name);
+  const attunedItemIds = AttunementManager.getAttunedItems(player.username);
 
   if (attunedItemIds.size === 0) {
     player.send(colors.gray('You are not attuned to any items.\n'));

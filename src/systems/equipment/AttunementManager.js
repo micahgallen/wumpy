@@ -47,7 +47,7 @@ function getAttunementSlotsUsed(playerId) {
  */
 function getAvailableAttunementSlots(player) {
   const maxSlots = getMaxAttunementSlots(player);
-  const usedSlots = getAttunementSlotsUsed(player.name);
+  const usedSlots = getAttunementSlotsUsed(player.username);
   return maxSlots - usedSlots;
 }
 
@@ -67,7 +67,7 @@ function canAttuneToItem(player, item) {
   }
 
   // Check if already attuned to this item
-  if (item.isAttuned && item.attunedTo === player.name) {
+  if (item.isAttuned && item.attunedTo === player.username) {
     return {
       canAttune: false,
       reason: 'You are already attuned to this item.'
@@ -75,7 +75,7 @@ function canAttuneToItem(player, item) {
   }
 
   // Check if already attuned to someone else
-  if (item.isAttuned && item.attunedTo !== player.name) {
+  if (item.isAttuned && item.attunedTo !== player.username) {
     return {
       canAttune: false,
       reason: 'This item is attuned to someone else.'
@@ -127,26 +127,27 @@ function attuneToItem(player, item) {
   }
 
   // Initialize player attunements if needed
-  if (!playerAttunements.has(player.name)) {
-    playerAttunements.set(player.name, new Set());
+  if (!playerAttunements.has(player.username)) {
+    playerAttunements.set(player.username, new Set());
   }
 
   // Add to attunement tracking
-  playerAttunements.get(player.name).add(item.instanceId);
+  playerAttunements.get(player.username).add(item.instanceId);
 
   // Update item state
   const attuneSuccess = item.onAttune(player);
 
   if (!attuneSuccess) {
     // Rollback if item rejected attunement
-    playerAttunements.get(player.name).delete(item.instanceId);
+    playerAttunements.get(player.username).delete(item.instanceId);
     return {
       success: false,
       message: 'Failed to attune to item.'
     };
   }
 
-  logger.log(`Player ${player.name} attuned to item ${item.name} (${item.instanceId})`);
+  // TODO(capname): Use player.getDisplayName() in logs when available
+  logger.log(`Player ${player.username} attuned to item ${item.name} (${item.instanceId})`);
 
   return {
     success: true,
@@ -162,7 +163,7 @@ function attuneToItem(player, item) {
  */
 function breakAttunement(player, item) {
   // Check if player has attunement to this item
-  const playerAttuned = playerAttunements.get(player.name);
+  const playerAttuned = playerAttunements.get(player.username);
   if (!playerAttuned || !playerAttuned.has(item.instanceId)) {
     return {
       success: false,
@@ -173,13 +174,14 @@ function breakAttunement(player, item) {
   // Remove from tracking
   playerAttuned.delete(item.instanceId);
   if (playerAttuned.size === 0) {
-    playerAttunements.delete(player.name);
+    playerAttunements.delete(player.username);
   }
 
   // Update item state
   item.onUnattune(player);
 
-  logger.log(`Player ${player.name} broke attunement with item ${item.name} (${item.instanceId})`);
+  // TODO(capname): Use player.getDisplayName() in logs when available
+  logger.log(`Player ${player.username} broke attunement with item ${item.name} (${item.instanceId})`);
 
   return {
     success: true,
@@ -214,9 +216,9 @@ function isAttunedTo(playerId, itemInstanceId) {
  */
 function getAttunementStatus(player) {
   const maxSlots = getMaxAttunementSlots(player);
-  const usedSlots = getAttunementSlotsUsed(player.name);
+  const usedSlots = getAttunementSlotsUsed(player.username);
   const availableSlots = maxSlots - usedSlots;
-  const attunedItemIds = Array.from(getAttunedItems(player.name));
+  const attunedItemIds = Array.from(getAttunedItems(player.username));
 
   return {
     maxSlots,
@@ -244,7 +246,8 @@ function clearPlayerAttunements(playerId) {
 function handlePlayerDeath(player, items) {
   // Current design: Attunement persists through death
   // Future: Could break attunement on death based on config
-  logger.log(`Player ${player.name} died - attunements preserved`);
+  // TODO(capname): Use player.getDisplayName() in logs when available
+  logger.log(`Player ${player.username} died - attunements preserved`);
 }
 
 /**
@@ -253,9 +256,10 @@ function handlePlayerDeath(player, items) {
  * @param {Object} oldOwner - Previous owner
  */
 function handleItemTrade(item, oldOwner) {
-  if (item.isAttuned && item.attunedTo === oldOwner.name) {
+  if (item.isAttuned && item.attunedTo === oldOwner.username) {
     breakAttunement(oldOwner, item);
-    logger.log(`Item ${item.name} trade broke attunement with ${oldOwner.name}`);
+    // TODO(capname): Use player.getDisplayName() in logs when available
+    logger.log(`Item ${item.name} trade broke attunement with ${oldOwner.username}`);
   }
 }
 

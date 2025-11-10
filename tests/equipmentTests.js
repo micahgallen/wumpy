@@ -420,7 +420,7 @@ runner.test('Bind-on-equip functionality', () => {
   // Equip item - should trigger bind
   EquipmentManager.equipItem(player, bindSword);
 
-  assert.equal(bindSword.boundTo, player.name, 'Item bound to player on equip');
+  assert.equal(bindSword.boundTo, player.username, 'Item bound to player on equip');
   assert.equal(bindSword.isEquipped, true, 'Item is equipped');
 });
 

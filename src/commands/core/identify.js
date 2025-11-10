@@ -228,7 +228,7 @@ function displayMagicalProperties(player, item) {
   // Attunement status
   if (item.requiresAttunement) {
     player.send('\n');
-    if (item.isAttuned && item.attunedTo === player.name) {
+    if (item.isAttuned && item.attunedTo === player.username) {
       player.send(colors.green('(Attuned)\n'));
     } else if (item.isAttuned) {
       player.send(colors.red('(Attuned to someone else)\n'));

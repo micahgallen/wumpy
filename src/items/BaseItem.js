@@ -137,9 +137,10 @@ class BaseItem {
 
     // Handle bind-on-equip
     if (this.bindOnEquip && !this.boundTo) {
-      this.boundTo = player.name;
+      this.boundTo = player.username;
       this.modifiedAt = Date.now();
-      logger.log(`Item ${this.name} bound to ${player.name}`);
+      // TODO(capname): Use player.getDisplayName() in logs when available
+      logger.log(`Item ${this.name} bound to ${player.username}`);
     }
 
     return true;
@@ -185,7 +186,7 @@ class BaseItem {
     }
 
     // Check if item is bound
-    if (this.boundTo && this.boundTo !== player.name) {
+    if (this.boundTo && this.boundTo !== player.username) {
       return false;
     }
 
@@ -205,9 +206,10 @@ class BaseItem {
   onPickup(player) {
     // Handle bind-on-pickup
     if (this.bindOnPickup && !this.boundTo) {
-      this.boundTo = player.name;
+      this.boundTo = player.username;
       this.modifiedAt = Date.now();
-      logger.log(`Item ${this.name} bound to ${player.name} on pickup`);
+      // TODO(capname): Use player.getDisplayName() in logs when available
+      logger.log(`Item ${this.name} bound to ${player.username} on pickup`);
     }
 
     const definition = this.getDefinition();
@@ -263,12 +265,12 @@ class BaseItem {
       return false;  // Item doesn't require attunement
     }
 
-    if (this.isAttuned && this.attunedTo === player.name) {
+    if (this.isAttuned && this.attunedTo === player.username) {
       return false;  // Already attuned to this player
     }
 
     this.isAttuned = true;
-    this.attunedTo = player.name;
+    this.attunedTo = player.username;
     this.modifiedAt = Date.now();
 
     const definition = this.getDefinition();
@@ -405,7 +407,8 @@ class BaseItem {
     if (this.requiresAttunement && !this.isAttuned) {
       equipInfo.push('Requires attunement');
     } else if (this.isAttuned && this.attunedTo) {
-      equipInfo.push(`Attuned to ${this.attunedTo}`);
+      // TODO(capname): Use player.getDisplayName() when available
+      equipInfo.push(`Attuned to ${this.attunedTo}`);  // Currently username
     }
 
     // Add equipment info to description

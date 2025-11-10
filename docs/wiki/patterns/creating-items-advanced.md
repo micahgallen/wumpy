@@ -332,13 +332,13 @@ const bindOnEquipItem = {
   bindOnEquip: true,
   onEquip: (player, item) => {
     if (!item.boundTo) {
-      item.boundTo = player.name;
+      item.boundTo = player.username;  // Use username for identity
       player.send(`The ${item.name} binds to you!`);
     }
     return true;
   },
   onDrop: (player, item) => {
-    if (item.boundTo === player.name) {
+    if (item.boundTo === player.username) {  // Use username for identity
       player.send('This item is bound to you and cannot be dropped.');
       return false;  // Block drop
     }
