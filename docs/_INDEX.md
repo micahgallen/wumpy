@@ -101,23 +101,25 @@ Design decision logs.
 
 Historical docs (rarely needed).
 
-- [Phase Reports](archive/phase-reports/) - Old phase completion reports
-- [Old Reviews](archive/old-reviews/) - Superseded code reviews
-- [Superseded](archive/superseded/) - Obsolete specs
+- [Phase Reports](archive/phase-reports/) - Implementation phase reports and session summaries
+- [Old Reviews](archive/old-reviews/) - Code reviews from completed phases
+- [Superseded](archive/superseded/) - Documentation replaced by wiki pages
 
-## Legacy Documentation (Being Reorganized)
+## Legacy Documentation Status
 
-**Current structure** (will be consolidated into wiki):
-- `/docs/library/` - Various topic docs
-- `/docs/systems/` - System-specific docs
-- `/docs/architecture/` - Architecture docs
-- `/docs/implementation/` - Implementation phase docs
-- `/docs/reports/` - Session reports and reviews
-- `/docs/reviews/` - Code reviews
+**Completed Reorganization:**
+- `/docs/implementation/` - Moved to `/docs/archive/phase-reports/` ✓
+- `/docs/reports/` - Moved to `/docs/archive/phase-reports/reports/` ✓
+- `/docs/reviews/` - Moved to `/docs/archive/old-reviews/` ✓
+- Item system docs - Consolidated into wiki, originals in `/docs/archive/superseded/` ✓
+
+**Still Active:**
+- `/docs/library/` - Topic-specific documentation
+- `/docs/systems/` - System-specific documentation (being consolidated)
+- `/docs/architecture/` - Architecture documentation
 - `/docs/proposals/` - Feature proposals
 - `/docs/design/` - Design documents
-
-These directories contain valuable content being consolidated into the new wiki structure.
+- `/docs/plans-roadmaps/` - Project roadmaps and future plans
 
 ## Contributing Docs (For AI Agents)
 
@@ -147,18 +149,28 @@ Docs are tagged with status in frontmatter:
 
 ## Reorganization Progress
 
-**Week 1 Goals:**
-- [x] Create new directory structure
-- [x] Create DOC_STANDARDS.md
-- [x] Create templates
-- [x] Create master index (this file)
-- [x] Create combat-stats reference
-- [x] Create item-properties reference (split into 4 focused docs)
-- [x] Create combat-overview wiki page
-- [x] Create wiki index
-- [x] Convert recent sessions to work logs
+**Completed:**
+- Week 1: Foundation
+  - [x] Directory structure and templates
+  - [x] Reference docs (combat-stats, item-properties split)
+  - [x] Combat overview wiki page
+  - [x] Code review fixes applied
 
-**Future Phases:**
-- Week 2-3: Consolidate existing docs into wiki pages
-- Week 3: Complete navigation system
-- Week 4: Archive old docs and cleanup
+- Phase 2.1: Item System
+  - [x] Item system wiki page (consolidated from ITEM_SYSTEM_DESIGN.md)
+  - [x] Creating items pattern page (consolidated from ITEM_SYSTEM_QUICK_START.md)
+  - [x] Updated navigation and cross-links
+
+- Phase 3: Navigation Enhancement
+  - [x] Frontmatter metadata on all wiki pages
+  - [x] "See Also" cross-links on all pages
+  - [x] Wiki index updated
+
+- Phase 4: Cleanup & Archive
+  - [x] Moved 12 implementation docs to archive/phase-reports/
+  - [x] Moved 9 review docs to archive/old-reviews/
+  - [x] Moved 40+ report docs to archive/phase-reports/reports/
+  - [x] Archived superseded item system docs
+  - [x] Removed empty directories
+
+**Status:** Documentation reorganization foundation complete. Future phases will continue consolidating system documentation into wiki pages.
