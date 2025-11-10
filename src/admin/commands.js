@@ -640,10 +640,39 @@ async function slayCommand(player, args, context) {
     targetPlayer.hp = 0;
     targetPlayer.isGhost = true;
 
-    targetPlayer.send('\n' + colors.error(`\n=== You have been slain by admin power ===\n`));
-    targetPlayer.send(colors.error(`Slain by: ${player.username}\n\n`));
+    // Create player corpse
+    const CorpseManager = require('../systems/corpses/CorpseManager');
+    const corpse = CorpseManager.createPlayerCorpse(
+      targetPlayer,
+      targetPlayer.currentRoom,
+      player, // Admin who slayed them is the killer
+      world
+    );
 
-    player.send('\n' + colors.success(`Slain ${targetPlayer.username}\n`));
+    // Update player in database
+    if (context.playerDB) {
+      context.playerDB.updatePlayer(targetPlayer.username, {
+        hp: 0,
+        isGhost: true
+      });
+    }
+
+    targetPlayer.send('\n' + colors.error(`\n=== You have been slain by admin power ===\n`));
+    targetPlayer.send(colors.error(`Slain by: ${player.username}\n`));
+    if (corpse) {
+      targetPlayer.send(colors.info(`Your belongings have fallen into your corpse.\n`));
+      targetPlayer.send(colors.hint(`Type 'look' to see it in the room.\n\n`));
+    }
+
+    player.send('\n' + colors.success(`Slain ${targetPlayer.username} (corpse created)\n`));
+
+    // Notify room
+    world.sendToRoom(
+      targetPlayer.currentRoom,
+      `\n${colors.error(`${targetPlayer.getDisplayName()} has been slain by divine wrath!`)}\n`,
+      [player.username, targetPlayer.username],
+      allPlayers
+    );
 
     rateLimiter.recordCommand(issuer.id);
 
@@ -653,7 +682,7 @@ async function slayCommand(player, args, context) {
       command: Command.SLAY,
       args: [targetPlayer.username],
       result: 'success',
-      reason: 'Player slain'
+      reason: 'Player slain with corpse generation'
     });
 
     return;
@@ -1176,7 +1205,8 @@ async function adminhelpCommand(player, args, context) {
     { cmd: Command.UNBAN, usage: '@unban <player|ip>', desc: 'Remove a ban', minRole: Role.SHERIFF },
     { cmd: Command.ADDLEVEL, usage: '@addlevel <player> <delta>', desc: 'Add levels to player', minRole: Role.CREATOR },
     { cmd: Command.REMOVELEVEL, usage: '@removelevel <player> <levels>', desc: 'Remove levels from player', minRole: Role.CREATOR },
-    { cmd: Command.SLAY, usage: '@slay <player|npc>', desc: 'Instantly kill target (room priority)', minRole: Role.CREATOR },
+    { cmd: Command.SLAY, usage: '@slay <player|npc>', desc: 'Kill target, creating corpse (will respawn)', minRole: Role.CREATOR },
+    { cmd: Command.DESTROY, usage: '@destroy <npc|item|corpse>', desc: 'Destroy target without corpse/respawn', minRole: Role.CREATOR },
     { cmd: Command.REVIVE, usage: '@revive <player>', desc: 'Revive a dead player', minRole: Role.CREATOR },
     { cmd: Command.SPAWN, usage: '@spawn <itemId> [qty]', desc: 'Spawn items', minRole: Role.CREATOR },
     { cmd: Command.SPAWN, usage: '@spawn_full', desc: 'Spawn complete equipment test set', minRole: Role.CREATOR },
@@ -1433,8 +1463,16 @@ async function destroyCommand(player, args, context) {
     name: player.username
   };
 
-  if (!hasPermission(issuer, Command.SLAY)) {
+  if (!hasPermission(issuer, Command.DESTROY)) {
     player.send('\n' + colors.error('You do not have permission to use this command.\n'));
+    writeAuditLog({
+      issuerID: issuer.id,
+      issuerRank: issuer.role,
+      command: Command.DESTROY,
+      args: args,
+      result: 'denied',
+      reason: 'Insufficient permissions'
+    });
     return;
   }
 
@@ -1491,16 +1529,52 @@ async function destroyCommand(player, args, context) {
     return;
   }
 
-  // Try to find and destroy item
+  // Try to find and destroy item/corpse
   const itemIndex = room.items?.findIndex(item =>
     item.name?.toLowerCase().includes(targetName) ||
-    item.id?.toLowerCase().includes(targetName)
+    item.id?.toLowerCase().includes(targetName) ||
+    item.keywords?.some(kw => kw.toLowerCase().includes(targetName))
   );
 
   if (itemIndex !== -1 && itemIndex !== undefined && room.items) {
     const item = room.items[itemIndex];
     const itemName = item.name || item.id;
 
+    // Check if it's a corpse
+    const isCorpse = item.containerType === 'npc_corpse' || item.containerType === 'player_corpse';
+
+    if (isCorpse) {
+      // Handle corpse destruction via CorpseManager
+      const CorpseManager = require('../systems/corpses/CorpseManager');
+      const destroyed = CorpseManager.destroyCorpse(item.id, world);
+
+      if (destroyed) {
+        player.send('\n' + colors.success(`Destroyed corpse: ${itemName}\n`));
+        player.send(colors.dim(`(${item.inventory?.length || 0} items destroyed with it)\n`));
+
+        world.sendToRoom(
+          player.currentRoom,
+          colors.dim(`${itemName} vanishes in a puff of admin magic.`),
+          [player.username],
+          context.allPlayers
+        );
+
+        rateLimiter.recordCommand(issuer.id);
+        writeAuditLog({
+          issuerID: issuer.id,
+          issuerRank: issuer.role,
+          command: 'DESTROY',
+          args: [itemName],
+          result: 'success',
+          reason: `Corpse destroyed (${item.containerType}, ${item.inventory?.length || 0} items)`
+        });
+      } else {
+        player.send('\n' + colors.error(`Failed to destroy corpse: ${itemName}\n`));
+      }
+      return;
+    }
+
+    // Regular item destruction
     // Remove from room
     room.items.splice(itemIndex, 1);
 
@@ -1509,7 +1583,8 @@ async function destroyCommand(player, args, context) {
     world.sendToRoom(
       player.currentRoom,
       colors.dim(`${itemName} vanishes in a puff of admin magic.`),
-      [player.username]
+      [player.username],
+      context.allPlayers
     );
 
     rateLimiter.recordCommand(issuer.id);
@@ -1524,7 +1599,7 @@ async function destroyCommand(player, args, context) {
     return;
   }
 
-  player.send('\n' + colors.error(`Target "${args.join(' ')}" not found (neither NPC nor item).\n`));
+  player.send('\n' + colors.error(`Target "${args.join(' ')}" not found (neither NPC, item, nor corpse).\n`));
 }
 
 /**
