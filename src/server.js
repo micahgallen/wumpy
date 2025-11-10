@@ -14,6 +14,7 @@ const { calculateMaxHP } = require('./utils/modifiers');
 const Player = require('./server/Player');
 const SessionManager = require('./server/SessionManager');
 const AuthenticationFlow = require('./server/AuthenticationFlow');
+const ConnectionHandler = require('./server/ConnectionHandler');
 
 // Load items FIRST (before World is created)
 const { loadCoreItems } = require('../world/core/items/loadItems');
@@ -136,53 +137,11 @@ function handleInput(player, input) {
 }
 
 /**
- * Create the TCP server
+ * Create the TCP server (ConnectionHandler will be initialized in main())
  */
+let connectionHandler = null;
 const server = net.createServer(socket => {
-  const player = new Player(socket);
-  players.add(player);
-
-  const clientIP = socket.remoteAddress;
-  const clientPort = socket.remotePort;
-  logger.log(`New connection from ${clientIP}:${clientPort}`);
-
-  // Welcome banner
-  player.send('\n' + getBanner() + '\n');
-  player.prompt('Username: ');
-
-  // Handle incoming data
-  socket.on('data', data => {
-    const input = data.toString().trim();
-    handleInput(player, input);
-  });
-
-  // Handle disconnection
-  socket.on('end', () => {
-    if (player.username) {
-      logger.log(`Player ${player.username} (${clientIP}:${clientPort}) disconnected.`);
-
-      // CRITICAL FIX: Save player state to database on logout
-      // This ensures all stats, equipment, inventory, and progression persist
-      playerDB.savePlayer(player);
-
-      // Remove from active sessions map (only if THIS player object is the current active session)
-      sessionManager.removeSession(player);
-    } else {
-      logger.log(`Connection from ${clientIP}:${clientPort} disconnected before logging in.`);
-    }
-    players.delete(player);
-  });
-
-  // Handle errors
-  socket.on('error', err => {
-    const identifier = player.username || `${clientIP}:${clientPort}`;
-    logger.error(`Socket error for ${identifier}:`, err);
-
-    // Remove from active sessions if this is the active player
-    sessionManager.removeSession(player);
-
-    players.delete(player);
-  });
+  connectionHandler.handleConnection(socket, players);
 });
 
 // Handle server errors
@@ -212,6 +171,14 @@ async function main() {
     banEnforcementHook
   });
   logger.log('Authentication flow initialized.');
+
+  // Initialize connection handler
+  connectionHandler = new ConnectionHandler({
+    playerDB,
+    sessionManager,
+    handleInput
+  });
+  logger.log('Connection handler initialized.');
 
   const PORT = parseInt(process.env.PORT, 10) || 4000;
   server.listen(PORT, () => {
