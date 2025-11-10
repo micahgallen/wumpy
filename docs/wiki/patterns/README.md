@@ -1,40 +1,42 @@
 ---
 title: Pattern and How-To Documentation
-status: draft
+status: current
 last_updated: 2025-11-10
-related: [creating-items, combat-overview, item-system]
+related: [creating-items, creating-npcs, adding-commands, item-system]
 ---
 
 # Pattern and How-To Documentation
 
-This directory will contain step-by-step how-to guides for common development tasks as part of the documentation reorganization.
-
-## Planned Content
-
-- **Adding Commands** - How to create new player commands with proper structure
-- [**Creating Items - Basics**](creating-items-basics.md) - Core item types (weapons, armor, consumables, quest items, jewelry) ✓
-- [**Creating Items - Advanced**](creating-items-advanced.md) - Custom hooks, testing, domain organization ✓
-- **Creating NPCs** - How to set up NPCs with combat stats, AI behavior, and loot tables
-
-## Current Status
-
-This directory is part of Phase 2 of the documentation reorganization (Week 2-3).
-
-See `/docs/_INDEX.md` for the complete reorganization plan and timeline.
+Step-by-step how-to guides for common development tasks. These pages show practical examples of extending Wumpy with new content and features.
 
 ## Available Guides
 
-- [Creating Items - Basics](creating-items-basics.md) - Basic item types and examples
-- [Creating Items - Advanced](creating-items-advanced.md) - Custom hooks, testing, and organization
+### Items
+- [**Creating Items - Basics**](creating-items-basics.md) - Core item types (weapons, armor, consumables, quest items, jewelry)
+- [**Creating Items - Advanced**](creating-items-advanced.md) - Custom hooks, testing, domain organization
 
-## In the Meantime
+### Commands
+- [**Adding Commands**](adding-commands.md) - Create new player commands with guards and help metadata
 
-For current pattern information, see:
-- Source code examples in `/src/commands/`, `/src/items/`, `/data/npcs/`
-- Existing docs in `/docs/library/` and `/docs/systems/` (being consolidated)
+### NPCs
+- [**Creating NPCs**](creating-npcs.md) - Set up NPCs with combat stats, AI behavior, and loot tables
+
+## Pattern vs Architecture Docs
+
+| Doc Type | Focus | Example |
+|----------|-------|---------|
+| **Pattern/How-To** | How to use/extend | Adding commands, creating NPCs |
+| **Architecture** | How code works internally | Command registration flow, combat round execution |
+| **System Overview** | What features exist | Combat mechanics, item types, equipment slots |
+| **Reference** | Quick lookup tables | Item properties, combat stats |
+
+See [Architecture](../architecture/) for internal system design.
+
+See [Systems](../systems/) for feature overviews.
 
 ## See Also
 
-- [Item System Overview](../systems/item-system.md) - Item system architecture
-- [Combat System Overview](../systems/combat-overview.md) - Combat system architecture
-- [Item Properties Reference](../../reference/item-properties.md) - Quick property reference
+- [Command System Architecture](../architecture/command-system.md) - Command system internals
+- [Data Schemas Architecture](../architecture/data-schemas.md) - Entity data structures
+- [Item System Overview](../systems/item-system.md) - Item system features
+- [Combat System Overview](../systems/combat-overview.md) - Combat mechanics

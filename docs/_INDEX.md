@@ -42,17 +42,17 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 - Item Properties - Planned
 
 **Architecture (Code Structure):**
-- Command System - To be created from existing docs
-- Combat Flow - To be created
-- Timer System - To be created from corpse system docs
-- Event System - To be created
-- Data Schemas - To be created
+- [Command System](wiki/architecture/command-system.md) - Command parsing, registration, execution ✓
+- [Combat Flow](wiki/architecture/combat-flow.md) - CombatEngine, CombatEncounter, round execution ✓
+- [Timer System](wiki/architecture/timer-system.md) - TimerManager, event-driven timers ✓
+- [Event System](wiki/architecture/event-system.md) - EventEmitter patterns, event handling ✓
+- [Data Schemas](wiki/architecture/data-schemas.md) - Player, NPC, Item, Room structures ✓
 
 **Patterns (How-Tos for Common Tasks):**
-- Adding Commands - Planned
+- [Adding Commands](wiki/patterns/adding-commands.md) - Create new player commands ✓
 - [Creating Items - Basics](wiki/patterns/creating-items-basics.md) - Core item types ✓
 - [Creating Items - Advanced](wiki/patterns/creating-items-advanced.md) - Hooks and testing ✓
-- Creating NPCs - Planned
+- [Creating NPCs](wiki/patterns/creating-npcs.md) - NPC definition, combat stats, loot ✓
 
 ### Reference (Quick Lookup)
 
@@ -175,4 +175,12 @@ Docs are tagged with status in frontmatter:
   - [x] Archived superseded item system docs
   - [x] Removed empty directories
 
-**Status:** Documentation reorganization foundation complete. Future phases will continue consolidating system documentation into wiki pages.
+- Phase 2.3: Architecture Pages
+  - [x] Created 5 architecture pages (command-system, combat-flow, timer-system, event-system, data-schemas)
+  - [x] Updated navigation files
+
+- Phase 2.4: Pattern Pages
+  - [x] Created 2 pattern pages (adding-commands, creating-npcs)
+  - [x] Updated navigation files
+
+**Status:** Phase 2 (Architecture & Patterns) complete. Future phases will continue consolidating system documentation into wiki pages.

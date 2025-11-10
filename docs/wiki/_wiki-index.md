@@ -38,11 +38,11 @@ Code structure and patterns. Use these to understand implementation details and 
 
 | Component | Status | Key Files |
 |-----------|--------|-----------|
-| Command System | Planned | commands.js, registry.js |
-| Combat Flow | Planned | CombatEngine.js, CombatEncounter.js |
-| Timer System | Planned | TimerManager.js |
-| Event System | Planned | EventEmitter usage |
-| Data Schemas | Planned | Player, NPC, Item, Room |
+| [Command System](architecture/command-system.md) | Complete | commands.js, registry.js ✓ |
+| [Combat Flow](architecture/combat-flow.md) | Complete | CombatEngine.js, CombatEncounter.js ✓ |
+| [Timer System](architecture/timer-system.md) | Complete | TimerManager.js ✓ |
+| [Event System](architecture/event-system.md) | Complete | EventEmitter usage ✓ |
+| [Data Schemas](architecture/data-schemas.md) | Complete | Player, NPC, Item, Room ✓ |
 
 **Location:** `/docs/wiki/architecture/`
 
@@ -52,10 +52,10 @@ How-to guides for common development tasks. Step-by-step instructions for implem
 
 | Pattern | Purpose | Difficulty | Estimated Time |
 |---------|---------|------------|----------------|
-| Adding Commands | Create new player commands | Easy | 30 min |
+| [Adding Commands](patterns/adding-commands.md) | Create new player commands ✓ | Easy | 30 min |
 | [Creating Items - Basics](patterns/creating-items-basics.md) | Core item types ✓ | Medium | 45 min |
 | [Creating Items - Advanced](patterns/creating-items-advanced.md) | Hooks & testing ✓ | Medium | 45 min |
-| Creating NPCs | Add NPCs with combat stats | Medium | 1.5 hours |
+| [Creating NPCs](patterns/creating-npcs.md) | Add NPCs with combat stats ✓ | Medium | 1.5 hours |
 
 **Location:** `/docs/wiki/patterns/`
 
@@ -91,10 +91,11 @@ This wiki is under construction as part of documentation reorganization (Week 1,
 - Corpse system overview wiki page
 - Corpse mechanics detailed page
 - Creating Items pattern guides (basics and advanced)
+- Architecture pages (command-system, combat-flow, timer-system, event-system, data-schemas)
+- Pattern pages (adding-commands, creating-npcs)
 
 **In Progress:**
-- Phase 2: Creating architecture and pattern documentation
-- Creating additional system overviews
+- Creating additional system overviews (inventory, admin)
 
 **Legacy Docs:**
 - Existing documentation in `/docs/library/`, `/docs/systems/`, `/docs/implementation/` is being consolidated
