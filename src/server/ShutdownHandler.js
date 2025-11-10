@@ -46,6 +46,14 @@ class ShutdownHandler {
       this.saveTimers();
       this.saveCorpses();
 
+      // Save player data
+      if (this.components.playerDB) {
+        this.components.playerDB.save();
+        logger.log('Saved player data');
+      } else {
+        logger.warn('playerDB component not available during shutdown.');
+      }
+
       // Save shops asynchronously but wait for completion
       this.saveShops()
         .then(() => {

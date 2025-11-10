@@ -39,10 +39,12 @@ class PlayerDB {
    */
   save() {
     try {
+      console.log(`[PlayerDB] Attempting to save player data to ${this.filepath}...`);
       const data = JSON.stringify(this.players, null, 2);
       fs.writeFileSync(this.filepath, data, 'utf8');
+      console.log(`[PlayerDB] Successfully saved player data to ${this.filepath}.`);
     } catch (err) {
-      console.error('Error saving player database:', err);
+      console.error(`[PlayerDB] Error saving player database to ${this.filepath}:`, err);
     }
   }
 
@@ -84,6 +86,9 @@ class PlayerDB {
     // Update the stored player data with current session values
     const stored = this.players[lowerUsername];
 
+    // Log capname being saved
+    console.log(`[PlayerDB] Saving state for ${player.username}. Capname: ${player.capname}`);
+
     // Save core progression data
     stored.level = player.level;
     stored.xp = player.xp || player.currentXp || 0; // Support both property names
@@ -94,6 +99,9 @@ class PlayerDB {
     stored.currentRoom = player.currentRoom;
     stored.description = player.description;
     stored.isGhost = player.isGhost || false;
+
+    // Save capname
+    stored.capname = player.capname || null;
 
     // Save inventory (already handled by separate method, but ensure it's set)
     if (player.inventory) {
@@ -166,6 +174,7 @@ class PlayerDB {
 
     const playerData = {
       username: username,
+      capname: null,
       passwordHash: this.hashPassword(password),
       description: 'A normal-looking person.',
       currentRoom: 'sesame_street_01', // Starting room
@@ -222,6 +231,9 @@ class PlayerDB {
     if (passwordHash !== playerData.passwordHash) {
       return null; // Incorrect password
     }
+
+    // Load capname, default to null if not present
+    playerData.capname = playerData.capname || null;
 
     // Add default combat stats if they don't exist for backwards compatibility
     if (!playerData.stats) {

@@ -11,6 +11,9 @@ const colors = require('../../colors');
  * @param {Object} context - Command context
  */
 function execute(player, args, context) {
+  // Save player state before disconnecting
+  context.playerDB.savePlayer(player);
+
   player.send(colors.system('Farewell! Come back soon.\n'));
   player.socket.end();
 }

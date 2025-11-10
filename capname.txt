@@ -1,0 +1,88 @@
+# Capname Feature Implementation Plan
+
+This document outlines the steps to implement the `capname` feature, which allows players to set a custom, colorized display name.
+
+## 1. Player Data Modification
+
+-   **Objective:** Add a `capname` field to the player's data structure and ensure it's persisted.
+-   **Files to Modify:** `src/server.js`, `src/playerdb.js`.
+-   **Steps:**
+    1.  In `server.js`, add a `capname` property to the `Player` object upon creation, initializing it to `null` or `undefined`.
+    2.  In `playerdb.js`, update the player data schema to include the `capname` field.
+    3.  Modify the function responsible for saving player data in `playerdb.js` to include the `capname` field.
+    4.  Modify the function responsible for loading player data in `playerdb.js` to correctly load the `capname` field into the player object.
+
+## 2. Command Implementation
+
+-   **Objective:** Create the `capname` and `set capname` commands, including support for easy-to-use color tags.
+-   **Files to Modify:** `src/commands.js`, `src/commands/core/set.js`, `src/colors.js`.
+
+### 2a. Implement Color Tag Parser
+-   **Objective:** Allow users to use simple tags (e.g., `<red>`) instead of raw ANSI codes.
+-   **File to Modify:** `src/colors.js`.
+-   **Steps:**
+    1.  Create and export a new function: `parseColorTags(text)`.
+    2.  Inside this function, define a mapping of tag names (e.g., 'red', 'bold', 'bright_blue') to their corresponding ANSI codes.
+    3.  Use a regular expression to find and replace all occurrences of `<tag>` and `</tag>` with the correct ANSI codes. A generic `</>` should map to the reset code.
+
+### 2b. Integrate Parser into `set capname` Command
+-   **Objective:** Process user input for color tags when they set their capname.
+-   **File to Modify:** `src/commands/core/set.js`.
+-   **Steps:**
+    1.  Import the new `parseColorTags` function from `src/colors.js`.
+    2.  In the logic for `set capname`, pass the user's input string through the `parseColorTags` function *before* performing validation.
+    3.  The `stripColors` validation will now run on the ANSI-formatted string, and this correct ANSI version will be saved to `player.capname`.
+
+### 2c. Original Command Implementation Steps
+-   **Steps:**
+    1.  Add a new command handler for the `capname` command (for viewing).
+    2.  Add a new command handler for the `set` command, which will contain the `capname` subcommand.
+    3.  **`capname` command (no arguments):**
+        -   If the player has a `capname` set, display it.
+        -   If no `capname` is set, inform the player how to set one using `set capname`.
+    4.  **`set capname <new_capname>` command:**
+        -   The `<new_capname>` is processed by `parseColorTags`.
+        -   **Validation:**
+            -   The `stripColors` utility runs on the now-ANSI-formatted string.
+            -   The stripped version must be a case-insensitive match for the player's username.
+        -   If validation passes, update `player.capname` with the ANSI-formatted string and save the player data.
+        -   Confirm the change to the player.
+
+## 3. Game-wide Integration
+
+-   **Objective:** Replace all instances of a player's displayed name with their `capname`.
+-   **Strategy:** Create a centralized helper function to retrieve the correct display name.
+-   **Files to Modify:** `src/server.js` and potentially many others (`src/commands.js`, `src/combat/**.js`, etc.).
+-   **Steps:**
+    1.  In `src/server.js`, create a method on the `Player` object, e.g., `getDisplayName()`.
+    2.  This function will check if `player.capname` is set. If it is, it returns `player.capname`. Otherwise, it returns `player.name`.
+    3.  Perform a global search across the codebase for `player.name` to identify all locations where the player's name is displayed to other users.
+    4.  Replace each of these instances with a call to `player.getDisplayName()`.
+    5.  **Key areas to investigate and update:**
+        -   `src/commands.js`: `say`, `emote`, `who`, `score`.
+        -   `src/server.js`: Room entry/exit messages, login/logout announcements.
+        -   `src/combat/` directory: All combat-related messages involving player names (initiating combat, attacks, damage, death messages).
+        -   `src/world.js`: Any functions that might announce player actions.
+        -   Examine room descriptions to see how player lists are rendered.
+
+## 4. Testing Plan
+
+-   **Objective:** Ensure the feature works as expected and doesn't introduce regressions.
+-   **Method:** Manual testing via a MUD client or `mudtester.sh`.
+-   **Test Cases:**
+    1.  **Set Capname:**
+        -   Connect to the server.
+        -   Use `set capname` with a valid name and color codes. Verify success message.
+        -   Use `set capname` with an invalid name (e.g., "Wumpy" for player "Grift"). Verify failure message.
+    2.  **View Capname:**
+        -   Use the `capname` command to see the raw and rendered versions.
+    3.  **Persistence:**
+        -   Log out and log back in.
+        -   Use the `capname` command to verify it was saved.
+    4.  **Integration Verification:**
+        -   Check `who` list.
+        -   Have another player in the room and check enter/leave messages.
+        -   Use `say` and `emote`.
+        -   Engage in combat and check all related messages.
+        -   Check the `score` command output.
+        -   Look at another player in the room.

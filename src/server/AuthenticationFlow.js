@@ -59,14 +59,10 @@ class AuthenticationFlow {
     const playerData = this.playerDB.authenticate(player.tempUsername, password);
 
     if (playerData) {
-      // Check ban before allowing login
-      if (this.banEnforcementHook && this.banEnforcementHook(player)) {
-        return; // Player is banned, connection will be closed
-      }
-
       player.username = playerData.username;
       player.description = playerData.description || 'A normal-looking person.';
       player.currentRoom = playerData.currentRoom;
+      player.capname = playerData.capname || null;
 
       // Load currency from playerData
       const CurrencyManager = require('../systems/economy/CurrencyManager');

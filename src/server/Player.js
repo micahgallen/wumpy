@@ -5,6 +5,7 @@ class Player {
   constructor(socket) {
     this.socket = socket;
     this.username = null;
+    this.capname = null;
     this.description = null;
     this.currentRoom = null;
     this.inventory = []; // Array of object IDs

@@ -14,7 +14,8 @@
     "role": "Admin",
     "lastKnownName": "texan",
     "ips": [
-      "::ffff:73.120.108.159"
+      "::ffff:73.120.108.159",
+      "::1"
     ],
     "grantedBy": "cyberslayer",
     "grantedAt": "2025-11-07T19:41:00.484Z"
