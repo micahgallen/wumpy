@@ -1,6 +1,8 @@
 /**
  * Player class - Represents a connected player
  */
+const colors = require('../colors');
+
 class Player {
   constructor(socket) {
     this.socket = socket;
@@ -84,10 +86,15 @@ class Player {
   /**
    * Get the player's display name (capname if set, otherwise username)
    * This centralizes the display name logic for future migration.
+   * Automatically appends ANSI reset to prevent color bleed.
    * @returns {string} Display name with color codes if capname is set
    */
   getDisplayName() {
-    return this.capname || this.username;
+    // If capname is set, ensure it ends with ANSI reset to prevent color bleed
+    if (this.capname) {
+      return this.capname + colors.ANSI.RESET;
+    }
+    return this.username;
   }
 }
 
