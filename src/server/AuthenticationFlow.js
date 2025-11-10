@@ -410,6 +410,12 @@ class AuthenticationFlow {
 
     // Schedule the respawn after 5 seconds
     setTimeout(() => {
+      // Check if new player disconnected during cooldown
+      if (!newPlayer.socket || newPlayer.socket.destroyed) {
+        logger.log(`${newPlayer.username} disconnected during respawn cooldown`);
+        return;
+      }
+
       // Check if the old socket is still active
       if (existingPlayer.socket && !existingPlayer.socket.destroyed) {
         existingPlayer.send('\n' + colors.warning('Disconnecting now...\n'));
@@ -485,6 +491,12 @@ class AuthenticationFlow {
       } else {
         player.hp = Math.min(playerData.hp ?? player.maxHp, player.maxHp);
       }
+
+      // Recalculate stats based on equipped items
+      // This must happen AFTER inventory deserialization
+      const EquipmentManager = require('../systems/equipment/EquipmentManager');
+      player.baseStats = { ...player.stats }; // Store base stats before equipment bonuses
+      EquipmentManager.recalculatePlayerStats(player);
 
       player.resistances = playerData.resistances ?? {};
       player.isGhost = playerData.isGhost ?? false;
