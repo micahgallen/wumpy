@@ -21,7 +21,7 @@ The corpse system bridges combat outcomes with the loot economy, providing playe
 |-----------|---------|----------|
 | **CorpseManager** | Creates and configures corpse containers | `/src/systems/corpses/CorpseManager.js` |
 | **TimerManager** | Event-driven timer management for decay | `/src/systems/corpses/TimerManager.js` |
-| **RespawnManager** | Handles NPC respawn after decay | `/src/systems/respawn/RespawnManager.js` |
+| **RespawnManager** | Handles NPC respawn after decay | `/src/systems/corpses/RespawnManager.js` |
 | **ContainerManager** | Underlying container system | `/src/systems/containers/ContainerManager.js` |
 | **LootGenerator** | Generates corpse contents | `/src/systems/loot/LootGenerator.js` |
 | **Timer Persistence** | State across restarts | Via TimerManager.saveState() |
@@ -278,7 +278,7 @@ The system is designed to handle hundreds of simultaneous corpses efficiently.
 ## See Also
 
 - [Corpse Mechanics](../mechanics/corpse-mechanics.md) - Detailed decay and respawn mechanics
-- [Timer System](timer-system.md) - Event-driven timer architecture (TimerManager)
+- [Timer System](../architecture/timer-system.md) - Event-driven timer architecture (TimerManager)
 - [Combat System Overview](combat-overview.md) - How corpses are created
 - [Item System Overview](item-system.md) - Loot generation and items
 - [Item Loot Reference](../reference/item-loot.md) - Loot table configuration

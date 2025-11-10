@@ -364,6 +364,6 @@ When corpse-related events occur, messages are broadcast to the room:
 ## See Also
 
 - [Corpse System Overview](../systems/corpse-system.md) - High-level architecture
-- [Timer System](../systems/timer-system.md) - Event-driven timer architecture (TimerManager)
+- [Timer System](../architecture/timer-system.md) - Event-driven timer architecture (TimerManager)
 - [Combat System Overview](../systems/combat-overview.md) - How corpses are created
 - [Item Loot Reference](../reference/item-loot.md) - Loot table configuration
