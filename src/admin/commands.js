@@ -1561,13 +1561,24 @@ async function destroyCommand(player, args, context) {
 
   // Try to find and destroy item/corpse
   const targetNameLower = targetName.toLowerCase();
-  const itemIndex = room.items?.findIndex(item =>
+
+  if (!room) {
+    player.send('\n' + colors.error(`Error: Cannot find current room.\n`));
+    return;
+  }
+
+  if (!room.items || room.items.length === 0) {
+    player.send('\n' + colors.error(`Target "${args.join(' ')}" not found (no items in room).\n`));
+    return;
+  }
+
+  const itemIndex = room.items.findIndex(item =>
     (item.name && item.name.toLowerCase().includes(targetNameLower)) ||
     (item.id && item.id.toLowerCase().includes(targetNameLower)) ||
     (item.keywords && item.keywords.some(kw => kw && kw.toLowerCase().includes(targetNameLower)))
   );
 
-  if (itemIndex !== -1 && itemIndex !== undefined && room.items) {
+  if (itemIndex !== -1) {
     const item = room.items[itemIndex];
     const itemName = item.name || item.id;
 
