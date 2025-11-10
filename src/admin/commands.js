@@ -1572,13 +1572,6 @@ async function destroyCommand(player, args, context) {
     return;
   }
 
-  // Debug: log room items for troubleshooting
-  const logger = require('../logger');
-  logger.log(`Destroy command searching for "${targetNameLower}" in room with ${room.items.length} items`);
-  room.items.forEach((item, idx) => {
-    logger.log(`  Item ${idx}: name="${item.name}", id="${item.id}", keywords=${JSON.stringify(item.keywords)}`);
-  });
-
   const itemIndex = room.items.findIndex(item =>
     (item.name && item.name.toLowerCase().includes(targetNameLower)) ||
     (item.id && item.id.toLowerCase().includes(targetNameLower)) ||
@@ -1586,11 +1579,19 @@ async function destroyCommand(player, args, context) {
     (item.keywords && item.keywords.some(kw => kw && kw.toLowerCase().includes(targetNameLower)))
   );
 
-  logger.log(`Search result: itemIndex = ${itemIndex}`);
-
   if (itemIndex !== -1) {
     const item = room.items[itemIndex];
-    const itemName = item.name || item.id;
+
+    // Get display name - for serialized items, look up definition
+    let itemName = item.name || item.id;
+    if (!itemName && item.definitionId) {
+      const ItemRegistry = require('../items/ItemRegistry');
+      const definition = ItemRegistry.getItem(item.definitionId);
+      itemName = definition ? definition.name : item.definitionId;
+    }
+    if (!itemName) {
+      itemName = 'unknown item';
+    }
 
     // Check if it's a corpse
     const isCorpse = item.containerType === 'npc_corpse' || item.containerType === 'player_corpse';
