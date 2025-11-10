@@ -93,6 +93,7 @@ class PlayerDB {
     // Save location and state
     stored.currentRoom = player.currentRoom;
     stored.description = player.description;
+    stored.capname = player.capname || null;
     stored.isGhost = player.isGhost || false;
 
     // Save inventory (already handled by separate method, but ensure it's set)
@@ -168,6 +169,7 @@ class PlayerDB {
       username: username,
       passwordHash: this.hashPassword(password),
       description: 'A normal-looking person.',
+      capname: null, // Optional colorized display name
       currentRoom: 'sesame_street_01', // Starting room
       inventory: [], // Empty inventory for new players
       currency: { // Phase 5: Currency wallet (separate from inventory)

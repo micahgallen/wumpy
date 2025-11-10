@@ -5,6 +5,7 @@ class Player {
   constructor(socket) {
     this.socket = socket;
     this.username = null;
+    this.capname = null; // Optional colorized display name
     this.description = null;
     this.currentRoom = null;
     this.inventory = []; // Array of object IDs
@@ -78,6 +79,15 @@ class Player {
    */
   isDead() {
     return this.hp <= 0;
+  }
+
+  /**
+   * Get the player's display name (capname if set, otherwise username)
+   * This centralizes the display name logic for future migration.
+   * @returns {string} Display name with color codes if capname is set
+   */
+  getDisplayName() {
+    return this.capname || this.username;
   }
 }
 

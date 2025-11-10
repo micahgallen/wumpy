@@ -94,7 +94,8 @@ function colorize(text, colorCode) {
 function stripColors(text) {
   if (!text) return '';
   // eslint-disable-next-line no-control-regex
-  return text.replace(/\x1b\[\d+m/g, '');
+  // Updated regex to handle compound ANSI codes like \x1b[1;31m (bold red) and \x1b[38;5;196m (256-color)
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
 /**
@@ -423,6 +424,120 @@ function adminRole(text) {
   return colorize(text, MUD_COLORS.ADMIN_ROLE);
 }
 
+/**
+ * Mapping of common color/style tag names to ANSI codes.
+ * This allows users to type <red>text</red> instead of raw ANSI.
+ */
+const TAG_TO_ANSI_MAP = {
+  // Regular colors
+  'black': ANSI.BLACK,
+  'red': ANSI.RED,
+  'green': ANSI.GREEN,
+  'yellow': ANSI.YELLOW,
+  'blue': ANSI.BLUE,
+  'magenta': ANSI.MAGENTA,
+  'cyan': ANSI.CYAN,
+  'white': ANSI.WHITE,
+
+  // Bright colors
+  'bright_black': ANSI.BRIGHT_BLACK,
+  'bright_red': ANSI.BRIGHT_RED,
+  'bright_green': ANSI.BRIGHT_GREEN,
+  'bright_yellow': ANSI.BRIGHT_YELLOW,
+  'bright_blue': ANSI.BRIGHT_BLUE,
+  'bright_magenta': ANSI.BRIGHT_MAGENTA,
+  'bright_cyan': ANSI.BRIGHT_CYAN,
+  'bright_white': ANSI.BRIGHT_WHITE,
+
+  // Aliases for common colors
+  'grey': ANSI.BRIGHT_BLACK,
+  'gray': ANSI.BRIGHT_BLACK,
+
+  // Text styles
+  'bold': ANSI.BOLD,
+  'dim': ANSI.DIM,
+  'italic': ANSI.ITALIC,
+  'underline': ANSI.UNDERLINE,
+  'blink': ANSI.BLINK,
+  'reverse': ANSI.REVERSE,
+  'hidden': ANSI.HIDDEN,
+
+  // Reset
+  'reset': ANSI.RESET,
+  'end': ANSI.RESET, // Common alias for reset
+};
+
+/**
+ * Converts markup-style color tags (e.g., <red>, <bold>, </>) into ANSI escape codes.
+ * Unknown tags are left as is.
+ * @param {string} text - Text containing markup tags.
+ * @returns {string} Text with markup tags replaced by ANSI codes.
+ */
+function parseColorTags(text) {
+  if (!text) return '';
+
+  // Regex to find tags: <tagname> or </tagname> or </>
+  return text.replace(/<(\/?)([\w_]+)?>/g, (match, isClosing, tagName) => {
+    // Handle generic closing tag </>
+    if (match === '</>') {
+      return ANSI.RESET;
+    }
+
+    const lowerTagName = tagName ? tagName.toLowerCase() : '';
+
+    // If it's a closing tag with a specific name, treat it as a reset for now
+    // A more advanced parser might manage a stack of active styles.
+    if (isClosing === '/') {
+      return ANSI.RESET;
+    }
+
+    // Look up the tag in our map
+    const ansiCode = TAG_TO_ANSI_MAP[lowerTagName];
+
+    // If a corresponding ANSI code is found, return it. Otherwise, return the original match.
+    return ansiCode || match;
+  });
+}
+
+/**
+ * Reverse mapping of ANSI codes to common color/style tag names.
+ * Used to convert ANSI back to markup for display.
+ */
+const ANSI_TO_TAG_MAP = {};
+for (const tagName in TAG_TO_ANSI_MAP) {
+  const ansiCode = TAG_TO_ANSI_MAP[tagName];
+  // Avoid overwriting for aliases like 'grey' and 'gray', prioritize the primary name
+  if (!ANSI_TO_TAG_MAP[ansiCode]) {
+    ANSI_TO_TAG_MAP[ansiCode] = tagName;
+  }
+}
+// Explicitly map ANSI.RESET to the generic closing tag
+ANSI_TO_TAG_MAP[ANSI.RESET] = '/';
+
+/**
+ * Converts ANSI escape codes back into markup-style color tags (e.g., <red>, <bold>, </>)
+ * for display purposes. Unknown ANSI codes are left as is.
+ * @param {string} text - Text containing ANSI escape codes.
+ * @returns {string} Text with ANSI codes replaced by markup tags.
+ */
+function unparseColorTags(text) {
+  if (!text) return '';
+
+  // Regex to find ANSI codes: \x1b[...m
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\x1b\[[0-9;]*m/g, (ansiCode) => {
+    const tagName = ANSI_TO_TAG_MAP[ansiCode];
+    if (tagName) {
+      // Special case for generic reset tag
+      if (tagName === '/') {
+        return '</>';
+      }
+      return `<${tagName}>`;
+    }
+    return ansiCode; // Return original ANSI code if no mapping found
+  });
+}
+
 module.exports = {
   // Raw ANSI codes
   ANSI,
@@ -437,6 +552,8 @@ module.exports = {
   line,
   wrap,
   pad,
+  parseColorTags,
+  unparseColorTags,
 
   // Semantic colorizers
   roomName,

@@ -67,6 +67,7 @@ class AuthenticationFlow {
       player.username = playerData.username;
       player.description = playerData.description || 'A normal-looking person.';
       player.currentRoom = playerData.currentRoom;
+      player.capname = playerData.capname || null;
 
       // Load currency from playerData
       const CurrencyManager = require('../systems/economy/CurrencyManager');
@@ -446,6 +447,7 @@ class AuthenticationFlow {
       player.username = playerData.username;
       player.description = playerData.description || 'A normal-looking person.';
       player.currentRoom = playerData.currentRoom;
+      player.capname = playerData.capname || null;
 
       // Load currency from playerData
       const CurrencyManager = require('../systems/economy/CurrencyManager');
