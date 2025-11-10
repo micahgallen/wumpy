@@ -349,10 +349,12 @@ The combat system has comprehensive test coverage with 34/34 tests passing.
 ## See Also
 
 - [Combat Stats Reference](../../reference/combat-stats.md) - Quick lookup tables
-- [Attack Resolution](../mechanics/attack-resolution.md) - Detailed attack mechanics (planned)
-- [Damage Calculation](../mechanics/damage-calculation.md) - Detailed damage mechanics (planned)
-- [Armor Class](../mechanics/armor-class.md) - Detailed AC mechanics (planned)
 - [Item Properties Reference](../../reference/item-properties.md) - Equipment property tables
+<!-- Future detailed mechanics pages (not yet created):
+- [Attack Resolution](../mechanics/attack-resolution.md) - Detailed attack mechanics
+- [Damage Calculation](../mechanics/damage-calculation.md) - Detailed damage mechanics
+- [Armor Class](../mechanics/armor-class.md) - Detailed AC mechanics
+-->
 
 ---
 

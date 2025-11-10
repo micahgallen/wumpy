@@ -6,13 +6,14 @@
 ## Quick Start (For AI Agents)
 
 **New to combat code?** Start here:
-1. [Combat Overview](wiki/systems/combat-overview.md) - System overview (coming soon)
+1. [Combat Overview](wiki/systems/combat-overview.md) - System overview
 2. [Combat Stats Reference](reference/combat-stats.md) - Quick lookup
 3. Check existing docs in `/docs/library/combat/` and `/docs/systems/combat/` (being consolidated)
 
 **New to item system?** Start here:
-1. Check existing docs in `/docs/systems/items/` (being consolidated)
-2. Check `/src/config/itemsConfig.js` for item definitions
+1. [Item Properties Overview](reference/item-properties.md) - Quick reference hub
+2. Check existing docs in `/docs/systems/items/` (being consolidated)
+3. Check `/src/config/itemsConfig.js` for item definitions
 
 **Working on existing feature?**
 - Check [Wiki Index](wiki/_wiki-index.md) for system docs (under construction)
@@ -26,7 +27,7 @@
 Primary source for understanding systems and mechanics. **Under Construction.**
 
 **Systems (High-Level Overviews):**
-- [Combat System](wiki/systems/combat-overview.md) - Combat mechanics, flow, integration (planned)
+- [Combat System](wiki/systems/combat-overview.md) - Combat mechanics, flow, integration ✓
 - Item System - Being consolidated from `/docs/systems/items/`
 - Corpse System - Being consolidated from `/docs/implementation/`
 - Inventory System - Being consolidated
@@ -55,8 +56,12 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 
 Tables and formulas only, no prose.
 
-- [Combat Stats](reference/combat-stats.md) - Proficiency, HP, modifiers
-- Item Properties - Planned
+- [Combat Stats](reference/combat-stats.md) - Proficiency, HP, modifiers ✓
+- [Item Properties Overview](reference/item-properties.md) - Hub for item references ✓
+  - [Item Types](reference/item-types.md) - Types, rarity, slots ✓
+  - [Item Combat](reference/item-combat.md) - Weapons, armor, damage ✓
+  - [Item Systems](reference/item-systems.md) - Attunement, proficiency, etc. ✓
+  - [Item Loot](reference/item-loot.md) - Spawn tags, code reference ✓
 - Damage Types - Planned
 - Command List - Planned
 
@@ -146,12 +151,12 @@ Docs are tagged with status in frontmatter:
 - [x] Create new directory structure
 - [x] Create DOC_STANDARDS.md
 - [x] Create templates
-- [ ] Create master index (this file - in progress)
-- [ ] Create combat-stats reference
-- [ ] Create item-properties reference
-- [ ] Create combat-overview wiki page
-- [ ] Create wiki index
-- [ ] Convert recent sessions to work logs
+- [x] Create master index (this file)
+- [x] Create combat-stats reference
+- [x] Create item-properties reference (split into 4 focused docs)
+- [x] Create combat-overview wiki page
+- [x] Create wiki index
+- [x] Convert recent sessions to work logs
 
 **Future Phases:**
 - Week 2-3: Consolidate existing docs into wiki pages

@@ -1,3 +1,10 @@
+---
+title: Combat Stats Reference
+status: current
+last_updated: 2025-11-10
+related: [combat-overview, attack-resolution, damage-calculation, armor-class]
+---
+
 # Combat Stats Reference
 
 Quick lookup tables for combat calculations and formulas.
