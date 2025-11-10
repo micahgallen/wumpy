@@ -691,17 +691,42 @@ async function slayCommand(player, args, context) {
   // Try to find NPC (prioritizes current room)
   const targetNPC = findNPCInRoom(targetName, player, world);
   if (targetNPC) {
-    // Set HP to 0 and trigger proper death processing (creates corpse)
-    targetNPC.currentHP = 0;
+    const npcName = targetNPC.name;
+    const npcId = targetNPC.id;
 
     // Get the room the NPC is in
     const npcRoom = world.getRoom(player.currentRoom);
 
-    // Trigger combat death processing to create corpse and handle respawn
-    const CombatResolver = require('../systems/combat/CombatResolver');
-    CombatResolver.processNPCDeath(targetNPC, player, npcRoom, world);
+    // Create corpse using CorpseManager
+    const CorpseManager = require('../systems/corpses/CorpseManager');
+    const corpse = CorpseManager.createNPCCorpse(targetNPC, player.currentRoom, player, world);
 
-    player.send('\n' + colors.success(`Slain ${targetNPC.name} (corpse created, will respawn)\n`));
+    // Remove NPC from room
+    if (npcRoom && npcRoom.npcs) {
+      const npcIndex = npcRoom.npcs.findIndex(id => id === npcId);
+      if (npcIndex !== -1) {
+        npcRoom.npcs.splice(npcIndex, 1);
+      }
+    }
+
+    // Notify room
+    world.sendToRoom(
+      player.currentRoom,
+      colors.combat(`${npcName} has been slain by divine wrath!`),
+      [player.username],
+      allPlayers
+    );
+
+    if (corpse) {
+      world.sendToRoom(
+        player.currentRoom,
+        colors.combat(`A corpse falls to the ground.`),
+        [player.username],
+        allPlayers
+      );
+    }
+
+    player.send('\n' + colors.success(`Slain ${npcName} (corpse created, will respawn)\n`));
 
     rateLimiter.recordCommand(issuer.id);
 
