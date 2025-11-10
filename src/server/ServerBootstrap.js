@@ -79,6 +79,9 @@ class ServerBootstrap {
     components.connectionHandler = connectionHandler;
     logger.log('Connection handler initialized.');
 
+    // Store dataDir for use in shutdown handler
+    components.dataDir = dataDir;
+
     return components;
   }
 
@@ -127,6 +130,8 @@ class ServerBootstrap {
     RespawnManager.initialize(world);
 
     // Listen for room messages from RespawnManager and broadcast to players
+    // Note: This event listener closes over the 'players' Set by reference.
+    // Changes to the players Set are visible to this listener.
     RespawnManager.on('roomMessage', ({ roomId, message }) => {
       // Broadcast message to all players in the specified room
       for (const player of players) {
@@ -221,6 +226,10 @@ class ServerBootstrap {
    * @param {AuthenticationFlow} authenticationFlow - Authentication flow instance
    * @param {Object} components - Initialized components
    * @returns {Function} handleInput function
+   *
+   * Note: The returned function closes over both authenticationFlow and components.
+   * This works because handleInput is invoked later during connection handling,
+   * not during construction, so all dependencies are fully initialized.
    */
   static createHandleInput(authenticationFlow, components) {
     const { parseCommand } = require('../commands');

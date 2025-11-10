@@ -52,7 +52,7 @@ function gracefulShutdown(signal) {
     const fs = require('fs');
 
     // Save corpse and timer state synchronously (critical for shutdown)
-    const dataDir = path.join(__dirname, '../data');
+    const dataDir = components?.dataDir || path.join(__dirname, '../data');
     const timersPath = path.join(dataDir, 'timers.json');
     const corpsesPath = path.join(dataDir, 'corpses.json');
 
