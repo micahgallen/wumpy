@@ -219,7 +219,7 @@ function execute(player, args, context) {
       p.username !== player.username
     );
     if (otherPlayers.length > 0) {
-      const announcement = `${player.username} loots the ${container.name}.`;
+      const announcement = `${player.getDisplayName()} loots the ${container.name}.`;
       otherPlayers.forEach(p => p.send('\n' + colors.dim(announcement) + '\n'));
     }
   }

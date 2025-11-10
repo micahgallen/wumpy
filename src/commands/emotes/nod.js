@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You nod sagely, like a bobblehead philosopher contemplating the meaning of lunch.',
-      room: (player) => `${player.username} nods sagely, as if they just figured out something profound.`
+      room: (player) => `${player.getDisplayName()} nods sagely, as if they just figured out something profound.`
     },
     withTarget: {
-      self: (player, target) => `You nod at ${target.username} in agreement.`,
-      target: (player) => `${player.username} nods at you knowingly.`,
-      room: (player, target) => `${player.username} nods at ${target.username}.`
+      self: (player, target) => `You nod at ${target.getDisplayName()} in agreement.`,
+      target: (player) => `${player.getDisplayName()} nods at you knowingly.`,
+      room: (player, target) => `${player.getDisplayName()} nods at ${target.getDisplayName()}.`
     }
   }
 });

@@ -305,9 +305,9 @@ class World {
         if (p.currentRoom === roomId && p.username !== currentPlayer.username) {
           // Add ghost indicator if player is a ghost
           if (p.isGhost) {
-            playersInRoom.push(colors.playerName(p.username) + colors.hint(' (ghost)'));
+            playersInRoom.push(colors.playerName(p.getDisplayName()) + colors.hint(' (ghost)'));
           } else {
-            playersInRoom.push(colors.playerName(p.username));
+            playersInRoom.push(colors.playerName(p.getDisplayName()));
           }
         }
       }

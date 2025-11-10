@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You strut around with the confidence of a peacock wearing sunglasses.',
-      room: (player) => `${player.username} struts around like they own the place. The swagger is real.`
+      room: (player) => `${player.getDisplayName()} struts around like they own the place. The swagger is real.`
     },
     withTarget: {
-      self: (player, target) => `You strut confidently around ${target.username}, showing off.`,
-      target: (player) => `${player.username} struts around you with exaggerated confidence. Are they showing off?`,
-      room: (player, target) => `${player.username} struts around ${target.username} like a peacock in full display.`
+      self: (player, target) => `You strut confidently around ${target.getDisplayName()}, showing off.`,
+      target: (player) => `${player.getDisplayName()} struts around you with exaggerated confidence. Are they showing off?`,
+      room: (player, target) => `${player.getDisplayName()} struts around ${target.getDisplayName()} like a peacock in full display.`
     }
   }
 });

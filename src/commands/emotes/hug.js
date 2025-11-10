@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You hug yourself. It\'s not the same, but it\'ll do.',
-      room: (player) => `${player.username} hugs themselves. Aww, that's both sad and adorable.`
+      room: (player) => `${player.getDisplayName()} hugs themselves. Aww, that's both sad and adorable.`
     },
     withTarget: {
-      self: (player, target) => `You wrap ${target.username} in a warm, fuzzy hug.`,
-      target: (player) => `${player.username} wraps you in a warm, fuzzy hug.`,
-      room: (player, target) => `${player.username} wraps ${target.username} in a warm, fuzzy hug.`
+      self: (player, target) => `You wrap ${target.getDisplayName()} in a warm, fuzzy hug.`,
+      target: (player) => `${player.getDisplayName()} wraps you in a warm, fuzzy hug.`,
+      room: (player, target) => `${player.getDisplayName()} wraps ${target.getDisplayName()} in a warm, fuzzy hug.`
     }
   }
 });

@@ -23,7 +23,7 @@ function execute(player, args, context) {
   }
 
   const action = args.join(' ');
-  const message = `${player.username} ${action}`;
+  const message = `${player.getDisplayName()} ${action}`;
   broadcastEmote(player, null, allPlayers, `You ${action}`, null, message);
 }
 

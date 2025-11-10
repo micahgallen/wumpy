@@ -97,7 +97,7 @@ function execute(player, args, context) {
     // Broadcast to others in the room using sendToRoom for consistency and efficiency
     context.world.sendToRoom(
       player.currentRoom,
-      `\n${player.username} ${action} ${item.name}.\n`,
+      `\n${player.getDisplayName()} ${action} ${item.name}.\n`,
       [player.username],
       context.allPlayers
     );

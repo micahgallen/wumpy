@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You flex your muscles, which are surprisingly well-defined for a text-based adventurer.',
-      room: (player) => `${player.username} flexes their muscles, which are surprisingly well-defined for a text-based adventurer.`
+      room: (player) => `${player.getDisplayName()} flexes their muscles, which are surprisingly well-defined for a text-based adventurer.`
     },
     withTarget: {
-      self: (player, target) => `You flex for ${target.username}.`,
-      target: (player) => `${player.username} flexes for you.`,
-      room: (player, target) => `${player.username} flexes for ${target.username}.`
+      self: (player, target) => `You flex for ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} flexes for you.`,
+      room: (player, target) => `${player.getDisplayName()} flexes for ${target.getDisplayName()}.`
     }
   }
 });

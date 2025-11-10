@@ -208,7 +208,7 @@ function executeGetFromContainer(player, args, context, fromIndex) {
 
     // Announce to room
     if (context.allPlayers) {
-      const roomMessage = colors.info(`${player.username} takes ${itemInstance.getDisplayName()} from the ${container.name}.\n`);
+      const roomMessage = colors.info(`${player.getDisplayName()} takes ${itemInstance.getDisplayName()} from the ${container.name}.\n`);
       for (const p of context.allPlayers) {
         if (p !== player && p.currentRoom === player.currentRoom && p.send) {
           p.send(roomMessage);
@@ -269,7 +269,7 @@ function executeGetFromContainer(player, args, context, fromIndex) {
       p.username !== player.username
     );
     if (otherPlayers.length > 0) {
-      let announcement = `${player.username} takes ${itemInstance.getDisplayName()}`;
+      let announcement = `${player.getDisplayName()} takes ${itemInstance.getDisplayName()}`;
       if (itemInstance.quantity > 1) {
         announcement += ` x${itemInstance.quantity}`;
       }
@@ -420,7 +420,7 @@ function getAllFromContainer(player, containerArgs, context) {
       p.username !== player.username
     );
     if (otherPlayers.length > 0) {
-      const announcement = `${player.username} loots the ${container.name}.`;
+      const announcement = `${player.getDisplayName()} loots the ${container.name}.`;
       otherPlayers.forEach(p => p.send('\n' + colors.dim(announcement) + '\n'));
     }
   }
@@ -680,7 +680,7 @@ function execute(player, args, context) {
 
         // Announce to room
         if (context.allPlayers) {
-          const roomMessage = colors.info(`${player.username} picks up ${itemInstance.getDisplayName()}.\n`);
+          const roomMessage = colors.info(`${player.getDisplayName()} picks up ${itemInstance.getDisplayName()}.\n`);
           for (const p of context.allPlayers) {
             if (p !== player && p.currentRoom === player.currentRoom && p.send) {
               p.send(roomMessage);
@@ -742,7 +742,7 @@ function execute(player, args, context) {
           p.username !== player.username
         );
         if (otherPlayers.length > 0) {
-          let announcement = `${player.username} picks up ${itemInstance.getDisplayName()}`;
+          let announcement = `${player.getDisplayName()} picks up ${itemInstance.getDisplayName()}`;
           if (itemInstance.quantity > 1) {
             announcement += ` x${itemInstance.quantity}`;
           }

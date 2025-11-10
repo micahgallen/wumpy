@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You let out a small, apologetic toot.',
-      room: (player) => `${player.username} lets out a small, apologetic toot.`
+      room: (player) => `${player.getDisplayName()} lets out a small, apologetic toot.`
     },
     withTarget: {
-      self: (player, target) => `You fart in ${target.username}'s general direction.`,
-      target: (player) => `${player.username} farts in your general direction.`,
-      room: (player, target) => `${player.username} farts in ${target.username}'s general direction.`
+      self: (player, target) => `You fart in ${target.getDisplayName()}'s general direction.`,
+      target: (player) => `${player.getDisplayName()} farts in your general direction.`,
+      room: (player, target) => `${player.getDisplayName()} farts in ${target.getDisplayName()}'s general direction.`
     }
   }
 });

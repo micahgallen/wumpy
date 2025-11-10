@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You wink at nobody in particular. That just looks like a twitch.',
-      room: (player) => `${player.username} winks at nobody in particular. Is that a twitch or intentional?`
+      room: (player) => `${player.getDisplayName()} winks at nobody in particular. Is that a twitch or intentional?`
     },
     withTarget: {
-      self: (player, target) => `You wink knowingly at ${target.username}. *wink wink*`,
-      target: (player) => `${player.username} winks at you knowingly. What do they know?!`,
-      room: (player, target) => `${player.username} winks at ${target.username}. There's definitely a conspiracy here.`
+      self: (player, target) => `You wink knowingly at ${target.getDisplayName()}. *wink wink*`,
+      target: (player) => `${player.getDisplayName()} winks at you knowingly. What do they know?!`,
+      room: (player, target) => `${player.getDisplayName()} winks at ${target.getDisplayName()}. There's definitely a conspiracy here.`
     }
   }
 });

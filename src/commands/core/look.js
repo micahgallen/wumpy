@@ -24,7 +24,7 @@ function execute(player, args, context) {
   if (targetName) {
     // Check self
     if (targetName === player.username.toLowerCase()) {
-      let output = `\n${colors.playerName(player.username)}`;
+      let output = `\n${colors.playerName(player.getDisplayName())}`;
       if (player.isGhost) {
         output += colors.hint(' (ghost)');
       }
@@ -39,7 +39,7 @@ function execute(player, args, context) {
     // Check other players
     for (const p of allPlayers) {
       if (p.username.toLowerCase() === targetName && p.currentRoom === player.currentRoom) {
-        let output = `\n${colors.playerName(p.username)}`;
+        let output = `\n${colors.playerName(p.getDisplayName())}`;
         if (p.isGhost) {
           output += colors.hint(' (ghost)');
         }

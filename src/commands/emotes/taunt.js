@@ -32,7 +32,7 @@ module.exports = createEmote({
       },
       room: (player) => {
         const currentTaunt = taunts[player.tauntIndex];
-        return `${player.username} taunts, "${currentTaunt}"`;
+        return `${player.getDisplayName()} taunts, "${currentTaunt}"`;
       }
     }
   },

@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You shake your head slowly, like a disappointed parent at a science fair volcano that won\'t erupt.',
-      room: (player) => `${player.username} shakes their head in disappointment. Somebody done goofed.`
+      room: (player) => `${player.getDisplayName()} shakes their head in disappointment. Somebody done goofed.`
     },
     withTarget: {
-      self: (player, target) => `You shake your head at ${target.username} disapprovingly.`,
-      target: (player) => `${player.username} shakes their head at you. Shame! Shame!`,
-      room: (player, target) => `${player.username} shakes their head disappointedly at ${target.username}.`
+      self: (player, target) => `You shake your head at ${target.getDisplayName()} disapprovingly.`,
+      target: (player) => `${player.getDisplayName()} shakes their head at you. Shame! Shame!`,
+      room: (player, target) => `${player.getDisplayName()} shakes their head disappointedly at ${target.getDisplayName()}.`
     }
   }
 });

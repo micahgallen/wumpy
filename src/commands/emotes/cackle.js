@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You cackle like a villain who just remembered they left the oven on.',
-      room: (player) => `${player.username} cackles like a villain who just remembered they left the oven on.`
+      room: (player) => `${player.getDisplayName()} cackles like a villain who just remembered they left the oven on.`
     },
     withTarget: {
-      self: (player, target) => `You cackle maniacally at ${target.username}.`,
-      target: (player) => `${player.username} cackles maniacally at you.`,
-      room: (player, target) => `${player.username} cackles maniacally at ${target.username}.`
+      self: (player, target) => `You cackle maniacally at ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} cackles maniacally at you.`,
+      room: (player, target) => `${player.getDisplayName()} cackles maniacally at ${target.getDisplayName()}.`
     }
   }
 });

@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You pinch yourself to make sure you\'re not dreaming. Nope, still here.',
-      room: (player) => `${player.username} pinches themselves to make sure they're not dreaming. Nope, still here.`
+      room: (player) => `${player.getDisplayName()} pinches themselves to make sure they're not dreaming. Nope, still here.`
     },
     withTarget: {
-      self: (player, target) => `You pinch ${target.username} playfully.`,
-      target: (player) => `${player.username} pinches you playfully.`,
-      room: (player, target) => `${player.username} pinches ${target.username} playfully.`
+      self: (player, target) => `You pinch ${target.getDisplayName()} playfully.`,
+      target: (player) => `${player.getDisplayName()} pinches you playfully.`,
+      room: (player, target) => `${player.getDisplayName()} pinches ${target.getDisplayName()} playfully.`
     }
   }
 });

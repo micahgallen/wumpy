@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You tickle yourself. That\'s... not how tickling works, but okay.',
-      room: (player) => `${player.username} tries to tickle themselves. Science has proven this doesn't work, but they're trying anyway.`
+      room: (player) => `${player.getDisplayName()} tries to tickle themselves. Science has proven this doesn't work, but they're trying anyway.`
     },
     withTarget: {
-      self: (player, target) => `You tickle ${target.username} mercilessly! Hehehehe!`,
-      target: (player) => `${player.username} tickles you mercilessly! You can't help but giggle!`,
-      room: (player, target) => `${player.username} tickles ${target.username} until they're gasping for air!`
+      self: (player, target) => `You tickle ${target.getDisplayName()} mercilessly! Hehehehe!`,
+      target: (player) => `${player.getDisplayName()} tickles you mercilessly! You can't help but giggle!`,
+      room: (player, target) => `${player.getDisplayName()} tickles ${target.getDisplayName()} until they're gasping for air!`
     }
   }
 });

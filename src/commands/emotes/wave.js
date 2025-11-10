@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You wave enthusiastically at everyone and no one in particular.',
-      room: (player) => `${player.username} waves enthusiastically like they're trying to flag down a ship.`
+      room: (player) => `${player.getDisplayName()} waves enthusiastically like they're trying to flag down a ship.`
     },
     withTarget: {
-      self: (player, target) => `You wave at ${target.username} cheerfully.`,
-      target: (player) => `${player.username} waves at you cheerfully.`,
-      room: (player, target) => `${player.username} waves at ${target.username}.`
+      self: (player, target) => `You wave at ${target.getDisplayName()} cheerfully.`,
+      target: (player) => `${player.getDisplayName()} waves at you cheerfully.`,
+      room: (player, target) => `${player.getDisplayName()} waves at ${target.getDisplayName()}.`
     }
   }
 });

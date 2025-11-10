@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You bounce around like a hyperactive pogo stick that discovered espresso.',
-      room: (player) => `${player.username} bounces around with the energy of someone who drank all the potions.`
+      room: (player) => `${player.getDisplayName()} bounces around with the energy of someone who drank all the potions.`
     },
     withTarget: {
-      self: (player, target) => `You bounce excitedly around ${target.username}!`,
-      target: (player) => `${player.username} bounces around you with alarming enthusiasm!`,
-      room: (player, target) => `${player.username} bounces around ${target.username} like an overexcited puppy.`
+      self: (player, target) => `You bounce excitedly around ${target.getDisplayName()}!`,
+      target: (player) => `${player.getDisplayName()} bounces around you with alarming enthusiasm!`,
+      room: (player, target) => `${player.getDisplayName()} bounces around ${target.getDisplayName()} like an overexcited puppy.`
     }
   }
 });

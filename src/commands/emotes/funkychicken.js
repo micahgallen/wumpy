@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You flap your arms and do the funky chicken with reckless abandon! *bawk bawk*',
-      room: (player) => `${player.username} flaps their arms and does the funky chicken! *bawk bawk* It's magnificent!`
+      room: (player) => `${player.getDisplayName()} flaps their arms and does the funky chicken! *bawk bawk* It's magnificent!`
     },
     withTarget: {
-      self: (player, target) => `You do the funky chicken dance around ${target.username}! *bawk bawk*`,
-      target: (player) => `${player.username} does the funky chicken dance around you! *bawk bawk* You're not sure how to react.`,
-      room: (player, target) => `${player.username} does the funky chicken dance around ${target.username}! *bawk bawk*`
+      self: (player, target) => `You do the funky chicken dance around ${target.getDisplayName()}! *bawk bawk*`,
+      target: (player) => `${player.getDisplayName()} does the funky chicken dance around you! *bawk bawk* You're not sure how to react.`,
+      room: (player, target) => `${player.getDisplayName()} does the funky chicken dance around ${target.getDisplayName()}! *bawk bawk*`
     }
   }
 });

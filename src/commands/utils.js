@@ -83,7 +83,7 @@ function movePlayer(player, direction, world, playerDB, allPlayers, combatEngine
   // Broadcast leave message
   for (const p of allPlayers) {
     if (p.currentRoom === originalRoomId && p.username !== player.username) {
-      p.send('\n' + colors.action(`${player.username} leaves heading ${direction}.`) + '\n');
+      p.send('\n' + colors.action(`${player.getDisplayName()} leaves heading ${direction}.`) + '\n');
       p.sendPrompt();
     }
   }
@@ -95,7 +95,7 @@ function movePlayer(player, direction, world, playerDB, allPlayers, combatEngine
   // Broadcast enter message
   for (const p of allPlayers) {
     if (p.currentRoom === destinationRoomId && p.username !== player.username) {
-      p.send('\n' + colors.action(`${player.username} arrives from ${oppositeDirection[direction]}.`) + '\n');
+      p.send('\n' + colors.action(`${player.getDisplayName()} arrives from ${oppositeDirection[direction]}.`) + '\n');
       p.sendPrompt();
     }
   }

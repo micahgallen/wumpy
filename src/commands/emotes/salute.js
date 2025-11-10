@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You snap off a crisp salute to absolutely nobody. You look mildly ridiculous.',
-      room: (player) => `${player.username} salutes the empty air with military precision. Respect.`
+      room: (player) => `${player.getDisplayName()} salutes the empty air with military precision. Respect.`
     },
     withTarget: {
-      self: (player, target) => `You salute ${target.username} with crisp military precision.`,
-      target: (player) => `${player.username} salutes you formally. Should you salute back?`,
-      room: (player, target) => `${player.username} gives ${target.username} a crisp military salute.`
+      self: (player, target) => `You salute ${target.getDisplayName()} with crisp military precision.`,
+      target: (player) => `${player.getDisplayName()} salutes you formally. Should you salute back?`,
+      room: (player, target) => `${player.getDisplayName()} gives ${target.getDisplayName()} a crisp military salute.`
     }
   }
 });

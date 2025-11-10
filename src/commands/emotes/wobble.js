@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You wobble around like a Weeble that forgot it\'s not supposed to fall down.',
-      room: (player) => `${player.username} wobbles around unsteadily. Should someone call a healer?`
+      room: (player) => `${player.getDisplayName()} wobbles around unsteadily. Should someone call a healer?`
     },
     withTarget: {
-      self: (player, target) => `You wobble dramatically in the direction of ${target.username}.`,
-      target: (player) => `${player.username} wobbles dramatically in your direction. You might want to catch them.`,
-      room: (player, target) => `${player.username} wobbles dramatically toward ${target.username}.`
+      self: (player, target) => `You wobble dramatically in the direction of ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} wobbles dramatically in your direction. You might want to catch them.`,
+      room: (player, target) => `${player.getDisplayName()} wobbles dramatically toward ${target.getDisplayName()}.`
     }
   }
 });

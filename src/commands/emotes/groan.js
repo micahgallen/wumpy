@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You groan with the weight of the world on your shoulders, or maybe you just ate too much cheese.',
-      room: (player) => `${player.username} groans with the weight of the world on their shoulders, or maybe you just ate too much cheese.`
+      room: (player) => `${player.getDisplayName()} groans with the weight of the world on their shoulders, or maybe you just ate too much cheese.`
     },
     withTarget: {
-      self: (player, target) => `You groan at ${target.username}.`,
-      target: (player) => `${player.username} groans at you.`,
-      room: (player, target) => `${player.username} groans at ${target.username}.`
+      self: (player, target) => `You groan at ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} groans at you.`,
+      room: (player, target) => `${player.getDisplayName()} groans at ${target.getDisplayName()}.`
     }
   }
 });

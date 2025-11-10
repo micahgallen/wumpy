@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You slap your palm against your forehead with an audible *smack*. Why? Just... why?',
-      room: (player) => `${player.username} slaps their palm against their forehead. The sound echoes with disappointment.`
+      room: (player) => `${player.getDisplayName()} slaps their palm against their forehead. The sound echoes with disappointment.`
     },
     withTarget: {
-      self: (player, target) => `You facepalm dramatically while staring at ${target.username}.`,
-      target: (player) => `${player.username} facepalms dramatically while staring directly at you. What did you do?`,
-      room: (player, target) => `${player.username} facepalms dramatically while staring at ${target.username}.`
+      self: (player, target) => `You facepalm dramatically while staring at ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} facepalms dramatically while staring directly at you. What did you do?`,
+      room: (player, target) => `${player.getDisplayName()} facepalms dramatically while staring at ${target.getDisplayName()}.`
     }
   }
 });

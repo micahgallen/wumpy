@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You bow with the grace of a penguin on a skateboard.',
-      room: (player) => `${player.username} bows with the grace of a penguin on a skateboard.`
+      room: (player) => `${player.getDisplayName()} bows with the grace of a penguin on a skateboard.`
     },
     withTarget: {
-      self: (player, target) => `You bow to ${target.username}.`,
-      target: (player) => `${player.username} bows to you.`,
-      room: (player, target) => `${player.username} bows to ${target.username}.`
+      self: (player, target) => `You bow to ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} bows to you.`,
+      room: (player, target) => `${player.getDisplayName()} bows to ${target.getDisplayName()}.`
     }
   }
 });

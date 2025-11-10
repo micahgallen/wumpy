@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You pat yourself on the back for a job well done. Good job, you!',
-      room: (player) => `${player.username} pats themselves on the back. Self-encouragement is important!`
+      room: (player) => `${player.getDisplayName()} pats themselves on the back. Self-encouragement is important!`
     },
     withTarget: {
-      self: (player, target) => `You pat ${target.username} reassuringly. There, there.`,
-      target: (player) => `${player.username} pats you reassuringly. You feel slightly better.`,
-      room: (player, target) => `${player.username} pats ${target.username} reassuringly.`
+      self: (player, target) => `You pat ${target.getDisplayName()} reassuringly. There, there.`,
+      target: (player) => `${player.getDisplayName()} pats you reassuringly. You feel slightly better.`,
+      room: (player, target) => `${player.getDisplayName()} pats ${target.getDisplayName()} reassuringly.`
     }
   }
 });

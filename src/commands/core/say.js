@@ -26,7 +26,7 @@ function execute(player, args, context) {
   // Broadcast to others in the room
   for (const p of allPlayers) {
     if (p.currentRoom === player.currentRoom && p.username !== player.username) {
-      p.send('\n' + colors.say(`${player.username} says, "${message}"\n`));
+      p.send('\n' + colors.say(`${player.getDisplayName()} says, "${message}"\n`));
       p.sendPrompt();
     }
   }

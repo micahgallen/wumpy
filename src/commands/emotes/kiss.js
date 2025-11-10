@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You blow a kiss into the air. It lands on someone\'s cheek with a soft *smack*.',
-      room: (player) => `${player.username} blows a kiss into the air. It lands on someone's cheek with a soft *smack*.`
+      room: (player) => `${player.getDisplayName()} blows a kiss into the air. It lands on someone's cheek with a soft *smack*.`
     },
     withTarget: {
-      self: (player, target) => `You blow a kiss to ${target.username}.`,
-      target: (player) => `${player.username} blows a kiss to you.`,
-      room: (player, target) => `${player.username} blows a kiss to ${target.username}.`
+      self: (player, target) => `You blow a kiss to ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} blows a kiss to you.`,
+      room: (player, target) => `${player.getDisplayName()} blows a kiss to ${target.getDisplayName()}.`
     }
   }
 });

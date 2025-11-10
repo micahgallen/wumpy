@@ -19,7 +19,15 @@ function execute(player, args, context) {
   }
 
   const message = args.join(' ');
-  const formattedMessage = colors.wumpcom(`[WumpCom] ${player.username}: ${message}`);
+
+  // Show both display name and username for global chat
+  // This provides immersion (colorized capnames) while maintaining clarity (real usernames for moderation)
+  const displayName = player.getDisplayName();
+  const attribution = displayName !== player.username
+    ? `${displayName} (@${player.username})`
+    : player.username;
+
+  const formattedMessage = colors.wumpcom(`[WumpCom] ${attribution}: ${message}`);
 
   for (const p of allPlayers) {
     if (p.state === 'playing') {

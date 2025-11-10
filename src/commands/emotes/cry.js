@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You cry a single, dramatic tear. It\'s probably not real.',
-      room: (player) => `${player.username} cries a single, dramatic tear. It's probably not real.`
+      room: (player) => `${player.getDisplayName()} cries a single, dramatic tear. It's probably not real.`
     },
     withTarget: {
-      self: (player, target) => `You cry on ${target.username}'s shoulder.`,
-      target: (player) => `${player.username} cries on your shoulder.`,
-      room: (player, target) => `${player.username} cries on ${target.username}'s shoulder.`
+      self: (player, target) => `You cry on ${target.getDisplayName()}'s shoulder.`,
+      target: (player) => `${player.getDisplayName()} cries on your shoulder.`,
+      room: (player, target) => `${player.getDisplayName()} cries on ${target.getDisplayName()}'s shoulder.`
     }
   }
 });

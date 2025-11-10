@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You growl menacingly, or maybe you\'re just hungry.',
-      room: (player) => `${player.username} growls menacingly, or maybe they're just hungry.`
+      room: (player) => `${player.getDisplayName()} growls menacingly, or maybe they're just hungry.`
     },
     withTarget: {
-      self: (player, target) => `You growl at ${target.username}.`,
-      target: (player) => `${player.username} growls at you.`,
-      room: (player, target) => `${player.username} growls at ${target.username}.`
+      self: (player, target) => `You growl at ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} growls at you.`,
+      room: (player, target) => `${player.getDisplayName()} growls at ${target.getDisplayName()}.`
     }
   }
 });

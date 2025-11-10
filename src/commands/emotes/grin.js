@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You grin like a Cheshire cat who just got away with something.',
-      room: (player) => `${player.username} grins like a Cheshire cat who just got away with something.`
+      room: (player) => `${player.getDisplayName()} grins like a Cheshire cat who just got away with something.`
     },
     withTarget: {
-      self: (player, target) => `You grin at ${target.username}.`,
-      target: (player) => `${player.username} grins at you.`,
-      room: (player, target) => `${player.username} grins at ${target.username}.`
+      self: (player, target) => `You grin at ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} grins at you.`,
+      room: (player, target) => `${player.getDisplayName()} grins at ${target.getDisplayName()}.`
     }
   }
 });

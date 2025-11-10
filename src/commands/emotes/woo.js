@@ -19,12 +19,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You throw your hands in the air and woo like you just don\'t care!',
-      room: (player) => `${player.username} throws their hands in the air and woos like they just don't care!`
+      room: (player) => `${player.getDisplayName()} throws their hands in the air and woos like they just don't care!`
     },
     withTarget: {
-      self: (player, target) => `You woo enthusiastically at ${target.username}!`,
-      target: (player) => `${player.username} woos enthusiastically at you!`,
-      room: (player, target) => `${player.username} woos enthusiastically at ${target.username}!`
+      self: (player, target) => `You woo enthusiastically at ${target.getDisplayName()}!`,
+      target: (player) => `${player.getDisplayName()} woos enthusiastically at you!`,
+      room: (player, target) => `${player.getDisplayName()} woos enthusiastically at ${target.getDisplayName()}!`
     }
   }
 });

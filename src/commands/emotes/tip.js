@@ -16,12 +16,12 @@ module.exports = createEmote({
   messages: {
     noTarget: {
       self: 'You tip your hat politely.',
-      room: (player) => `${player.username} tips their hat politely.`
+      room: (player) => `${player.getDisplayName()} tips their hat politely.`
     },
     withTarget: {
-      self: (player, target) => `You tip your hat to ${target.username}.`,
-      target: (player) => `${player.username} tips their hat to you.`,
-      room: (player, target) => `${player.username} tips their hat to ${target.username}.`
+      self: (player, target) => `You tip your hat to ${target.getDisplayName()}.`,
+      target: (player) => `${player.getDisplayName()} tips their hat to you.`,
+      room: (player, target) => `${player.getDisplayName()} tips their hat to ${target.getDisplayName()}.`
     }
   }
 });
