@@ -45,7 +45,7 @@ function execute(player, args, context) {
 
       // Get player's role
       const playerRole = adminService ? adminService.getRole(p.username) : Role.PLAYER;
-      const roleDisplay = playerRole !== Role.PLAYER ? colors.adminRole(playerRole) : '---';
+      const roleDisplay = playerRole !== Role.PLAYER ? colors.adminRole(playerRole) : 'Player';
 
       // Build status string with ghost indicator
       const statusText = p.isGhost ? 'Ghost' : 'Active';
@@ -59,14 +59,21 @@ function execute(player, args, context) {
       const rolePadding = 12 - colors.visibleLength(roleDisplay);
       const paddedRole = roleDisplay + ' '.repeat(Math.max(0, rolePadding));
 
-      // Use capname for display
+      // Use capname for display - handle ANSI codes in alignment
       const displayName = p.getDisplayName();
-      const paddedName = displayName.padEnd(20);
+      const visibleLen = colors.visibleLength(displayName);
+      const namePadding = Math.max(0, 20 - visibleLen);
+      const paddedName = displayName + ' '.repeat(namePadding);
+
+      // Format realm nicely (sesame_street -> Sesame Street)
+      const realmFormatted = realm.split('_').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
 
       output.push(
         colors.playerName(paddedName) +
         paddedRole +
-        colors.colorize(realm.padEnd(25), colors.MUD_COLORS.ROOM_NAME) +
+        colors.colorize(realmFormatted.padEnd(25), colors.MUD_COLORS.ROOM_NAME) +
         colors.colorize((p.level || 1).toString().padEnd(8), colors.MUD_COLORS.INFO) +
         coloredStatus +
         colors.hint(idleString.padEnd(10))
