@@ -37,8 +37,8 @@ class ConnectionHandler {
     const player = new Player(socket);
     players.add(player);
 
-    const clientIP = socket.remoteAddress;
-    const clientPort = socket.remotePort;
+    const clientIP = socket.remoteAddress || 'unknown';
+    const clientPort = socket.remotePort || 'unknown';
     logger.log(`New connection from ${clientIP}:${clientPort}`);
 
     // Send welcome banner

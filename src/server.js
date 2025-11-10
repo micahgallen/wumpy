@@ -141,6 +141,11 @@ function handleInput(player, input) {
  */
 let connectionHandler = null;
 const server = net.createServer(socket => {
+  if (!connectionHandler) {
+    logger.error('Connection rejected - server still initializing');
+    socket.end('Server is starting up, please try again in a moment.\n');
+    return;
+  }
   connectionHandler.handleConnection(socket, players);
 });
 

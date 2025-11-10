@@ -341,8 +341,8 @@ class AuthenticationFlow {
     });
 
     existingPlayer.socket.on('end', () => {
-      const reconnectIP = existingPlayer.socket.remoteAddress;
-      const reconnectPort = existingPlayer.socket.remotePort;
+      const reconnectIP = existingPlayer.socket.remoteAddress || 'unknown';
+      const reconnectPort = existingPlayer.socket.remotePort || 'unknown';
 
       if (existingPlayer.username) {
         logger.log(`Player ${existingPlayer.username} (${reconnectIP}:${reconnectPort}) disconnected.`);
@@ -359,8 +359,8 @@ class AuthenticationFlow {
     });
 
     existingPlayer.socket.on('error', err => {
-      const reconnectIP = existingPlayer.socket.remoteAddress;
-      const reconnectPort = existingPlayer.socket.remotePort;
+      const reconnectIP = existingPlayer.socket.remoteAddress || 'unknown';
+      const reconnectPort = existingPlayer.socket.remotePort || 'unknown';
       const identifier = existingPlayer.username || `${reconnectIP}:${reconnectPort}`;
       logger.error(`Socket error for ${identifier}:`, err);
 
