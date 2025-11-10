@@ -8,8 +8,8 @@ High-level overviews of major game systems. Start here for context.
 
 | System | Status | Description |
 |--------|--------|-------------|
-| Combat | Planned | Combat mechanics, phases, integration - to be consolidated from `/docs/library/combat/` and `/docs/systems/combat/` |
-| Items | Planned | Item types, equipment, properties - to be consolidated from `/docs/systems/items/` |
+| [Combat](systems/combat-overview.md) | Complete | Combat mechanics, phases, integration ✓ |
+| [Items](systems/item-system.md) | Complete | Item types, equipment, weapons, armor ✓ |
 | Corpse | Planned | Corpse mechanics, decay, respawn - to be consolidated from `/docs/implementation/` |
 | Inventory | Planned | Player inventory, containers - to be consolidated |
 | Admin | Planned | Admin commands, roles, permissions |
@@ -52,7 +52,7 @@ How-to guides for common development tasks. Step-by-step instructions for implem
 | Pattern | Purpose | Difficulty | Estimated Time |
 |---------|---------|------------|----------------|
 | Adding Commands | Create new player commands | Easy | 30 min |
-| Creating Items | Add items to the game | Medium | 1 hour |
+| [Creating Items](patterns/creating-items.md) | Add items to the game ✓ | Medium | 1 hour |
 | Creating NPCs | Add NPCs with combat stats | Medium | 1.5 hours |
 
 **Location:** `/docs/wiki/patterns/`
@@ -82,12 +82,15 @@ This wiki is under construction as part of documentation reorganization (Week 1,
 
 **Completed:**
 - Directory structure created
-- Reference docs created (combat-stats, item-properties)
+- Reference docs created (combat-stats, item-properties, item-types, item-combat, item-systems, item-loot)
 - Templates and standards in place
+- Combat system overview wiki page
+- Item system overview wiki page
+- Creating Items pattern guide
 
 **In Progress:**
-- Consolidating existing docs into wiki pages
-- Creating system overviews
+- Phase 2: Consolidating corpse system docs
+- Creating additional system overviews
 - Creating mechanic deep-dives
 
 **Legacy Docs:**

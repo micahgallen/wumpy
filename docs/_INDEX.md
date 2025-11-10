@@ -11,9 +11,9 @@
 3. Check existing docs in `/docs/library/combat/` and `/docs/systems/combat/` (being consolidated)
 
 **New to item system?** Start here:
-1. [Item Properties Overview](reference/item-properties.md) - Quick reference hub
-2. Check existing docs in `/docs/systems/items/` (being consolidated)
-3. Check `/src/config/itemsConfig.js` for item definitions
+1. [Item System Overview](wiki/systems/item-system.md) - System architecture
+2. [Creating Items](wiki/patterns/creating-items.md) - How-to guide
+3. [Item Properties Reference](reference/item-properties.md) - Quick reference hub
 
 **Working on existing feature?**
 - Check [Wiki Index](wiki/_wiki-index.md) for system docs (under construction)
@@ -28,7 +28,7 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 
 **Systems (High-Level Overviews):**
 - [Combat System](wiki/systems/combat-overview.md) - Combat mechanics, flow, integration ✓
-- Item System - Being consolidated from `/docs/systems/items/`
+- [Item System](wiki/systems/item-system.md) - Items, equipment, weapons, armor ✓
 - Corpse System - Being consolidated from `/docs/implementation/`
 - Inventory System - Being consolidated
 - Admin System - Being consolidated
@@ -49,7 +49,7 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 
 **Patterns (How-Tos for Common Tasks):**
 - Adding Commands - Planned
-- Creating Items - Planned
+- [Creating Items](wiki/patterns/creating-items.md) - How to create new items ✓
 - Creating NPCs - Planned
 
 ### Reference (Quick Lookup)
