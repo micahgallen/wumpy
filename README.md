@@ -28,18 +28,18 @@ Our documentation is organized to help you find information quickly:
 
 ### Primary Documentation (Start Here)
 
-**[Documentation Index](/home/micah/wumpy/docs/_INDEX.md)** - Complete map of all documentation
+**[Documentation Index](docs/_INDEX.md)** - Complete map of all documentation
 
-**[Wiki](/home/micah/wumpy/docs/wiki/_wiki-index.md)** - Primary source for system understanding
+**[Wiki](docs/wiki/_wiki-index.md)** - Primary source for system understanding
 
 Key wiki pages:
-- **Systems**: [Combat](/home/micah/wumpy/docs/wiki/systems/combat-overview.md), [Items](/home/micah/wumpy/docs/wiki/systems/item-system.md), [Corpses](/home/micah/wumpy/docs/wiki/systems/corpse-system.md)
-- **Architecture**: [Commands](/home/micah/wumpy/docs/wiki/architecture/command-system.md), [Combat Flow](/home/micah/wumpy/docs/wiki/architecture/combat-flow.md), [Timers](/home/micah/wumpy/docs/wiki/architecture/timer-system.md), [Events](/home/micah/wumpy/docs/wiki/architecture/event-system.md), [Data Schemas](/home/micah/wumpy/docs/wiki/architecture/data-schemas.md)
-- **Patterns**: [Adding Commands](/home/micah/wumpy/docs/wiki/patterns/adding-commands.md), [Creating Items](/home/micah/wumpy/docs/wiki/patterns/creating-items-basics.md), [Creating NPCs](/home/micah/wumpy/docs/wiki/patterns/creating-npcs.md)
+- **Systems**: [Combat](docs/wiki/systems/combat-overview.md), [Items](docs/wiki/systems/item-system.md), [Corpses](docs/wiki/systems/corpse-system.md)
+- **Architecture**: [Commands](docs/wiki/architecture/command-system.md), [Combat Flow](docs/wiki/architecture/combat-flow.md), [Timers](docs/wiki/architecture/timer-system.md), [Events](docs/wiki/architecture/event-system.md), [Data Schemas](docs/wiki/architecture/data-schemas.md)
+- **Patterns**: [Adding Commands](docs/wiki/patterns/adding-commands.md), [Creating Items](docs/wiki/patterns/creating-items-basics.md), [Creating NPCs](docs/wiki/patterns/creating-npcs.md)
 
-**[Reference Tables](/home/micah/wumpy/docs/reference/)** - Quick lookup for stats, properties, and formulas
-- [Combat Stats](/home/micah/wumpy/docs/reference/combat-stats.md)
-- [Item Properties](/home/micah/wumpy/docs/reference/item-properties.md)
+**[Reference Tables](docs/reference/)** - Quick lookup for stats, properties, and formulas
+- [Combat Stats](docs/reference/combat-stats.md)
+- [Item Properties](docs/reference/item-properties.md)
 
 ### For AI Agents & Contributors
 
@@ -53,17 +53,17 @@ Quick reference for AI agents:
 
 ### Common Tasks
 
-**I want to add a new command** → [Adding Commands Pattern](/home/micah/wumpy/docs/wiki/patterns/adding-commands.md)
+**I want to add a new command** → [Adding Commands Pattern](docs/wiki/patterns/adding-commands.md)
 
-**I want to create new items** → [Creating Items Basics](/home/micah/wumpy/docs/wiki/patterns/creating-items-basics.md) and [Advanced](/home/micah/wumpy/docs/wiki/patterns/creating-items-advanced.md)
+**I want to create new items** → [Creating Items Basics](docs/wiki/patterns/creating-items-basics.md) and [Advanced](docs/wiki/patterns/creating-items-advanced.md)
 
-**I want to create NPCs** → [Creating NPCs Pattern](/home/micah/wumpy/docs/wiki/patterns/creating-npcs.md)
+**I want to create NPCs** → [Creating NPCs Pattern](docs/wiki/patterns/creating-npcs.md)
 
-**I want to understand combat mechanics** → [Combat System Overview](/home/micah/wumpy/docs/wiki/systems/combat-overview.md) + [Combat Stats Reference](/home/micah/wumpy/docs/reference/combat-stats.md)
+**I want to understand combat mechanics** → [Combat System Overview](docs/wiki/systems/combat-overview.md) + [Combat Stats Reference](docs/reference/combat-stats.md)
 
-**I want to understand the item system** → [Item System Overview](/home/micah/wumpy/docs/wiki/systems/item-system.md)
+**I want to understand the item system** → [Item System Overview](docs/wiki/systems/item-system.md)
 
-**I want to see recent changes** → [Work Logs](/home/micah/wumpy/docs/work-logs/README.md)
+**I want to see recent changes** → [Work Logs](docs/work-logs/README.md)
 
 ## Project Structure
 
@@ -114,7 +114,7 @@ Phase 2 of documentation reorganization is complete:
 - Archive cleanup (65+ historical files organized)
 - Reference tables for quick lookup
 
-See [Documentation Index](/home/micah/wumpy/docs/_INDEX.md) for complete status and organization.
+See [Documentation Index](docs/_INDEX.md) for complete status and organization.
 
 ## Contributing
 
