@@ -1487,26 +1487,27 @@ async function destroyCommand(player, args, context) {
     return;
   }
 
-  const targetName = args.join(' ').toLowerCase();
+  const targetName = args.join(' ');
   const room = world.getRoom(player.currentRoom);
 
-  // Try to find and destroy NPC first
-  const npcIndex = room.npcs?.findIndex(n =>
-    (n.name && n.name.toLowerCase().includes(targetName)) ||
-    (n.id && n.id.toLowerCase().includes(targetName))
-  );
+  // Try to find and destroy NPC first (use same lookup as slay command)
+  const targetNPC = findNPCInRoom(targetName, player, world);
+  if (targetNPC) {
+    const npcName = targetNPC.name;
+    const npcId = targetNPC.id;
 
-  if (npcIndex !== -1 && npcIndex !== undefined && room.npcs) {
-    const npc = room.npcs[npcIndex];
-    const npcName = npc.name;
-
-    // Remove from room
-    room.npcs.splice(npcIndex, 1);
+    // Remove from room.npcs array
+    if (room && room.npcs) {
+      const npcIndex = room.npcs.findIndex(id => id === npcId);
+      if (npcIndex !== -1) {
+        room.npcs.splice(npcIndex, 1);
+      }
+    }
 
     // End combat if in combat
     const CombatEngine = require('../systems/combat/CombatEngine');
-    if (CombatEngine.isInCombat(npc.id)) {
-      CombatEngine.endCombat(npc.id);
+    if (CombatEngine.isInCombat(npcId)) {
+      CombatEngine.endCombat(npcId);
     }
 
     player.send('\n' + colors.success(`Destroyed ${npcName} (no corpse, no respawn)\n`));
@@ -1514,7 +1515,8 @@ async function destroyCommand(player, args, context) {
     world.sendToRoom(
       player.currentRoom,
       colors.dim(`${npcName} vanishes in a puff of admin magic.`),
-      [player.username]
+      [player.username],
+      context.allPlayers
     );
 
     rateLimiter.recordCommand(issuer.id);
@@ -1530,10 +1532,11 @@ async function destroyCommand(player, args, context) {
   }
 
   // Try to find and destroy item/corpse
+  const targetNameLower = targetName.toLowerCase();
   const itemIndex = room.items?.findIndex(item =>
-    (item.name && item.name.toLowerCase().includes(targetName)) ||
-    (item.id && item.id.toLowerCase().includes(targetName)) ||
-    (item.keywords && item.keywords.some(kw => kw && kw.toLowerCase().includes(targetName)))
+    (item.name && item.name.toLowerCase().includes(targetNameLower)) ||
+    (item.id && item.id.toLowerCase().includes(targetNameLower)) ||
+    (item.keywords && item.keywords.some(kw => kw && kw.toLowerCase().includes(targetNameLower)))
   );
 
   if (itemIndex !== -1 && itemIndex !== undefined && room.items) {
