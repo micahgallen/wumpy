@@ -37,7 +37,9 @@ const TAGLINES = [
   'Suspiciously stable for alpha software',
   'Digital archaeology with extra stabbing',
   'The only winning move is to play',
-  'Achievement Unlocked: Read the banner'
+  'Achievement Unlocked: Read the banner',
+  'I\'m putting that on main',
+  '- a hacked together piece of shit!'
 ];
 
 /**
