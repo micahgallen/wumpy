@@ -698,8 +698,8 @@ async function slayCommand(player, args, context) {
     const npcRoom = world.getRoom(player.currentRoom);
 
     // Trigger combat death processing to create corpse and handle respawn
-    const CombatEngine = require('../systems/combat/CombatEngine');
-    CombatEngine.processNPCDeath(targetNPC, player, npcRoom, world);
+    const CombatResolver = require('../systems/combat/CombatResolver');
+    CombatResolver.processNPCDeath(targetNPC, player, npcRoom, world);
 
     player.send('\n' + colors.success(`Slain ${targetNPC.name} (corpse created, will respawn)\n`));
 
@@ -1505,9 +1505,12 @@ async function destroyCommand(player, args, context) {
     }
 
     // End combat if in combat
-    const CombatEngine = require('../systems/combat/CombatEngine');
-    if (CombatEngine.isInCombat(npcId)) {
-      CombatEngine.endCombat(npcId);
+    const CombatRegistry = require('../systems/combat/CombatRegistry');
+    if (CombatRegistry.isInCombat(npcId)) {
+      const combat = CombatRegistry.getCombatForEntity(npcId);
+      if (combat) {
+        CombatRegistry.endCombat(combat.id);
+      }
     }
 
     player.send('\n' + colors.success(`Destroyed ${npcName} (no corpse, no respawn)\n`));
