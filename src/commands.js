@@ -52,6 +52,8 @@ const eatCommand = require('./commands/core/eat');
 const drinkCommand = require('./commands/core/drink');
 const capnameCommand = require('./commands/core/capname');
 const setCommand = require('./commands/core/set');
+const blowCandlesCommand = require('./commands/interactions/blowCandles');
+const lightCandlesCommand = require('./commands/interactions/lightCandles');
 registry.registerCommand(quitCommand);
 registry.registerCommand(helpCommand);
 registry.registerCommand(whoCommand);
@@ -80,6 +82,8 @@ registry.registerCommand(eatCommand);
 registry.registerCommand(drinkCommand);
 registry.registerCommand(capnameCommand);
 registry.registerCommand(setCommand);
+registry.registerCommand(blowCandlesCommand);
+registry.registerCommand(lightCandlesCommand);
 
 // Economy commands
 const listCommand = require('./commands/economy/list');
