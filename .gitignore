@@ -1,5 +1,4 @@
-node_modules
+
+teleport.txt
+logs/
 players.json
-.DS_Store
-*.log
-data/shops/*.json
