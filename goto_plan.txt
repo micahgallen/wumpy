@@ -1,0 +1,30 @@
+### Plan: Implement `goto` Command
+
+1.  **Investigate Existing `teleport` Command:**
+    *   Analyze `src/commands.js` and any related files in `src/commands/` to understand how the `teleport` command is implemented.
+    *   Identify the core function used for moving a player to a new room path.
+    *   Note how it handles custom entrance/exit messages so they can be reused for the `goto` command.
+    *   Examine how player roles are checked for command authorization.
+
+2.  **Implement the `goto` Command:**
+    *   In `src/commands.js`, define a new command named `goto`.
+    *   Set the required roles for the command to `['admin', 'creator', 'sheriff']`.
+    *   Implement the command's `execute` function, which will:
+        *   Accept `player` (the user executing the command) and `args` (the target player's name) as arguments.
+        *   Check if a target player name is provided. If not, return an error message.
+        *   Use the `playerdb` module to find the target player by name.
+        *   If the target player is not found or is offline, return an appropriate error message to the command user.
+        *   If the target player is found, get the `path` of their current room.
+        *   Call the core player movement function (identified in step 1) to move the command user to the target player's room path.
+        *   Ensure the movement function reuses the default teleport messages for the entrance and exit.
+
+3.  **Create a Test File:**
+    *   Create a new test file, `tests/gotoCommandTest.js`, to verify the new functionality.
+    *   Write test cases to cover the following scenarios:
+        *   An admin successfully uses `goto` to teleport to a regular player.
+        *   A non-admin user attempts to use `goto` and is denied.
+        *   An admin attempts to `goto` a player who is offline or does not exist, and receives an error.
+        *   An admin successfully uses `goto` on another admin.
+
+4.  **Register the New Command:**
+    *   Add the newly created `goto` command object to the command registry in `src/commands.js` to make it active in the game.
