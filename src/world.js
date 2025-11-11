@@ -81,6 +81,8 @@ class World {
           if (parsed.id) {
             if (realmName && storage === this.rooms) {
               parsed.realm = realmName;
+              // Store the relative path for later reference
+              parsed.path = path.relative(this.worldDir, filePath).replace(/\\/g, '/');
             }
             storage[parsed.id] = parsed;
           } else {

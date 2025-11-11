@@ -95,6 +95,8 @@ class PlayerDB {
     stored.description = player.description;
     stored.descriptionModifiers = player.descriptionModifiers || [];
     stored.capname = player.capname || null;
+    stored.customEnter = player.customEnter || null;
+    stored.customExit = player.customExit || null;
     stored.isGhost = player.isGhost || false;
 
     // Save inventory (already handled by separate method, but ensure it's set)
@@ -172,6 +174,8 @@ class PlayerDB {
       description: 'A normal-looking person.',
       descriptionModifiers: [], // Array of description modifiers from game systems
       capname: null, // Optional colorized display name
+      customEnter: null, // Custom teleport entrance message
+      customExit: null, // Custom teleport exit message
       currentRoom: 'sesame_street_01', // Starting room
       inventory: [], // Empty inventory for new players
       currency: { // Phase 5: Currency wallet (separate from inventory)
@@ -260,6 +264,14 @@ class PlayerDB {
     // Add description modifiers array if it doesn't exist (Player Description System)
     if (!playerData.descriptionModifiers) {
         playerData.descriptionModifiers = [];
+    }
+
+    // Initialize custom teleport messages if they don't exist
+    if (playerData.customEnter === undefined) {
+      playerData.customEnter = null;
+    }
+    if (playerData.customExit === undefined) {
+      playerData.customExit = null;
     }
 
     // CRITICAL FIX: Initialize baseStats if not present (new system for equipment bonuses)
