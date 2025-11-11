@@ -179,8 +179,107 @@ function getBannerOriginal() {
   return lines.join('\n');
 }
 
+/**
+ * SPECIAL BIRTHDAY BANNER FOR TEXAN'S 40TH!
+ * Generate a birthday-themed welcome banner
+ * @returns {string} The formatted birthday banner
+ */
+function getTexanBirthdayBanner() {
+  const lines = [];
+
+  // Top border with PARTY THEME
+  lines.push(colors.line(78, '=', colors.ANSI.BRIGHT_YELLOW));
+  lines.push(colors.line(78, '*', colors.ANSI.BRIGHT_RED));
+  lines.push('');
+
+  // Birthday announcement
+  lines.push(colors.colorize('    ****  SPECIAL BIRTHDAY EDITION  ****', colors.ANSI.BRIGHT_YELLOW));
+  lines.push('');
+
+  // ASCII Art Title - Rainbow WUMPY! (same as regular)
+  lines.push(
+    colors.colorize('  _____ _            ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('__        __', colors.ANSI.BRIGHT_RED) +
+    colors.colorize('                             ', colors.MUD_COLORS.BRIGHT_MAGENTA)
+  );
+
+  lines.push(
+    colors.colorize(' |_   _| |__   ___  ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('\\ \\      ', colors.ANSI.BRIGHT_RED) +
+    colors.colorize('/ /   _ _ __ ___  _ __  _   _  ', colors.MUD_COLORS.BRIGHT_MAGENTA)
+  );
+
+  lines.push(
+    colors.colorize('   | | | \'_ \\ / _ \\  ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('\\ \\ ', colors.ANSI.BRIGHT_RED) +
+    colors.colorize('/\\ ', colors.ANSI.BRIGHT_YELLOW) +
+    colors.colorize('/ / ', colors.ANSI.BRIGHT_GREEN) +
+    colors.colorize('| | ', colors.ANSI.BRIGHT_BLUE) +
+    colors.colorize('| \'_ ` _ \\', colors.ANSI.BRIGHT_MAGENTA) +
+    colors.colorize('| \'_ \\| | | | ', colors.MUD_COLORS.BRIGHT_MAGENTA)
+  );
+
+  lines.push(
+    colors.colorize('   | | | | | |  __/   ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('\\ V  ', colors.ANSI.BRIGHT_RED) +
+    colors.colorize('V /', colors.ANSI.BRIGHT_YELLOW) +
+    colors.colorize('| |_', colors.ANSI.BRIGHT_GREEN) +
+    colors.colorize('| ', colors.ANSI.BRIGHT_BLUE) +
+    colors.colorize('| | | | | | |_) ', colors.ANSI.BRIGHT_MAGENTA) +
+    colors.colorize('| |_| | ', colors.MUD_COLORS.BRIGHT_MAGENTA)
+  );
+
+  lines.push(
+    colors.colorize('   |_| |_| |_|\\___|    ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('\\_/', colors.ANSI.BRIGHT_RED) +
+    colors.colorize('\\_/  ', colors.ANSI.BRIGHT_YELLOW) +
+    colors.colorize('\\__,_', colors.ANSI.BRIGHT_GREEN) +
+    colors.colorize('|_| |_| |_', colors.ANSI.BRIGHT_BLUE) +
+    colors.colorize('| .__/ ', colors.ANSI.BRIGHT_MAGENTA) +
+    colors.colorize('\\__, | ', colors.MUD_COLORS.BRIGHT_MAGENTA)
+  );
+
+  lines.push(
+    colors.colorize('                                               ', colors.MUD_COLORS.BRIGHT_MAGENTA) +
+    colors.colorize('|_|    ', colors.ANSI.BRIGHT_BLUE) +
+    colors.colorize('|___/  ', colors.ANSI.BRIGHT_MAGENTA)
+  );
+
+  lines.push('');
+  lines.push(colors.colorize('                      &   Grift                                ', colors.MUD_COLORS.BRIGHT_YELLOW));
+  lines.push('');
+
+  // BIRTHDAY MESSAGE
+  lines.push(colors.line(78, '~', colors.ANSI.BRIGHT_CYAN));
+  lines.push('');
+  lines.push(colors.colorize('           HAPPY 40TH BIRTHDAY JON (TEXAN)!', colors.ANSI.BRIGHT_YELLOW));
+  lines.push('');
+  lines.push(colors.colorize('    The cake is on fire. This is probably fine.', colors.ANSI.BRIGHT_RED));
+  lines.push(colors.hint('        (Bert is having a panic attack in the plaza)'));
+  lines.push('');
+  lines.push(colors.line(78, '~', colors.ANSI.BRIGHT_CYAN));
+  lines.push('');
+
+  // Special birthday tagline
+  lines.push(colors.colorize('    Celebrating 40 years of Texan with FORTY blazing candles!', colors.MUD_COLORS.BRIGHT_CYAN));
+  lines.push(colors.hint('           (Fire extinguishers are standing by)'));
+  lines.push('');
+
+  // Version and info
+  lines.push(colors.hint('                    Version 0.1.0 - Alpha'));
+  lines.push('');
+
+  // Bottom border
+  lines.push(colors.line(78, '*', colors.ANSI.BRIGHT_RED));
+  lines.push(colors.line(78, '=', colors.ANSI.BRIGHT_YELLOW));
+  lines.push('');
+
+  return lines.join('\n');
+}
+
 module.exports = {
   getBanner,
   getShortWelcome,
-  getBannerOriginal
+  getBannerOriginal,
+  getTexanBirthdayBanner
 };

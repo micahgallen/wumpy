@@ -42,6 +42,9 @@ class ShutdownHandler {
     logger.log(`${signal} received, saving state...`);
 
     try {
+      // Stop ambient dialogue timers
+      this.stopAmbientDialogue();
+
       // Save critical state synchronously
       this.saveTimers();
       this.saveCorpses();
@@ -59,6 +62,19 @@ class ShutdownHandler {
     } catch (err) {
       logger.error(`Error during shutdown: ${err.message}`);
       process.exit(1);
+    }
+  }
+
+  /**
+   * Stop ambient dialogue system
+   */
+  stopAmbientDialogue() {
+    try {
+      const AmbientDialogueManager = require('../systems/ambient/AmbientDialogueManager');
+      AmbientDialogueManager.stop();
+      logger.log('Stopped ambient dialogue system');
+    } catch (err) {
+      logger.error(`Failed to stop ambient dialogue: ${err.message}`);
     }
   }
 

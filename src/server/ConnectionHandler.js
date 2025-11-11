@@ -1,5 +1,5 @@
 const logger = require('../logger');
-const { getBanner } = require('../banner');
+const { getBanner, getTexanBirthdayBanner } = require('../banner');
 const Player = require('./Player');
 
 /**
@@ -41,8 +41,8 @@ class ConnectionHandler {
     const clientPort = socket.remotePort || 'unknown';
     logger.log(`New connection from ${clientIP}:${clientPort}`);
 
-    // Send welcome banner
-    player.send('\n' + getBanner() + '\n');
+    // Send welcome banner - BIRTHDAY EDITION FOR TEXAN!
+    player.send('\n' + getTexanBirthdayBanner() + '\n');
     player.prompt('Username: ');
 
     // Handle incoming data

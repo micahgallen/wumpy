@@ -4,6 +4,7 @@ const World = require('../world');
 const CombatEngine = require('../combat/combatEngine');
 const RespawnManager = require('../systems/corpses/RespawnManager');
 const CorpseManager = require('../systems/corpses/CorpseManager');
+const AmbientDialogueManager = require('../systems/ambient/AmbientDialogueManager');
 const SessionManager = require('./SessionManager');
 const AuthenticationFlow = require('./AuthenticationFlow');
 const ConnectionHandler = require('./ConnectionHandler');
@@ -20,9 +21,10 @@ const fs = require('fs');
  * 3. Initialize core components (PlayerDB, World, CombatEngine)
  * 4. Restore persisted state (corpses, timers)
  * 5. Set up respawn system
- * 6. Initialize admin system
- * 7. Initialize authentication flow
- * 8. Initialize connection handler
+ * 6. Initialize ambient dialogue system
+ * 7. Initialize admin system
+ * 8. Initialize authentication flow
+ * 9. Initialize connection handler
  */
 class ServerBootstrap {
   /**
@@ -50,11 +52,14 @@ class ServerBootstrap {
     // Phase 5: Perform startup respawn check
     ServerBootstrap.checkRespawns();
 
-    // Phase 6: Initialize admin system
+    // Phase 6: Initialize ambient dialogue system
+    ServerBootstrap.initializeAmbientDialogue(components);
+
+    // Phase 7: Initialize admin system
     const adminComponents = await ServerBootstrap.initializeAdmin(components, dataDir);
     Object.assign(components, adminComponents);
 
-    // Phase 7: Initialize authentication flow
+    // Phase 8: Initialize authentication flow
     const authenticationFlow = new AuthenticationFlow({
       playerDB: components.playerDB,
       sessionManager: components.sessionManager,
@@ -66,10 +71,10 @@ class ServerBootstrap {
     components.authenticationFlow = authenticationFlow;
     logger.log('Authentication flow initialized.');
 
-    // Phase 8: Create handleInput function for connection handler
+    // Phase 9: Create handleInput function for connection handler
     const handleInput = ServerBootstrap.createHandleInput(authenticationFlow, components);
 
-    // Phase 9: Initialize connection handler
+    // Phase 10: Initialize connection handler
     const connectionHandler = new ConnectionHandler({
       playerDB: components.playerDB,
       sessionManager: components.sessionManager,
@@ -197,7 +202,26 @@ class ServerBootstrap {
   }
 
   /**
-   * Initialize admin system (Phase 6)
+   * Initialize ambient dialogue system (Phase 6)
+   * @param {Object} components - Initialized components
+   */
+  static initializeAmbientDialogue(components) {
+    logger.log('Initializing ambient dialogue system...');
+
+    // Initialize the manager with world and players
+    AmbientDialogueManager.initialize(components.world, components.players);
+
+    // Start the ambient dialogue timers
+    AmbientDialogueManager.start();
+
+    // Store in components for later access
+    components.ambientDialogueManager = AmbientDialogueManager;
+
+    logger.log('Ambient dialogue system ready.');
+  }
+
+  /**
+   * Initialize admin system (Phase 7)
    * @param {Object} components - Initialized components
    * @param {string} dataDir - Data directory path
    * @returns {Promise<Object>} Admin components
