@@ -108,11 +108,13 @@ const givemoneyCommand = require('./commands/admin/givemoney');
 const corpseinfoCommand = require('./commands/admin/corpseinfo');
 const clearcorpsesCommand = require('./commands/admin/clearcorpses');
 const timerinfoCommand = require('./commands/admin/timerinfo');
+const teleportCommand = require('./commands/admin/teleport');
 
 registry.registerCommand(givemoneyCommand);
 registry.registerCommand(corpseinfoCommand);
 registry.registerCommand(clearcorpsesCommand);
 registry.registerCommand(timerinfoCommand);
+registry.registerCommand(teleportCommand);
 
 // Movement commands
 const movementCommands = require('./commands/movement/movement');

@@ -1,5 +1,7 @@
 const colors = require('../../colors');
 
+const { Role, getRankValue } = require('../../admin/permissions');
+
 const setCapname = (player, args, context) => {
   const rawCapname = args.join(' ');
 
@@ -47,6 +49,42 @@ const setCapname = (player, args, context) => {
   player.send(colors.success(`\nYour capname has been set to: ${player.capname}${colors.ANSI.RESET}\n`));
 };
 
+const setTeleportMessage = (player, args, context, type) => {
+  const requiredRank = getRankValue(Role.CREATOR);
+  const playerRank = getRankValue(player.role);
+
+  if (playerRank < requiredRank) {
+    player.send(colors.error(`\nYou can't set '${type}'.\n`));
+    return;
+  }
+
+  const message = args.join(' ');
+
+  if (!message) {
+    player.send(colors.error(`\nUsage: set ${type} <message>\n`));
+    return;
+  }
+
+  // Sanitize and validate
+  let sanitizedMessage = message.replace(/\x1b\[[0-9;]*m/g, ''); // Strip raw ANSI
+  sanitizedMessage = sanitizedMessage.replace(/<(\/)?([\w_]+)?>/g, ''); // Strip color tags
+
+  if (sanitizedMessage.length > 120) {
+    player.send(colors.error('\nMessage is too long. Maximum 120 characters.\n'));
+    return;
+  }
+
+  if (type === 'telenter') {
+    player.customEnter = sanitizedMessage;
+    player.send(colors.success(`\nYour teleport entrance message has been set.\n`));
+  } else {
+    player.customExit = sanitizedMessage;
+    player.send(colors.success(`\nYour teleport exit message has been set.\n`));
+  }
+
+  context.playerDB.savePlayer(player);
+};
+
 const setCommand = {
   name: 'set',
   description: 'Set various player attributes.',
@@ -63,6 +101,12 @@ const setCommand = {
     switch (subCommand) {
       case 'capname':
         setCapname(player, subArgs, context);
+        break;
+      case 'telenter':
+        setTeleportMessage(player, subArgs, context, 'telenter');
+        break;
+      case 'telexit':
+        setTeleportMessage(player, subArgs, context, 'telexit');
         break;
       default:
         player.send(colors.error(`\nYou can't set '${subCommand}'.\n`));
