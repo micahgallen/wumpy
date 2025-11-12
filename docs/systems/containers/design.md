@@ -87,6 +87,9 @@ Location: `world/<realm>/objects/<container_name>.js`
   "isOpen": false,               // Starts closed
   "capacity": 20,                // Number of item slots
 
+  // Display Properties
+  "hideContainerStatus": false,  // If true, hides "(open/locked)" indicators and status info
+
   // Loot Configuration
   "lootConfig": {
     "spawnOnInit": true,         // Spawn loot when container first created

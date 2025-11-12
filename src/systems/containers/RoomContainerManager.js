@@ -728,8 +728,44 @@ class RoomContainerManager {
 
     logger.log(`Restoring container state (server was down for ${Math.floor(downtime / 1000)}s)`);
 
+    // PRE-RESTORE DEDUPLICATION: Remove duplicates from saved state
+    // Group containers by room+definition and keep only the newest
+    const containersByKey = new Map();
     for (const containerId in containers) {
       const containerData = containers[containerId];
+      const key = `${containerData.roomId}:${containerData.definitionId}`;
+
+      if (!containersByKey.has(key)) {
+        containersByKey.set(key, []);
+      }
+      containersByKey.get(key).push({
+        id: containerId,
+        data: containerData,
+        createdAt: containerData.createdAt || 0
+      });
+    }
+
+    // Build a set of container IDs to actually restore (newest of each type)
+    const containersToRestore = new Map();
+    let preDedupedCount = 0;
+    for (const [key, instances] of containersByKey) {
+      if (instances.length > 1) {
+        // Sort by createdAt descending (newest first)
+        instances.sort((a, b) => b.createdAt - a.createdAt);
+        preDedupedCount += instances.length - 1;
+
+        logger.log(`Pre-restore dedup: ${key} has ${instances.length} duplicates, keeping newest (${instances[0].id})`);
+      }
+      // Keep only the newest instance
+      containersToRestore.set(instances[0].id, instances[0].data);
+    }
+
+    if (preDedupedCount > 0) {
+      logger.log(`Pre-restore deduplication removed ${preDedupedCount} duplicate containers from saved state`);
+    }
+
+    for (const containerId of containersToRestore.keys()) {
+      const containerData = containersToRestore.get(containerId);
 
       try {
         // Validate definition exists
@@ -836,7 +872,53 @@ class RoomContainerManager {
       }
     }
 
-    // Count new containers (ones not in saved state)
+    // Deduplicate: Remove new containers that have the same room+definition as restored containers
+    const duplicatesToRemove = [];
+
+    // Build a map of restored containers by room+definition
+    const restoredByKey = new Map();
+    for (const containerId of savedContainerIds) {
+      const container = this.containers.get(containerId);
+      if (container) {
+        const key = `${container.roomId}:${container.definitionId}`;
+        restoredByKey.set(key, containerId);
+      }
+    }
+
+    // Find new containers that duplicate restored ones
+    for (const [containerId, container] of this.containers) {
+      if (!savedContainerIds.has(containerId)) {
+        const key = `${container.roomId}:${container.definitionId}`;
+        if (restoredByKey.has(key)) {
+          // This is a duplicate - mark for removal
+          duplicatesToRemove.push({
+            id: containerId,
+            key: key,
+            restoredId: restoredByKey.get(key)
+          });
+        }
+      }
+    }
+
+    // Remove duplicates
+    for (const dup of duplicatesToRemove) {
+      logger.log(`Removing duplicate container ${dup.id} (restored container ${dup.restoredId} exists for ${dup.key})`);
+
+      // Remove from main container map
+      this.containers.delete(dup.id);
+
+      // Remove from room index
+      const container = this.containers.get(dup.restoredId);
+      if (container && this.containersByRoom.has(container.roomId)) {
+        const roomContainers = this.containersByRoom.get(container.roomId);
+        const idx = roomContainers.findIndex(c => c.id === dup.id);
+        if (idx !== -1) {
+          roomContainers.splice(idx, 1);
+        }
+      }
+    }
+
+    // Count remaining new containers (ones not in saved state and not removed as duplicates)
     let newContainerCount = 0;
     for (const [containerId] of this.containers) {
       if (!savedContainerIds.has(containerId)) {
@@ -844,11 +926,15 @@ class RoomContainerManager {
       }
     }
 
-    logger.log(`Restored ${restoredCount} containers, ${expiredCount} respawned immediately, ${newContainerCount} new containers created, ${errors.length} errors`);
+    const totalDuplicatesRemoved = preDedupedCount + duplicatesToRemove.length;
+    logger.log(`Restored ${restoredCount} containers, ${expiredCount} respawned immediately, removed ${preDedupedCount} pre-existing + ${duplicatesToRemove.length} runtime duplicates (${totalDuplicatesRemoved} total), ${newContainerCount} new containers created, ${errors.length} errors`);
 
     return {
       restoredCount,
       expiredCount,
+      duplicatesRemoved: totalDuplicatesRemoved,
+      preDedupedCount,
+      runtimeDedupedCount: duplicatesToRemove.length,
       newContainerCount,
       errors,
       downtime

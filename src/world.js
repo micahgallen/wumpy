@@ -211,9 +211,16 @@ class World {
 
       // Create container instances for this room
       for (const containerId of room.containers) {
-        const container = RoomContainerManager.createContainerInstance(containerId, roomId);
-        if (container) {
-          totalContainers++;
+        // Check if a container of this type already exists in this room
+        // This prevents duplicates when restoring from saved state
+        const existingContainers = RoomContainerManager.getContainersByRoom(roomId);
+        const alreadyExists = existingContainers.some(c => c.definitionId === containerId);
+
+        if (!alreadyExists) {
+          const container = RoomContainerManager.createContainerInstance(containerId, roomId);
+          if (container) {
+            totalContainers++;
+          }
         }
       }
     }
@@ -369,11 +376,13 @@ class World {
 
         let display = 'You see ' + colors.objectName(definition.name);
 
-        // Show state indicators
-        if (container.isLocked) {
-          display += colors.dim(' (locked)');
-        } else if (container.isOpen) {
-          display += colors.dim(' (open)');
+        // Show state indicators (unless hideContainerStatus is set)
+        if (!definition.hideContainerStatus) {
+          if (container.isLocked) {
+            display += colors.dim(' (locked)');
+          } else if (container.isOpen) {
+            display += colors.dim(' (open)');
+          }
         }
 
         display += ' here.';

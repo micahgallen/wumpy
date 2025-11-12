@@ -225,6 +225,9 @@ class ServerBootstrap {
       if (result.expiredCount > 0) {
         logger.log(`${result.expiredCount} containers respawned due to expired timers`);
       }
+      if (result.duplicatesRemoved > 0) {
+        logger.log(`${result.duplicatesRemoved} duplicate containers removed`);
+      }
       if (result.errors.length > 0) {
         logger.warn(`${result.errors.length} containers failed to restore`);
       }

@@ -58,19 +58,21 @@ function execute(player, args, context) {
 
       output.push('');
 
-      // Container type and capacity
-      output.push(colors.dim(`Type: Container (${container.capacity} slots)`));
+      // Container type and capacity (unless hideContainerStatus is set)
+      if (!definition.hideContainerStatus) {
+        output.push(colors.dim(`Type: Container (${container.capacity} slots)`));
 
-      // Lock status
-      if (container.isLocked) {
-        output.push(colors.warning('Status: LOCKED'));
-        if (definition.keyItemId) {
-          output.push(colors.dim(`Required key: ${definition.keyItemId}`));
+        // Lock status
+        if (container.isLocked) {
+          output.push(colors.warning('Status: LOCKED'));
+          if (definition.keyItemId) {
+            output.push(colors.dim(`Required key: ${definition.keyItemId}`));
+          }
+        } else if (container.isOpen) {
+          output.push(colors.success('Status: OPEN'));
+        } else {
+          output.push(colors.info('Status: CLOSED'));
         }
-      } else if (container.isOpen) {
-        output.push(colors.success('Status: OPEN'));
-      } else {
-        output.push(colors.info('Status: CLOSED'));
       }
 
       // Contents (only show if open)

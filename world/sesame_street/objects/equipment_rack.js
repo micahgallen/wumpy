@@ -11,6 +11,7 @@
 
   "isOpen": true,
   "capacity": 20,
+  "hideContainerStatus": true,
 
   "lootConfig": {
     "spawnOnInit": true,
