@@ -1,0 +1,61 @@
+{
+  "id": "hoopers_store",
+  "inventory": [
+    {
+      "itemId": "chocolate_chip_cookie",
+      "quantity": 51,
+      "price": 25
+    },
+    {
+      "itemId": "sugar_cookie",
+      "quantity": 158,
+      "price": 20
+    },
+    {
+      "itemId": "oatmeal_cookie",
+      "quantity": 40,
+      "price": 30
+    },
+    {
+      "itemId": "milk_bottle",
+      "quantity": 33,
+      "price": 15
+    },
+    {
+      "itemId": "sardine_can",
+      "quantity": 18,
+      "price": 12
+    },
+    {
+      "itemId": "leather_cap",
+      "quantity": 5,
+      "price": 100
+    },
+    {
+      "itemId": "mysterious_amulet",
+      "quantity": 2,
+      "price": 500
+    },
+    {
+      "itemId": "birdseed",
+      "quantity": 19,
+      "price": 10
+    },
+    {
+      "itemId": "health_potion",
+      "quantity": 29,
+      "price": 50
+    },
+    {
+      "itemId": "wooden_practice_sword",
+      "quantity": 7,
+      "price": 50
+    },
+    {
+      "itemId": "minor_health_potion",
+      "quantity": 8,
+      "price": 24
+    }
+  ],
+  "lastSaved": 1762933568882
+}

@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "savedAt": 1762933864322,
+  "containers": {
+    "treasure_chest_sesame_plaza_room_sesame_street_01_1762933582872": {
+      "id": "treasure_chest_sesame_plaza_room_sesame_street_01_1762933582872",
+      "definitionId": "treasure_chest_sesame_plaza",
+      "roomId": "sesame_street_01",
+      "isOpen": false,
+      "isLocked": false,
+      "inventory": [
+        {
+          "instanceId": "6442988b-4d2d-47f5-b1ab-613b8d4fa0ab",
+          "definitionId": "chocolate_chip_cookie",
+          "location": {
+            "type": "void"
+          },
+          "quantity": 3,
+          "durability": null,
+          "maxDurability": null,
+          "isEquipped": false,
+          "equippedSlot": null,
+          "boundTo": null,
+          "isAttuned": false,
+          "attunedTo": null,
+          "isIdentified": false,
+          "enchantments": [],
+          "customName": null,
+          "customDescription": null,
+          "createdAt": 1762933582873,
+          "modifiedAt": 1762933582873
+        },
+        {
+          "instanceId": "1d271a55-99bc-4a84-93ce-79ffbfb2160f",
+          "definitionId": "currency_copper",
+          "location": {
+            "type": "void"
+          },
+          "quantity": 22,
+          "durability": null,
+          "maxDurability": null,
+          "isEquipped": false,
+          "equippedSlot": null,
+          "boundTo": null,
+          "isAttuned": false,
+          "attunedTo": null,
+          "isIdentified": false,
+          "enchantments": [],
+          "customName": null,
+          "customDescription": null,
+          "createdAt": 1762933582878,
+          "modifiedAt": 1762933582878
+        },
+        {
+          "instanceId": "67f65224-3b12-44e2-aa1d-bfe414747fbc",
+          "definitionId": "gold_coin",
+          "location": {
+            "type": "void"
+          },
+          "quantity": 2,
+          "durability": null,
+          "maxDurability": null,
+          "isEquipped": false,
+          "equippedSlot": null,
+          "boundTo": null,
+          "isAttuned": false,
+          "attunedTo": null,
+          "isIdentified": false,
+          "enchantments": [],
+          "customName": null,
+          "customDescription": null,
+          "createdAt": 1762933582879,
+          "modifiedAt": 1762933582879
+        },
+        {
+          "instanceId": "4cd6ec1d-6f6c-4c1a-960a-3a02e41f0044",
+          "definitionId": "bread",
+          "location": {
+            "type": "void"
+          },
+          "quantity": 4,
+          "durability": null,
+          "maxDurability": null,
+          "isEquipped": false,
+          "equippedSlot": null,
+          "boundTo": null,
+          "isAttuned": false,
+          "attunedTo": null,
+          "isIdentified": false,
+          "enchantments": [],
+          "customName": null,
+          "customDescription": null,
+          "createdAt": 1762933582880,
+          "modifiedAt": 1762933582880
+        },
+        14
+      ],
+      "capacity": 15,
+      "lastLooted": null,
+      "nextRespawn": null,
+      "createdAt": 1762933582872,
+      "modifiedAt": 1762933582880,
+      "trapState": null
+    }
+  }
+}
