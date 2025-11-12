@@ -97,6 +97,22 @@ function handlePutItem(player, item, container, definition, type, containerId, a
     return;
   }
 
+  // Check if item can be dropped (quest items, etc.)
+  if (item.isDroppable === false) {
+    // Check if container explicitly allows quest items
+    const allowsQuestItems = (type === 'room' && definition?.allowQuestItems) ||
+                             (type !== 'room' && container?.allowQuestItems);
+
+    if (!allowsQuestItems) {
+      if (item.isQuestItem) {
+        player.send('\n' + colors.error(`You can't put that quest item in a container.\n`));
+      } else {
+        player.send('\n' + colors.error(`You can't put that item in a container.\n`));
+      }
+      return;
+    }
+  }
+
   // Handle room containers
   if (type === 'room') {
     const result = putItemInRoomContainer(player, item, containerId);
@@ -230,11 +246,19 @@ function handlePutAll(player, container, definition, type, containerId, allPlaye
     return;
   }
 
-  // Filter out equipped items
-  const itemsToPut = player.inventory.filter(item => !item.isEquipped);
+  // Check if container allows quest items
+  const allowsQuestItems = (type === 'room' && definition?.allowQuestItems) ||
+                           (type !== 'room' && container?.allowQuestItems);
+
+  // Filter out equipped items and non-droppable items (unless container allows them)
+  const itemsToPut = player.inventory.filter(item => {
+    if (item.isEquipped) return false;
+    if (item.isDroppable === false && !allowsQuestItems) return false;
+    return true;
+  });
 
   if (itemsToPut.length === 0) {
-    player.send('\n' + colors.info('You have nothing to put away (all items are equipped).\n'));
+    player.send('\n' + colors.info('You have nothing to put away (all items are equipped or cannot be stored).\n'));
     return;
   }
 

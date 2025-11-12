@@ -286,6 +286,14 @@ class RoomContainerManager {
       return { success: false, message: 'Container definition not found.' };
     }
 
+    // Check if container can be closed
+    if (definition.isCloseable === false) {
+      return {
+        success: false,
+        message: `${definition.name} cannot be closed.`
+      };
+    }
+
     // Check if already closed
     if (!container.isOpen) {
       return {
@@ -325,6 +333,21 @@ class RoomContainerManager {
     const definition = this.getDefinition(container.definitionId);
     if (!definition) {
       return { success: false, message: 'Container definition not found.' };
+    }
+
+    // Check if item can be stored (quest items, non-droppable items)
+    if (item.isDroppable === false && !definition.allowQuestItems) {
+      if (item.isQuestItem) {
+        return {
+          success: false,
+          message: `Quest items cannot be stored in ${definition.name}.`
+        };
+      } else {
+        return {
+          success: false,
+          message: `${item.name || 'That item'} cannot be stored in containers.`
+        };
+      }
     }
 
     // Check if container is open

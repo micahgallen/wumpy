@@ -85,7 +85,12 @@ Location: `world/<realm>/objects/<container_name>.js`
 
   // State Properties
   "isOpen": false,               // Starts closed
+  "isCloseable": true,           // If false, container cannot be closed (e.g., open shelves, racks)
   "capacity": 20,                // Number of item slots
+
+  // Storage Restrictions
+  "allowQuestItems": false,      // If true, allows storing quest items (isDroppable: false)
+                                  // Default: false - quest items cannot be stored
 
   // Display Properties
   "hideContainerStatus": false,  // If true, hides "(open/locked)" indicators and status info
@@ -742,6 +747,10 @@ See `/world/sesame_street/objects/treasure_chest_example.js` (created separately
 - Sanitize loot configuration
 - Rate-limit container interactions (prevent spam open/close)
 - Validate key items before unlocking
+- **Quest Item Protection**: Quest items (isDroppable: false) cannot be stored in containers by default
+  - Use `allowQuestItems: true` only for quest-specific storage containers
+  - Prevents accidental loss of critical quest items
+  - Enforced at both command level and RoomContainerManager level
 
 ## Future Enhancements
 

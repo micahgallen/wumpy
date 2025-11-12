@@ -10,6 +10,7 @@
   "isExaminable": true,
 
   "isOpen": true,
+  "isCloseable": false,
   "capacity": 20,
   "hideContainerStatus": true,
 
