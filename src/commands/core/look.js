@@ -49,7 +49,27 @@ function execute(player, args, context) {
 
     const room = world.getRoom(player.currentRoom);
 
-    // Check items FIRST (new item system) - higher priority
+    // Check room containers FIRST (fixed containers - higher priority)
+    if (room) {
+      const RoomContainerManager = require('../../systems/containers/RoomContainerManager');
+      const containers = RoomContainerManager.getContainersByRoom(room.id);
+
+      for (const container of containers) {
+        const definition = RoomContainerManager.getDefinition(container.definitionId);
+        if (!definition) continue;
+
+        // Check keywords
+        if (definition.keywords && definition.keywords.some(keyword => keyword.toLowerCase() === targetName)) {
+          const examineCommand = registry.getCommand('examine');
+          if (examineCommand) {
+            examineCommand.execute(player, args, context);
+          }
+          return;
+        }
+      }
+    }
+
+    // Check items (new item system) - higher priority
     if (room && room.items) {
       const ItemRegistry = require('../../items/ItemRegistry');
       for (const itemData of room.items) {

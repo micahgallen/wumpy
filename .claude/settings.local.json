@@ -21,7 +21,9 @@
       "Bash(node_modules/.bin/mocha:*)",
       "Bash(pkill:*)",
       "Bash(cat:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(git -C /home/micah/wumpy diff /home/micah/wumpy/src/systems/containers/RoomContainerManager.js)",
+      "Bash(killall:*)"
     ],
     "deny": [],
     "ask": []

@@ -100,8 +100,14 @@ registry.registerCommand(valueCommand);
 // Container commands
 const openCommand = require('./commands/containers/open');
 const closeCommand = require('./commands/containers/close');
+const putCommand = require('./commands/containers/put');
+const lockCommand = require('./commands/containers/lock');
+const unlockCommand = require('./commands/containers/unlock');
 registry.registerCommand(openCommand);
 registry.registerCommand(closeCommand);
+registry.registerCommand(putCommand);
+registry.registerCommand(lockCommand);
+registry.registerCommand(unlockCommand);
 
 // Admin commands
 const givemoneyCommand = require('./commands/admin/givemoney');

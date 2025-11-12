@@ -13,5 +13,6 @@
     }
   ],
   "npcs": [],
-  "objects": ["equipment_rack", "rules_board", "nervous_stool"]
+  "objects": ["rules_board", "nervous_stool"],
+  "containers": ["equipment_rack"]
 }

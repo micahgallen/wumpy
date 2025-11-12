@@ -20,6 +20,7 @@ const healthPotion = require('./consumables/health_potion');
 const woodenPracticeSword = require('./equipment/wooden_practice_sword');
 const mysteriousAmulet = require('./equipment/mysterious_amulet');
 const leatherCap = require('./equipment/leather_cap');
+const rustyDagger = require('./equipment/rusty_dagger');
 
 /**
  * Load all Sesame Street items into the registry
@@ -38,7 +39,8 @@ function loadSesameStreetItems() {
     // Equipment
     woodenPracticeSword,
     mysteriousAmulet,
-    leatherCap
+    leatherCap,
+    rustyDagger
   ];
 
   let successCount = 0;

@@ -86,6 +86,12 @@ function executeGetFromContainer(player, args, context, fromIndex) {
     return;
   }
 
+  // Check if room container is open
+  if (container._isRoomContainer && !container.isOpen) {
+    player.send('\n' + colors.error(`${container.name} is closed. You must open it first.\n`));
+    return;
+  }
+
   // Check player corpse ownership
   if (container.containerType === 'player_corpse') {
     const CorpseManager = require('../../systems/corpses/CorpseManager');
@@ -319,6 +325,12 @@ function getAllFromContainer(player, containerArgs, context) {
     return;
   }
 
+  // Check if room container is open
+  if (container._isRoomContainer && !container.isOpen) {
+    player.send('\n' + colors.error(`${container.name} is closed. You must open it first.\n`));
+    return;
+  }
+
   // Check player corpse ownership
   if (container.containerType === 'player_corpse') {
     const CorpseManager = require('../../systems/corpses/CorpseManager');
@@ -445,31 +457,67 @@ function getAllFromContainer(player, containerArgs, context) {
 
 /**
  * Find a container (like corpse) in room by keywords
+ * Checks both portable containers (room.items) and room containers (fixed)
  * @param {Object} room - Room object
  * @param {string} keyword - Keyword to search for
  * @returns {Object|null} Container object or null
  */
 function findContainerInRoom(room, keyword) {
-  if (!room.items || room.items.length === 0) {
-    return null;
-  }
-
   const normalizedKeyword = keyword.toLowerCase();
 
-  for (const item of room.items) {
-    // Check if item is a container (has inventory property)
-    if (!item.inventory) {
-      continue;
-    }
+  // Check room.items first (portable containers - corpses, bags, etc.)
+  if (room.items && room.items.length > 0) {
+    for (const item of room.items) {
+      // Check if item is a container (has inventory property)
+      if (!item.inventory) {
+        continue;
+      }
 
-    // Check item name
-    if (item.name && item.name.toLowerCase().includes(normalizedKeyword)) {
-      return item;
+      // Check item name
+      if (item.name && item.name.toLowerCase().includes(normalizedKeyword)) {
+        return item;
+      }
+
+      // Check keywords
+      if (item.keywords && item.keywords.some(kw => kw.toLowerCase() === normalizedKeyword || kw.toLowerCase().includes(normalizedKeyword))) {
+        return item;
+      }
+    }
+  }
+
+  // Check room containers (fixed containers)
+  const RoomContainerManager = require('../../systems/containers/RoomContainerManager');
+  const containers = RoomContainerManager.getContainersByRoom(room.id);
+
+  for (const container of containers) {
+    const definition = RoomContainerManager.getDefinition(container.definitionId);
+    if (!definition) continue;
+
+    // Check name
+    if (definition.name && definition.name.toLowerCase().includes(normalizedKeyword)) {
+      // Return a container object that looks like a portable container for compatibility
+      // but has the definition attached so we know what it is
+      return {
+        ...container,
+        name: definition.name,
+        keywords: definition.keywords,
+        _isRoomContainer: true,
+        _definition: definition
+      };
     }
 
     // Check keywords
-    if (item.keywords && item.keywords.some(kw => kw.toLowerCase() === normalizedKeyword || kw.toLowerCase().includes(normalizedKeyword))) {
-      return item;
+    if (definition.keywords && definition.keywords.some(kw =>
+      kw.toLowerCase() === normalizedKeyword ||
+      kw.toLowerCase().includes(normalizedKeyword)
+    )) {
+      return {
+        ...container,
+        name: definition.name,
+        keywords: definition.keywords,
+        _isRoomContainer: true,
+        _definition: definition
+      };
     }
   }
 

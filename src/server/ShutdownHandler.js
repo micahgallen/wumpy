@@ -45,9 +45,13 @@ class ShutdownHandler {
       // Stop ambient dialogue timers
       this.stopAmbientDialogue();
 
+      // Stop periodic state saving
+      this.stopStateSaving();
+
       // Save critical state synchronously
       this.saveTimers();
       this.saveCorpses();
+      this.saveContainers();
 
       // Save shops asynchronously but wait for completion
       this.saveShops()
@@ -75,6 +79,19 @@ class ShutdownHandler {
       logger.log('Stopped ambient dialogue system');
     } catch (err) {
       logger.error(`Failed to stop ambient dialogue: ${err.message}`);
+    }
+  }
+
+  /**
+   * Stop periodic state saving
+   */
+  stopStateSaving() {
+    try {
+      const StateManager = require('./StateManager');
+      StateManager.stop();
+      logger.log('Stopped periodic state saving');
+    } catch (err) {
+      logger.error(`Failed to stop state saving: ${err.message}`);
     }
   }
 
@@ -123,6 +140,20 @@ class ShutdownHandler {
       logger.log(`Saved ${totalCorpses} corpses (${npcCount} NPC, ${playerCount} player) to ${corpsesPath}`);
     } catch (err) {
       logger.error(`Failed to save corpse state: ${err.message}`);
+    }
+  }
+
+  /**
+   * Save container state synchronously
+   */
+  saveContainers() {
+    const RoomContainerManager = require('../systems/containers/RoomContainerManager');
+    const dataDir = this.components?.dataDir || path.join(__dirname, '../../data');
+    const containersPath = path.join(dataDir, 'containers.json');
+
+    const containersSaved = RoomContainerManager.saveState(containersPath);
+    if (containersSaved) {
+      logger.log('Saved container state');
     }
   }
 

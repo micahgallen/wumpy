@@ -8,6 +8,7 @@ const AmbientDialogueManager = require('../systems/ambient/AmbientDialogueManage
 const SessionManager = require('./SessionManager');
 const AuthenticationFlow = require('./AuthenticationFlow');
 const ConnectionHandler = require('./ConnectionHandler');
+const StateManager = require('./StateManager');
 const logger = require('../logger');
 const { bootstrapAdmin, createBanEnforcementHook } = require('../admin/bootstrap');
 const fs = require('fs');
@@ -48,6 +49,7 @@ class ServerBootstrap {
 
     // Phase 4: Restore persisted state
     ServerBootstrap.restoreCorpseState(components.world, components.playerDB, dataDir);
+    ServerBootstrap.restoreContainerState(components.world, dataDir);
 
     // Phase 5: Perform startup respawn check
     ServerBootstrap.checkRespawns();
@@ -85,6 +87,11 @@ class ServerBootstrap {
 
     // Store dataDir for use in shutdown handler
     components.dataDir = dataDir;
+
+    // Phase 11: Start periodic state saving
+    StateManager.start(dataDir);
+    components.stateManager = StateManager;
+    logger.log('StateManager started (auto-save every 60s).');
 
     return components;
   }
@@ -188,6 +195,45 @@ class ServerBootstrap {
     } catch (err) {
       logger.error(`Failed to restore corpse state: ${err.message}`);
       logger.log('Starting with fresh corpse state');
+    }
+  }
+
+  /**
+   * Restore container state from previous session (Phase 4)
+   * @param {World} world - World instance
+   * @param {string} dataDir - Data directory path
+   */
+  static restoreContainerState(world, dataDir) {
+    const containersPath = path.join(dataDir, 'containers.json');
+
+    logger.log('Restoring container state...');
+
+    try {
+      const RoomContainerManager = require('../systems/containers/RoomContainerManager');
+
+      // Check if RoomContainerManager was initialized
+      if (!RoomContainerManager.world) {
+        logger.error('Cannot restore containers: RoomContainerManager not initialized');
+        return;
+      }
+
+      const result = RoomContainerManager.loadState(containersPath);
+
+      if (result.restoredCount > 0) {
+        logger.log(`Restored ${result.restoredCount} containers`);
+      }
+      if (result.expiredCount > 0) {
+        logger.log(`${result.expiredCount} containers respawned due to expired timers`);
+      }
+      if (result.duplicatesRemoved > 0) {
+        logger.log(`${result.duplicatesRemoved} duplicate containers removed`);
+      }
+      if (result.errors.length > 0) {
+        logger.warn(`${result.errors.length} containers failed to restore`);
+      }
+    } catch (err) {
+      logger.error(`Failed to restore container state: ${err.message}`);
+      logger.log('Starting with fresh container state');
     }
   }
 

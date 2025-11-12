@@ -22,5 +22,6 @@
   ],
   "npcs": ["big_bird", "bert_fire_safety", "ernie_relaxed", "cookie_monster_helpful"],
   "objects": ["trashcan", "test_cookie", "texan_birthday_cake"],
-  "items": ["chocolate_chip_cookie", "birdseed"]
+  "items": ["chocolate_chip_cookie", "birdseed"],
+  "containers": ["treasure_chest_sesame_plaza"]
 }

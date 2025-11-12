@@ -89,5 +89,10 @@ Work logs capture the **development journey**. Wiki pages capture the **current 
 
 - [2025-11-08: Attunement & Identify](2025-11/2025-11-08-attunement-identify.md) - Implemented magical item identification and attunement system
 - [2025-11-09: Corpse System Phase 1](2025-11/2025-11-09-corpse-system-phase1.md) - Core infrastructure for corpse management with TimerManager and CorpseManager
+- [2025-11-10: Documentation Index Reconciliation](2025-11/2025-11-10-documentation-index-reconciliation.md) - Comprehensive documentation reorganization
+- [2025-11-10: Phase 3 Communication Migration](2025-11/2025-11-10-phase3-fix-communication-migration.md) - Migrated all communication commands to use getDisplayName()
+- [2025-11-10: Player Description Implementation](2025-11/player-description-implementation.md) - Added dynamic player description system
+- [2025-11-11: Container System Phase 1 Complete](2025-11/2025-11-11-container-system-phase1-completion.md) - Complete Phase 1 MVP with code review fixes and comprehensive testing
+- [2025-11-12: Container System Phase 2 Complete](2025-11/2025-11-12-container-system-phase2-completion.md) - Loot system integration with code review (9.5/10) and bug fixes, 67 tests passing
 
 More logs will be added as work continues...
