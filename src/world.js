@@ -12,6 +12,7 @@ class World {
     this.rooms = {};
     this.npcs = {};
     this.objects = {};
+    this.containers = {}; // Room container definitions
     this.load();
   }
 
@@ -21,13 +22,16 @@ class World {
   load() {
     try {
       this.loadRealm('sesame_street');
-      console.log(`Loaded ${Object.keys(this.rooms).length} rooms, ${Object.keys(this.npcs).length} NPCs, ${Object.keys(this.objects).length} objects.`);
+      console.log(`Loaded ${Object.keys(this.rooms).length} rooms, ${Object.keys(this.npcs).length} NPCs, ${Object.keys(this.objects).length} objects, ${Object.keys(this.containers).length} room containers.`);
 
       // Initialize items in all rooms
       this.initializeRoomItems();
 
       // Set home room for each NPC (for respawning)
       this.initializeNPCHomeRooms();
+
+      // Initialize room containers
+      this.initializeRoomContainers();
 
       // Store a deep copy of the initial room states for respawning
       this.initialRoomsState = JSON.parse(JSON.stringify(this.rooms));
@@ -55,8 +59,11 @@ class World {
     // Load NPCs
     this.loadDirectory(path.join(realmPath, 'npcs'), this.npcs);
 
-    // Load objects
+    // Load objects (including room container definitions)
     this.loadDirectory(path.join(realmPath, 'objects'), this.objects);
+
+    // Filter and register room container definitions
+    this.loadContainerDefinitions();
   }
 
   /**
@@ -163,6 +170,56 @@ class World {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Load container definitions from objects
+   * Filters objects that are marked as room containers and registers them
+   */
+  loadContainerDefinitions() {
+    const RoomContainerManager = require('./systems/containers/RoomContainerManager');
+
+    for (const objId in this.objects) {
+      const obj = this.objects[objId];
+
+      // Check if this object is a room container
+      if (obj.isRoomContainer || obj.containerType === 'room_container') {
+        this.containers[objId] = obj;
+        RoomContainerManager.registerDefinition(obj);
+      }
+    }
+  }
+
+  /**
+   * Initialize room containers
+   * Creates container instances for all rooms that have containers
+   */
+  initializeRoomContainers() {
+    const RoomContainerManager = require('./systems/containers/RoomContainerManager');
+    RoomContainerManager.initialize(this);
+
+    let totalContainers = 0;
+
+    for (const roomId in this.rooms) {
+      const room = this.rooms[roomId];
+
+      // Skip if no containers defined
+      if (!room.containers || room.containers.length === 0) {
+        continue;
+      }
+
+      // Create container instances for this room
+      for (const containerId of room.containers) {
+        const container = RoomContainerManager.createContainerInstance(containerId, roomId);
+        if (container) {
+          totalContainers++;
+        }
+      }
+    }
+
+    if (totalContainers > 0) {
+      console.log(`Initialized ${totalContainers} room container instances`);
     }
   }
 
@@ -297,6 +354,30 @@ class World {
           itemDisplay += ' here.';
           output.push(itemDisplay);
         }
+      }
+    }
+
+    // Room containers (fixed containers)
+    const RoomContainerManager = require('./systems/containers/RoomContainerManager');
+    const containers = RoomContainerManager.getContainersByRoom(roomId);
+
+    if (containers && containers.length > 0) {
+      output.push('');
+      for (const container of containers) {
+        const definition = RoomContainerManager.getDefinition(container.definitionId);
+        if (!definition) continue;
+
+        let display = 'You see ' + colors.objectName(definition.name);
+
+        // Show state indicators
+        if (container.isLocked) {
+          display += colors.dim(' (locked)');
+        } else if (container.isOpen) {
+          display += colors.dim(' (open)');
+        }
+
+        display += ' here.';
+        output.push(display);
       }
     }
 

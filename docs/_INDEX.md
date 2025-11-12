@@ -92,6 +92,7 @@ Primary source for understanding systems and mechanics. **Under Construction.**
 - [Item System](wiki/systems/item-system.md) - Items, equipment, weapons, armor ✓
 - [Corpse System](wiki/systems/corpse-system.md) - Corpse lifecycle, decay, respawn ✓
 - [Player Description System](wiki/systems/player-description.md) - Dynamic player descriptions, modifiers, level tiers ✓
+- **[Container System](systems/containers/INDEX.md)** - Room containers (Phase 1 COMPLETE 2025-11-11) ✓
 - Inventory System - Being consolidated
 - Admin System - Being consolidated
 
@@ -150,6 +151,7 @@ Chronological session logs (append-only).
 - [Work Logs Index](work-logs/README.md)
 - [2025-11](work-logs/2025-11/) - November 2025 sessions
   - [Player Description Implementation](work-logs/2025-11/player-description-implementation.md) - Complete system implementation ✓
+  - [Container System Phase 1 Complete](work-logs/2025-11/2025-11-11-container-system-phase1-completion.md) - MVP with code review fixes ✓
 
 ### Specs
 
@@ -186,6 +188,7 @@ Historical docs (rarely needed).
 **Still Active:**
 - `/docs/library/` - Practical guides and topical documentation
 - `/docs/systems/` - Deep technical design docs by subsystem
+  - **`/docs/systems/containers/`** - Room container system (Phase 1 complete) ✓
 - `/docs/architecture/` - Architecture documentation and diagrams
 - `/docs/proposals/` - Feature proposals and design drafts
 - `/docs/design/` - Design documents

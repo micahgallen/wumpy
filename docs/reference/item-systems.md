@@ -115,9 +115,51 @@ Quick lookup for item-related systems: attunement, binding, encumbrance, profici
 
 **Note:** The `offHandDamageMultiplier: 0.5` is used as a flag in combat code to indicate off-hand attacks shouldn't add ability modifier (D&D 5e standard).
 
+## Container Systems
+
+| Container Type | Storage Location | Pickupable | Persistent | Example |
+|---------------|-----------------|------------|-----------|---------|
+| Room Container | `room.containers[]` | No | Yes | Treasure chest, barrel |
+| Portable Container | `room.items[]` | Yes | Yes | Corpse, bag |
+| Legacy Object | `room.objects[]` | No | No | Lamppost, bench |
+
+**Room Containers:**
+- Fixed in place (cannot be picked up)
+- Can be opened, closed, locked, unlocked
+- Spawn and respawn loot automatically
+- State persists across server restarts (Phase 3)
+
+**Loot Configuration:**
+```javascript
+"lootConfig": {
+  "spawnOnInit": true,           // Spawn loot on container creation
+  "respawnOnEmpty": true,         // Auto-respawn when empty
+  "respawnDelay": 600000,         // 10 minutes in milliseconds
+  "respawnMode": "empty",         // "empty" | "partial" | "full"
+  "maxItems": 10,                 // Limit total items spawned
+
+  "guaranteedItems": [
+    { "itemId": "health_potion", "quantity": 2, "chance": 100 },
+    { "itemId": "magic_scroll", "quantity": 1, "chance": 75 }
+  ],
+
+  "randomItems": {
+    "count": 3,                   // Number of random items
+    "lootTable": "common_loot",   // Loot table category
+    "level": 1                    // Area level for gating
+  }
+}
+```
+
+**For details:** See [Room Container System](../systems/containers/INDEX.md)
+
+**Phase 1 Complete:** Basic open/close/get functionality (2025-11-11)
+**Phase 2 Complete:** Loot spawning and respawning system (2025-11-12)
+
 ## See Also
 
 - [Item Types](item-types.md) - Item types and core properties
 - [Item Combat](item-combat.md) - Weapon and armor properties
 - [Combat Stats](combat-stats.md) - Combat calculations and proficiency
 - [Item Loot](item-loot.md) - Spawn tags and code reference
+- [Container Systems](../systems/containers/INDEX.md) - Room container documentation

@@ -36,7 +36,79 @@ function execute(player, args, context) {
     }
   }
 
-  // Search items in room FIRST (new item system - higher priority than NPCs/objects)
+  // Search room containers FIRST (fixed containers - higher priority)
+  const RoomContainerManager = require('../../systems/containers/RoomContainerManager');
+  const containers = RoomContainerManager.getContainersByRoom(room.id);
+
+  for (const container of containers) {
+    const definition = RoomContainerManager.getDefinition(container.definitionId);
+    if (!definition) continue;
+
+    // Check keywords
+    if (definition.keywords && definition.keywords.some(keyword => keyword.toLowerCase() === target)) {
+      let output = [];
+      output.push(colors.objectName(definition.name));
+      output.push(colors.line(colors.visibleLength(definition.name), '='));
+
+      // Description
+      if (definition.description) {
+        const wrappedDesc = colors.wrap(definition.description, 80);
+        output.push(colors.colorize(wrappedDesc, colors.MUD_COLORS.OBJECT));
+      }
+
+      output.push('');
+
+      // Container type and capacity
+      output.push(colors.dim(`Type: Container (${container.capacity} slots)`));
+
+      // Lock status
+      if (container.isLocked) {
+        output.push(colors.warning('Status: LOCKED'));
+        if (definition.keyItemId) {
+          output.push(colors.dim(`Required key: ${definition.keyItemId}`));
+        }
+      } else if (container.isOpen) {
+        output.push(colors.success('Status: OPEN'));
+      } else {
+        output.push(colors.info('Status: CLOSED'));
+      }
+
+      // Contents (only show if open)
+      if (container.isOpen) {
+        if (container.inventory && container.inventory.length > 0) {
+          output.push('');
+          output.push(colors.info('Contents:'));
+          const ItemRegistry = require('../../items/ItemRegistry');
+
+          for (const item of container.inventory) {
+            const itemDef = ItemRegistry.getItem(item.definitionId);
+            if (itemDef) {
+              let itemLine = '  - ' + itemDef.name;
+              if (item.quantity > 1) {
+                itemLine += colors.dim(` x${item.quantity}`);
+              }
+              output.push(itemLine);
+            }
+          }
+        } else {
+          output.push('');
+          output.push(colors.dim('The container is empty.'));
+        }
+      }
+
+      // Respawn info (Phase 2 placeholder)
+      if (definition.lootConfig && definition.lootConfig.respawnOnEmpty) {
+        const respawnMinutes = Math.floor(definition.lootConfig.respawnDelay / 60000);
+        output.push('');
+        output.push(colors.dim(`This container refills every ${respawnMinutes} minutes.`));
+      }
+
+      player.send('\n' + output.join('\n') + '\n');
+      return;
+    }
+  }
+
+  // Search items in room (new item system - higher priority than NPCs/objects)
   if (room.items && room.items.length > 0) {
     const ItemRegistry = require('../../items/ItemRegistry');
     for (const itemData of room.items) {
