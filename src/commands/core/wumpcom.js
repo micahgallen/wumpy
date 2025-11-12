@@ -43,11 +43,11 @@ function execute(player, args, context) {
 
 module.exports = {
   name: 'wumpcom',
-  aliases: [],
+  aliases: ['chat'],
   execute,
   help: {
     description: 'Send a message to all players via global chat',
-    usage: 'wumpcom <message>',
-    examples: ['wumpcom Hello everyone!', 'wumpcom Anyone up for a quest?']
+    usage: 'wumpcom <message> (or "chat <message>")',
+    examples: ['wumpcom Hello everyone!', 'chat Anyone up for a quest?']
   }
 };
