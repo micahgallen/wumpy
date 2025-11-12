@@ -1,7 +1,7 @@
 {
   "id": "arena_main",
   "name": "The Wumpie Colosseum",
-  "description": "Welcome to the Thunderdome, but for significantly rounder participants. The arena floor is a circle of packed dirt that's seen more action than a soap opera writers' room. Suspicious stains pattern the ground in abstract art that would make Jackson Pollock uncomfortable. Wooden benches surround the fighting pit - currently empty, because apparently watching other people's poor decisions isn't as popular as making your own. A weapons rack displays various implements of percussive persuasion, and a betting board tracks victories with the kind of detail usually reserved for tax audits. In the center of it all stands the Arena Champion, looking like someone who's gotten very good at their job and slightly concerned about what that says about them as a person.",
+  "description": "Welcome to the Thunderdome, but for significantly rounder participants. The arena floor is a circle of packed dirt that's seen more action than a soap opera writers' room. Suspicious stains pattern the ground in abstract art that would make Jackson Pollock uncomfortable. Wooden benches surround the fighting pit - currently empty, because apparently watching other people's poor decisions isn't as popular as making your own. A betting board tracks victories with the kind of detail usually reserved for tax audits. In the center of it all stands the Arena Champion, looking like someone who's gotten very good at their job and slightly concerned about what that says about them as a person.",
   "exits": [
     {
       "direction": "north",
@@ -9,5 +9,5 @@
     }
   ],
   "npcs": ["arena_champion"],
-  "objects": ["arena_weapons_rack", "betting_board", "bloodstains", "arena_benches"]
+  "objects": ["betting_board", "bloodstains", "arena_benches"]
 }

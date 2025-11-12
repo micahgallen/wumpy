@@ -75,8 +75,7 @@ function execute(player, args, context) {
   }
 
   // Find the item in player's inventory
-  const inventoryMgr = new InventoryManager();
-  const item = inventoryMgr.findItemByKeyword(player, itemKeyword);
+  const item = InventoryManager.findItemByKeyword(player, itemKeyword);
 
   if (!item) {
     player.send('\n' + colors.error(`You don't have "${args.slice(0, inIndex).join(' ')}".\n`));
@@ -107,8 +106,7 @@ function handlePutItem(player, item, container, definition, type, containerId, a
     }
 
     // Remove from player inventory
-    const inventoryMgr = new InventoryManager();
-    const removed = inventoryMgr.removeItem(player, item.instanceId);
+    const removed = InventoryManager.removeItem(player, item.instanceId);
 
     if (!removed) {
       // Rollback - remove from container
@@ -171,8 +169,7 @@ function handlePutItem(player, item, container, definition, type, containerId, a
     }
 
     // Remove from player inventory
-    const inventoryMgr = new InventoryManager();
-    const removed = inventoryMgr.removeItem(player, item.instanceId);
+    const removed = InventoryManager.removeItem(player, item.instanceId);
 
     if (!removed) {
       // Rollback - remove from container
@@ -255,8 +252,7 @@ function handlePutAll(player, container, definition, type, containerId, allPlaye
 
     if (result.success) {
       // Remove from player inventory
-      const inventoryMgr = new InventoryManager();
-      const removed = inventoryMgr.removeItem(player, item.instanceId);
+      const removed = InventoryManager.removeItem(player, item.instanceId);
       if (removed) {
         putCount++;
       }

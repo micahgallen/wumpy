@@ -664,13 +664,30 @@ class RoomContainerManager {
     };
 
     for (const [containerId, container] of this.containers) {
+      // Validate and filter inventory to prevent corruption
+      const validInventory = container.inventory.filter((item, index) => {
+        if (!item || typeof item !== 'object') {
+          logger.warn(`Filtering out invalid item at index ${index} in container ${containerId}: ${JSON.stringify(item)}`);
+          return false;
+        }
+        if (!item.definitionId || !item.instanceId) {
+          logger.warn(`Filtering out malformed item at index ${index} in container ${containerId}: missing definitionId or instanceId`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validInventory.length !== container.inventory.length) {
+        logger.error(`Container ${containerId} had ${container.inventory.length - validInventory.length} corrupt items removed during export`);
+      }
+
       state.containers[containerId] = {
         id: containerId,
         definitionId: container.definitionId,
         roomId: container.roomId,
         isOpen: container.isOpen,
         isLocked: container.isLocked,
-        inventory: container.inventory,
+        inventory: validInventory,
         capacity: container.capacity,
         lastLooted: container.lastLooted,
         nextRespawn: container.nextRespawn,
@@ -694,10 +711,11 @@ class RoomContainerManager {
       return { restoredCount: 0, expiredCount: 0, errors: [] };
     }
 
-    // Clear existing containers to prevent duplicates on restore
-    // (World initialization creates fresh containers, we replace them with saved state)
-    this.containers.clear();
-    this.containersByRoom.clear();
+    // Track which containers exist in saved state
+    const savedContainerIds = new Set();
+
+    // DON'T clear existing containers - new containers may have been created
+    // We'll update existing ones and keep new ones
 
     const now = Date.now();
     let restoredCount = 0;
@@ -725,6 +743,24 @@ class RoomContainerManager {
           continue;
         }
 
+        // Validate and filter inventory to prevent corruption
+        const rawInventory = containerData.inventory || [];
+        const validInventory = rawInventory.filter((item, index) => {
+          if (!item || typeof item !== 'object') {
+            logger.warn(`Filtering out invalid item at index ${index} in container ${containerId} during restore: ${JSON.stringify(item)}`);
+            return false;
+          }
+          if (!item.definitionId || !item.instanceId) {
+            logger.warn(`Filtering out malformed item at index ${index} in container ${containerId} during restore: missing definitionId or instanceId`);
+            return false;
+          }
+          return true;
+        });
+
+        if (validInventory.length !== rawInventory.length) {
+          logger.error(`Container ${containerId} had ${rawInventory.length - validInventory.length} corrupt items removed during restore`);
+        }
+
         // Restore container to memory
         const container = {
           id: containerData.id,
@@ -732,7 +768,7 @@ class RoomContainerManager {
           roomId: containerData.roomId,
           isOpen: containerData.isOpen !== undefined ? containerData.isOpen : false,
           isLocked: containerData.isLocked !== undefined ? containerData.isLocked : false,
-          inventory: containerData.inventory || [],
+          inventory: validInventory,
           capacity: containerData.capacity || definition.capacity || this.getDefaultCapacity(definition.containerType),
           lastLooted: containerData.lastLooted || null,
           nextRespawn: containerData.nextRespawn || null,
@@ -741,8 +777,20 @@ class RoomContainerManager {
           trapState: containerData.trapState || null
         };
 
-        // Store in manager
+        // Mark as saved container
+        savedContainerIds.add(containerId);
+
+        // Store in manager (overwrites if already exists)
         this.containers.set(containerId, container);
+
+        // Rebuild room index for this container
+        // First, remove from old room index if exists
+        for (const [roomId, roomContainers] of this.containersByRoom) {
+          const idx = roomContainers.findIndex(c => c.id === containerId);
+          if (idx !== -1) {
+            roomContainers.splice(idx, 1);
+          }
+        }
 
         // Index by room
         if (!this.containersByRoom.has(container.roomId)) {
@@ -788,11 +836,20 @@ class RoomContainerManager {
       }
     }
 
-    logger.log(`Restored ${restoredCount} containers, ${expiredCount} respawned immediately, ${errors.length} errors`);
+    // Count new containers (ones not in saved state)
+    let newContainerCount = 0;
+    for (const [containerId] of this.containers) {
+      if (!savedContainerIds.has(containerId)) {
+        newContainerCount++;
+      }
+    }
+
+    logger.log(`Restored ${restoredCount} containers, ${expiredCount} respawned immediately, ${newContainerCount} new containers created, ${errors.length} errors`);
 
     return {
       restoredCount,
       expiredCount,
+      newContainerCount,
       errors,
       downtime
     };

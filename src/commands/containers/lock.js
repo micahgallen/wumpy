@@ -93,11 +93,10 @@ function execute(player, args, context) {
 
   // Find the required key
   let keyItem = null;
-  const inventoryMgr = new InventoryManager();
 
   if (keyKeyword) {
     // Player specified a key - find it
-    keyItem = inventoryMgr.findItemByKeyword(player, keyKeyword);
+    keyItem = InventoryManager.findItemByKeyword(player, keyKeyword);
 
     if (!keyItem) {
       player.send('\n' + colors.error(`You don't have "${keyKeyword}".\n`));
