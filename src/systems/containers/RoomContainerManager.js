@@ -739,11 +739,17 @@ class RoomContainerManager {
         // Store in manager
         this.containers.set(containerId, container);
 
-        // Index by room
+        // Index by room (only if not already present)
         if (!this.containersByRoom.has(container.roomId)) {
           this.containersByRoom.set(container.roomId, []);
         }
-        this.containersByRoom.get(container.roomId).push(container);
+
+        // Check if container already in room array (avoid duplicates during restore)
+        const roomContainers = this.containersByRoom.get(container.roomId);
+        const alreadyExists = roomContainers.some(c => c.id === containerId);
+        if (!alreadyExists) {
+          roomContainers.push(container);
+        }
 
         // Handle respawn timer restoration
         if (container.nextRespawn && definition.lootConfig?.respawnOnEmpty) {
