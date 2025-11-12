@@ -675,7 +675,8 @@ class RoomContainerManager {
         lastLooted: container.lastLooted,
         nextRespawn: container.nextRespawn,
         createdAt: container.createdAt,
-        modifiedAt: container.modifiedAt
+        modifiedAt: container.modifiedAt,
+        trapState: container.trapState || null
       };
     }
 
@@ -731,7 +732,8 @@ class RoomContainerManager {
           lastLooted: containerData.lastLooted || null,
           nextRespawn: containerData.nextRespawn || null,
           createdAt: containerData.createdAt || now,
-          modifiedAt: containerData.modifiedAt || now
+          modifiedAt: containerData.modifiedAt || now,
+          trapState: containerData.trapState || null
         };
 
         // Store in manager
@@ -836,6 +838,215 @@ class RoomContainerManager {
       logger.error(`Failed to load container state: ${error.message}`);
       return { restoredCount: 0, expiredCount: 0, errors: [{ reason: error.message }] };
     }
+  }
+
+  /**
+   * Unlock a container
+   * @param {string} containerId - Container ID
+   * @param {Object} player - Player object
+   * @param {Object} keyItem - Key item from player inventory
+   * @returns {Object} {success: boolean, message: string}
+   */
+  unlockContainer(containerId, player, keyItem) {
+    const container = this.getContainer(containerId);
+    if (!container) {
+      return { success: false, message: 'Container not found.' };
+    }
+
+    const definition = this.getDefinition(container.definitionId);
+    if (!definition) {
+      return { success: false, message: 'Container definition not found.' };
+    }
+
+    // Check if already unlocked
+    if (!container.isLocked) {
+      return {
+        success: false,
+        message: `${definition.name} is already unlocked.`
+      };
+    }
+
+    // Validate key item
+    if (!keyItem) {
+      return {
+        success: false,
+        message: 'No key provided.'
+      };
+    }
+
+    // Check if key matches
+    if (definition.keyItemId && keyItem.definitionId !== definition.keyItemId) {
+      return {
+        success: false,
+        message: `${keyItem.name} doesn't fit the lock.`
+      };
+    }
+
+    // Unlock the container
+    container.isLocked = false;
+    container.modifiedAt = Date.now();
+
+    // Get custom message or use default
+    const message = definition.onUnlock?.message || `You unlock ${definition.name} with ${keyItem.name}.`;
+
+    logger.log(`Player ${player?.username || 'unknown'} unlocked container ${containerId}`);
+
+    return {
+      success: true,
+      message: message,
+      container: container
+    };
+  }
+
+  /**
+   * Lock a container
+   * @param {string} containerId - Container ID
+   * @param {Object} player - Player object
+   * @param {Object} keyItem - Key item from player inventory
+   * @returns {Object} {success: boolean, message: string}
+   */
+  lockContainer(containerId, player, keyItem) {
+    const container = this.getContainer(containerId);
+    if (!container) {
+      return { success: false, message: 'Container not found.' };
+    }
+
+    const definition = this.getDefinition(container.definitionId);
+    if (!definition) {
+      return { success: false, message: 'Container definition not found.' };
+    }
+
+    // Check if already locked
+    if (container.isLocked) {
+      return {
+        success: false,
+        message: `${definition.name} is already locked.`
+      };
+    }
+
+    // Check if container is open
+    if (container.isOpen) {
+      return {
+        success: false,
+        message: `You must close ${definition.name} before locking it.`
+      };
+    }
+
+    // Validate key item
+    if (!keyItem) {
+      return {
+        success: false,
+        message: 'No key provided.'
+      };
+    }
+
+    // Check if key matches
+    if (definition.keyItemId && keyItem.definitionId !== definition.keyItemId) {
+      return {
+        success: false,
+        message: `${keyItem.name} doesn't fit the lock.`
+      };
+    }
+
+    // Lock the container
+    container.isLocked = true;
+    container.modifiedAt = Date.now();
+
+    // Get custom message or use default
+    const message = definition.onLock?.message || `You lock ${definition.name} with ${keyItem.name}.`;
+
+    logger.log(`Player ${player?.username || 'unknown'} locked container ${containerId}`);
+
+    return {
+      success: true,
+      message: message,
+      container: container
+    };
+  }
+
+  /**
+   * Trigger a trap on a container
+   * @param {string} containerId - Container ID
+   * @param {Object} player - Player who triggered the trap
+   * @returns {Object} {success: boolean, trap: Object, message: string}
+   */
+  triggerTrap(containerId, player) {
+    const container = this.getContainer(containerId);
+    if (!container) {
+      return { success: false, message: 'Container not found.' };
+    }
+
+    const definition = this.getDefinition(container.definitionId);
+    if (!definition) {
+      return { success: false, message: 'Container definition not found.' };
+    }
+
+    // Check if container has a trap
+    if (!definition.trap) {
+      return { success: false, message: 'No trap.' };
+    }
+
+    // Check trap state (use instance state if available, otherwise check definition)
+    const isArmed = container.trapState?.isArmed !== false && definition.trap.isArmed;
+    if (!isArmed) {
+      return { success: false, message: 'No armed trap.' };
+    }
+
+    const trap = definition.trap;
+
+    logger.log(`Player ${player?.username || 'unknown'} triggered trap on container ${containerId} (type: ${trap.type})`);
+
+    // Disarm trap after triggering (store state in instance, not definition)
+    container.trapState = { isArmed: false };
+    container.modifiedAt = Date.now();
+
+    // Return trap details for command to handle effects
+    return {
+      success: true,
+      trap: trap,
+      message: trap.message || 'A trap is triggered!',
+      container: container
+    };
+  }
+
+  /**
+   * Disarm a trap on a container
+   * @param {string} containerId - Container ID
+   * @param {Object} player - Player attempting to disarm
+   * @returns {Object} {success: boolean, message: string}
+   */
+  disarmTrap(containerId, player) {
+    const container = this.getContainer(containerId);
+    if (!container) {
+      return { success: false, message: 'Container not found.' };
+    }
+
+    const definition = this.getDefinition(container.definitionId);
+    if (!definition) {
+      return { success: false, message: 'Container definition not found.' };
+    }
+
+    // Check if container has a trap
+    if (!definition.trap) {
+      return { success: false, message: 'No trap to disarm.' };
+    }
+
+    if (!definition.trap.isArmed) {
+      return { success: false, message: 'Trap is already disarmed.' };
+    }
+
+    // Future: Add skill check based on trap difficulty
+    // For now, always succeed
+    definition.trap.isArmed = false;
+    container.modifiedAt = Date.now();
+
+    logger.log(`Player ${player?.username || 'unknown'} disarmed trap on container ${containerId}`);
+
+    return {
+      success: true,
+      message: `You carefully disarm the trap on ${definition.name}.`,
+      container: container
+    };
   }
 
   /**

@@ -43,6 +43,46 @@ function execute(player, args, context) {
 
   // Handle room containers
   if (type === 'room') {
+    // Check for traps before opening
+    const trapResult = RoomContainerManager.triggerTrap(containerId, player);
+
+    if (trapResult.success) {
+      // Trap triggered!
+      player.send('\n' + colors.error(trapResult.message + '\n'));
+
+      // Apply trap effects
+      const trap = trapResult.trap;
+
+      if (trap.type === 'damage' && trap.damage) {
+        const damage = trap.damage;
+        player.hp = Math.max(0, (player.hp || 100) - damage);
+        player.send(colors.error(`You take ${damage} damage!\n`));
+        player.send(colors.info(`HP: ${player.hp}/${player.maxHp || 100}\n`));
+
+        // Announce to room
+        if (allPlayers && definition) {
+          const announcement = `${player.getDisplayName()} triggers a trap on ${definition.name}!`;
+          for (const p of allPlayers) {
+            if (p !== player && p.currentRoom === player.currentRoom) {
+              p.send('\n' + colors.dim(announcement + '\n'));
+            }
+          }
+        }
+      } else if (trap.type === 'poison') {
+        player.send(colors.error('You feel poison coursing through your veins!\n'));
+        // Future: Apply poison status effect
+      } else if (trap.type === 'alarm') {
+        player.send(colors.warning('An alarm sounds loudly!\n'));
+        // Future: Alert nearby NPCs
+      } else if (trap.type === 'teleport') {
+        player.send(colors.warning('Magic swirls around you!\n'));
+        // Future: Teleport player
+      }
+
+      // Trap still allows opening after triggering
+      player.send('\n');
+    }
+
     // Use RoomContainerManager to open the container
     const openResult = RoomContainerManager.openContainer(containerId, player);
 
