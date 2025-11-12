@@ -14,9 +14,10 @@ const { findContainer } = require('../../systems/containers/ContainerFinder');
 const RoomContainerManager = require('../../systems/containers/RoomContainerManager');
 const InventoryManager = require('../../systems/inventory/InventoryManager');
 const ItemRegistry = require('../../items/ItemRegistry');
+const config = require('../../config/itemsConfig');
 
-// Maximum stack size for stackable items
-const MAX_STACK_SIZE = 99;
+// Get maximum stack size from config
+const MAX_STACK_SIZE = config.stacking?.defaultStackSize || 99;
 
 /**
  * Execute put command

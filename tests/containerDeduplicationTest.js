@@ -5,7 +5,6 @@
 
 const World = require('../src/world');
 const RoomContainerManager = require('../src/systems/containers/RoomContainerManager');
-const colors = require('../src/colors');
 
 console.log('=== Container Deduplication Test ===\n');
 

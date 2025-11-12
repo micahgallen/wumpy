@@ -27,6 +27,10 @@ const LootSpawner = require('./LootSpawner');
 const TimerManager = require('../corpses/TimerManager');
 
 class RoomContainerManager {
+  // Buffer time (ms) for respawn timer expiration during downtime
+  // If a timer expires within this buffer, respawn immediately instead of rescheduling
+  static RESPAWN_BUFFER_MS = 100;
+
   constructor() {
     // Container definitions loaded from world files (blueprints)
     this.definitions = new Map();
@@ -837,9 +841,8 @@ class RoomContainerManager {
         // Handle respawn timer restoration
         if (container.nextRespawn && definition.lootConfig?.respawnOnEmpty) {
           const remaining = container.nextRespawn - now;
-          const RESPAWN_BUFFER_MS = 100;
 
-          if (remaining <= RESPAWN_BUFFER_MS) {
+          if (remaining <= RoomContainerManager.RESPAWN_BUFFER_MS) {
             // Timer expired during downtime - respawn immediately
             logger.log(`Container ${containerId} respawn timer expired during downtime, respawning now`);
             this.onContainerRespawn(containerId);
@@ -1179,13 +1182,16 @@ class RoomContainerManager {
       return { success: false, message: 'No trap to disarm.' };
     }
 
-    if (!definition.trap.isArmed) {
+    // Check trap state (use instance state if available, otherwise check definition)
+    const isArmed = container.trapState?.isArmed !== false && definition.trap.isArmed;
+    if (!isArmed) {
       return { success: false, message: 'Trap is already disarmed.' };
     }
 
     // Future: Add skill check based on trap difficulty
     // For now, always succeed
-    definition.trap.isArmed = false;
+    // Store trap state in instance, not definition (to avoid affecting all containers of this type)
+    container.trapState = { isArmed: false };
     container.modifiedAt = Date.now();
 
     logger.log(`Player ${player?.username || 'unknown'} disarmed trap on container ${containerId}`);

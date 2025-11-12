@@ -4,14 +4,13 @@
  */
 
 const RoomContainerManager = require('../src/systems/containers/RoomContainerManager');
-const fs = require('fs');
 const path = require('path');
 
 console.log('=== Container Deduplication Logic Test ===\n');
 
 // Initialize manager
 const World = require('../src/world');
-const world = new World('./world');
+new World('./world');
 
 console.log('Step 1: Initial state');
 console.log('---------------------');
